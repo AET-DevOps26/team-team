@@ -1,4 +1,4 @@
-# Multi-Agent Banking System (DevOps Course Project)
+# Multi-Agent Banking System
 
 This repository contains a full mono-repo banking web application with:
 
@@ -105,11 +105,3 @@ cd server/orchestrator-service && mvn test
 cd genai && pip install -r requirements.txt && pytest
 cd client && npm install && npm run test
 ```
-
-## 9. Suggested Team Responsibility Split
-
-- Student A: Client primary ownership (`client`)
-- Student B: Server primary ownership (`server`)
-- Student C: GenAI primary ownership (`genai`)
-
-All students should collaborate on integration, CI/CD, deployment, and monitoring.
