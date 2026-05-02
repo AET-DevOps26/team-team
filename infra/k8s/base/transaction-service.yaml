@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: transaction-service
+  namespace: banking-system
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: transaction-service
+  template:
+    metadata:
+      labels:
+        app: transaction-service
+    spec:
+      containers:
+        - name: transaction-service
+          image: ghcr.io/your-org/transaction-service:latest
+          ports:
+            - containerPort: 8082
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://postgres:5432/bankdb
+            - name: SPRING_DATASOURCE_USERNAME
+              value: bank
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: bankpass
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: transaction-service
+  namespace: banking-system
+spec:
+  selector:
+    app: transaction-service
+  ports:
+    - port: 8082
+      targetPort: 8082

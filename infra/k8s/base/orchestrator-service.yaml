@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orchestrator-service
+  namespace: banking-system
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: orchestrator-service
+  template:
+    metadata:
+      labels:
+        app: orchestrator-service
+    spec:
+      containers:
+        - name: orchestrator-service
+          image: ghcr.io/your-org/orchestrator-service:latest
+          ports:
+            - containerPort: 8083
+          env:
+            - name: ACCOUNT_SERVICE_URL
+              value: http://account-service:8081
+            - name: TRANSACTION_SERVICE_URL
+              value: http://transaction-service:8082
+            - name: GENAI_SERVICE_URL
+              value: http://genai-service:8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orchestrator-service
+  namespace: banking-system
+spec:
+  selector:
+    app: orchestrator-service
+  ports:
+    - port: 8083
+      targetPort: 8083

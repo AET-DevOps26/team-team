@@ -1,0 +1,33 @@
+openapi: 3.0.3
+info:
+  title: Banking Orchestrator API
+  version: 1.0.0
+paths:
+  /api/dashboard/{accountId}:
+    get:
+      summary: Get dashboard payload for account
+      parameters:
+        - in: path
+          name: accountId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Dashboard response
+  /api/chat:
+    post:
+      summary: Chat with banking assistant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+      responses:
+        '200':
+          description: Chat response

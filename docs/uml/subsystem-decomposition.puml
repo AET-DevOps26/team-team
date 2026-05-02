@@ -1,0 +1,24 @@
+@startuml
+package "Client" {
+  [React Frontend]
+}
+
+package "Server" {
+  [Orchestrator Service]
+  [Account Service]
+  [Transaction Service]
+}
+
+package "GenAI" {
+  [Python GenAI Service]
+}
+
+database "PostgreSQL" as DB
+
+[React Frontend] --> [Orchestrator Service] : REST
+[Orchestrator Service] --> [Account Service] : REST
+[Orchestrator Service] --> [Transaction Service] : REST
+[Orchestrator Service] --> [Python GenAI Service] : REST
+[Account Service] --> DB
+[Transaction Service] --> DB
+@enduml

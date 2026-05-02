@@ -1,0 +1,8 @@
+resources:
+  - namespace.yaml
+  - postgres.yaml
+  - account-service.yaml
+  - transaction-service.yaml
+  - genai-service.yaml
+  - orchestrator-service.yaml
+  - client.yaml
