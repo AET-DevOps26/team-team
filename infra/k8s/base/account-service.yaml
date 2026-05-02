@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: account-service
-          image: ghcr.io/your-org/account-service:latest
+          image: ghcr.io/aet-devops26/account-service:latest
           ports:
             - containerPort: 8081
           env:

@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: client
-          image: ghcr.io/your-org/client:latest
+          image: ghcr.io/aet-devops26/client:latest
           ports:
             - containerPort: 80
 ---

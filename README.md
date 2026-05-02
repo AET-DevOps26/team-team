@@ -7,6 +7,66 @@ This repository contains a full mono-repo banking web application with:
 - `genai`: Python-based GenAI microservice
 - `infra`: Docker Compose, Kubernetes manifests, monitoring stack
 
+## Prerequisites & Requirements
+
+### Option 1: Docker-Based (Recommended)
+
+**Linux System Requirements:**
+```bash
+# Install Docker
+https://docs.docker.com/desktop/setup/install/linux/
+```
+
+**Versions:**
+- Docker: 20.10+ (any recent version)
+- Docker Compose: 2.0+
+- Git: 2.0+
+
+### Option 2: Local Development (Full Stack)
+
+**Required Languages & Frameworks:**
+
+| Component | Language | Framework | Version |
+|-----------|----------|-----------|---------|
+| Frontend | TypeScript | React + Vite | 18.3.1 + 5.4.0 |
+| Backend Services | Java | Spring Boot | 3.3.5 |
+| GenAI Service | Python | FastAPI | 3.12 |
+| Database | SQL | PostgreSQL | 16 |
+
+**Linux System Packages:**
+```bash
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install -y \
+  build-essential \
+  curl \
+  git \
+  openjdk-17-jdk \
+  maven \
+  nodejs \
+  npm \
+  python3.12 \
+  python3-pip \
+  postgresql-client
+```
+
+
+**Python Dependencies:**
+```bash
+cd genai
+pip install -r requirements.txt
+```
+
+**Node.js Dependencies:**
+```bash
+cd client
+npm install
+```
+
+**Maven Central Repository:**
+- Java Spring Boot and Jackson dependencies auto-downloaded
+- Maven wrapper pre-configured to use Maven 3.9.9
+
 ## 1. System Architecture
 
 ### Subsystems
@@ -71,7 +131,7 @@ Deploy:
 kubectl apply -k infra/k8s/base
 ```
 
-Replace placeholder image names (`ghcr.io/your-org/...`) with your own registry images.
+Use your GitHub Container Registry image names (for example: `ghcr.io/aet-devops26/...`).
 
 ## 6. Monitoring and Alerting
 

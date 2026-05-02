@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: orchestrator-service
-          image: ghcr.io/your-org/orchestrator-service:latest
+          image: ghcr.io/aet-devops26/orchestrator-service:latest
           ports:
             - containerPort: 8083
           env:

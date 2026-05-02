@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: transaction-service
-          image: ghcr.io/your-org/transaction-service:latest
+          image: ghcr.io/aet-devops26/transaction-service:latest
           ports:
             - containerPort: 8082
           env:

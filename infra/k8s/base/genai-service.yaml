@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: genai-service
-          image: ghcr.io/your-org/genai-service:latest
+          image: ghcr.io/aet-devops26/genai-service:latest
           ports:
             - containerPort: 8000
           env:

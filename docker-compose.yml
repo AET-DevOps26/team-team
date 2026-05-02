@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: bank
       POSTGRES_PASSWORD: bankpass
     ports:
-      - "5432:5432"
+      - "5434:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./infra/docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -19,8 +19,8 @@ services:
 
   account-service:
     build:
-      context: ./server/account-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: server/account-service/Dockerfile
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bankdb
       SPRING_DATASOURCE_USERNAME: bank
@@ -34,8 +34,8 @@ services:
 
   transaction-service:
     build:
-      context: ./server/transaction-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: server/transaction-service/Dockerfile
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bankdb
       SPRING_DATASOURCE_USERNAME: bank
@@ -60,8 +60,8 @@ services:
 
   orchestrator-service:
     build:
-      context: ./server/orchestrator-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: server/orchestrator-service/Dockerfile
     environment:
       SERVER_PORT: 8083
       ACCOUNT_SERVICE_URL: http://account-service:8081
