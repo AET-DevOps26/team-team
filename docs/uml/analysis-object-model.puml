@@ -1,0 +1,31 @@
+@startuml
+class Account {
+  +id: UUID
+  +customerName: String
+  +balance: Decimal
+  +creditLimit: Decimal
+}
+
+class Transaction {
+  +id: UUID
+  +accountId: UUID
+  +category: String
+  +amount: Decimal
+  +direction: String
+  +createdAt: Timestamp
+}
+
+class DashboardResponse {
+  +account: AccountSummary
+  +trend: BalancePoint[]
+  +expenses: ExpenseSlice[]
+  +aiSummary: String
+}
+
+class ChatRequest {
+  +message: String
+}
+
+Account "1" -- "*" Transaction
+DashboardResponse --> Account
+@enduml

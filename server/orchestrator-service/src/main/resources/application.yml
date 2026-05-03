@@ -1,0 +1,24 @@
+server:
+  port: ${SERVER_PORT:8083}
+
+services:
+  account:
+    url: ${ACCOUNT_SERVICE_URL:http://localhost:8081}
+  transaction:
+    url: ${TRANSACTION_SERVICE_URL:http://localhost:8082}
+  genai:
+    url: ${GENAI_SERVICE_URL:http://localhost:8000}
+
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true

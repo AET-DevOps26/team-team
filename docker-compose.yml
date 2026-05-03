@@ -1,0 +1,114 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bank-postgres
+    environment:
+      POSTGRES_DB: bankdb
+      POSTGRES_USER: ${POSTGRES_USER:-bank}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required. Set it in .env}
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bank -d bankdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  account-service:
+    build:
+      context: .
+      dockerfile: server/account-service/Dockerfile
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bankdb
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-bank}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required. Set it in .env}
+      SERVER_PORT: 8081
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+
+  transaction-service:
+    build:
+      context: .
+      dockerfile: server/transaction-service/Dockerfile
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bankdb
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-bank}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required. Set it in .env}
+      SERVER_PORT: 8082
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8082:8082"
+
+  genai-service:
+    build:
+      context: ./genai
+      dockerfile: Dockerfile
+    environment:
+      MODEL_PROVIDER: local
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: llama3.1:8b
+    ports:
+      - "8000:8000"
+
+  orchestrator-service:
+    build:
+      context: .
+      dockerfile: server/orchestrator-service/Dockerfile
+    environment:
+      SERVER_PORT: 8083
+      ACCOUNT_SERVICE_URL: http://account-service:8081
+      TRANSACTION_SERVICE_URL: http://transaction-service:8082
+      GENAI_SERVICE_URL: http://genai-service:8000
+    depends_on:
+      - account-service
+      - transaction-service
+      - genai-service
+    ports:
+      - "8083:8083"
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    environment:
+      VITE_API_BASE_URL: http://localhost:8083
+      VITE_ACCOUNT_ID: 111-222
+    depends_on:
+      - orchestrator-service
+    ports:
+      - "3000:80"
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: bank-prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    volumes:
+      - ./infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:11.1.4
+    container_name: bank-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./infra/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    ports:
+      - "3001:3000"
+
+volumes:
+  postgres-data:
