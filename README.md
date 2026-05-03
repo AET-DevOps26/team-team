@@ -90,11 +90,22 @@ Prerequisites:
 
 - Docker + Docker Compose plugin
 
-Run in 2 commands:
+Create your team-local environment file for database credentials:
 
 ```bash
-docker compose build
-docker compose up
+cp .env.team.example .env.team
+```
+
+Start with the team launcher (enforces required env file and variables):
+
+```bash
+./scripts/dev-up.sh
+```
+
+Optional: pass a custom env file path.
+
+```bash
+./scripts/dev-up.sh .env
 ```
 
 App endpoints:

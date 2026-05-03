@@ -1,8 +1,17 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { DashboardPayload, fetchDashboard, sendChat } from "./api";
 
+const DEFAULT_ACCOUNT_UUID = "11111111-1111-1111-1111-111111111111";
+const FRIENDLY_ACCOUNT_ALIAS = "111-222";
+
 function formatMoney(value: number): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
+}
+
+function resolveAccountId(): string {
+  const queryAccountId = new URLSearchParams(window.location.search).get("accountId");
+  const configured = queryAccountId || import.meta.env.VITE_ACCOUNT_ID || FRIENDLY_ACCOUNT_ALIAS;
+  return configured === FRIENDLY_ACCOUNT_ALIAS ? DEFAULT_ACCOUNT_UUID : configured;
 }
 
 function App() {
@@ -11,9 +20,16 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [chatInput, setChatInput] = useState("");
   const [chatReply, setChatReply] = useState("");
+  const accountId = useMemo(resolveAccountId, []);
 
   useEffect(() => {
-    fetchDashboard()
+    if (!accountId) {
+      setError("Missing accountId. Set VITE_ACCOUNT_ID or use ?accountId=<uuid> in URL.");
+      setLoading(false);
+      return;
+    }
+
+    fetchDashboard(accountId)
       .then((payload) => {
         setData(payload);
         setLoading(false);
@@ -22,7 +38,7 @@ function App() {
         setError(e.message);
         setLoading(false);
       });
-  }, []);
+  }, [accountId]);
 
   const chartPoints = useMemo(() => {
     if (!data?.trend?.length) {
@@ -70,7 +86,7 @@ function App() {
           <p className="brand">Home Banking Assistant</p>
           <h1>Dashboard Overview</h1>
         </div>
-        <p className="muted">Customer: {data.account.customerName}</p>
+        <p className="muted">Customer: {data.account.customerName} | Account: {FRIENDLY_ACCOUNT_ALIAS}</p>
       </header>
 
       <section className="cards">

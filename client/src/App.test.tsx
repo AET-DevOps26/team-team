@@ -21,6 +21,7 @@ vi.spyOn(api, "fetchDashboard").mockResolvedValue({
 vi.spyOn(api, "sendChat").mockResolvedValue("reply");
 
 test("renders dashboard heading", async () => {
+  window.history.pushState({}, "", "/?accountId=111-222");
   render(<App />);
   expect(await screen.findByText("Dashboard Overview")).toBeInTheDocument();
 });

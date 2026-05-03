@@ -24,7 +24,10 @@ spec:
             - name: SPRING_DATASOURCE_USERNAME
               value: bank
             - name: SPRING_DATASOURCE_PASSWORD
-              value: bankpass
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: password
 ---
 apiVersion: v1
 kind: Service

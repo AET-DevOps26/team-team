@@ -118,3 +118,30 @@ docker compose build
 - Never commit secrets, tokens, passwords, or kubeconfigs.
 - Use environment variables and secret managers.
 - If you accidentally commit a secret, rotate it immediately and notify maintainers.
+
+## 9. Team Local Environment Workflow
+
+Use the team scripts so everyone runs Compose the same way with an explicit env file.
+
+1. Create your local team env file:
+```bash
+cp .env.team.example .env.team
+```
+2. Fill `.env.team` using values provided by maintainers.
+3. Start the stack:
+```bash
+./scripts/dev-up.sh
+```
+4. Stop the stack:
+```bash
+./scripts/dev-down.sh
+```
+
+Notes:
+- `.env.team` is ignored by git and must never be committed.
+- `./scripts/dev-up.sh` validates required variables before startup.
+- If you need a different env file path, both scripts accept one argument:
+```bash
+./scripts/dev-up.sh path/to/file.env
+./scripts/dev-down.sh path/to/file.env
+```

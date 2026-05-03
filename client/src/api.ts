@@ -24,10 +24,9 @@ export interface DashboardPayload {
 }
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8083";
-const ACCOUNT_ID = "11111111-1111-1111-1111-111111111111";
 
-export async function fetchDashboard(): Promise<DashboardPayload> {
-  const response = await fetch(`${API_BASE}/api/dashboard/${ACCOUNT_ID}`);
+export async function fetchDashboard(accountId: string): Promise<DashboardPayload> {
+  const response = await fetch(`${API_BASE}/api/dashboard/${accountId}`);
   if (!response.ok) {
     throw new Error("Failed to load dashboard");
   }

@@ -24,7 +24,10 @@ spec:
             - name: POSTGRES_USER
               value: bank
             - name: POSTGRES_PASSWORD
-              value: bankpass
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: password
 ---
 apiVersion: v1
 kind: Service

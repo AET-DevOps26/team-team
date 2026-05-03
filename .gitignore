@@ -19,4 +19,5 @@ genai/__pycache__
 
 # Runtime
 .env
+.env.team
 *.log
