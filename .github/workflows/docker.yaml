@@ -2,7 +2,7 @@ name: Build and Push All Services to GHCR
 
 on:
   push:
-    branches: "**"
+    branches: ["main"]
   workflow_dispatch:
 
 permissions:
