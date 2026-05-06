@@ -1,0 +1,17 @@
+@startuml
+left to right direction
+actor Customer
+actor TeamMember
+
+rectangle BankingSystem {
+  usecase "View Dashboard" as UC1
+  usecase "Inspect Expense Categories" as UC2
+  usecase "Ask AI Assistant" as UC3
+  usecase "Review Monitoring" as UC4
+}
+
+Customer --> UC1
+Customer --> UC2
+Customer --> UC3
+TeamMember --> UC4
+@enduml

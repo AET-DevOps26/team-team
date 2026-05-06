@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: account-service
+  namespace: banking-system
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: account-service
+  template:
+    metadata:
+      labels:
+        app: account-service
+    spec:
+      containers:
+        - name: account-service
+          image: ghcr.io/aet-devops26/account-service:latest
+          ports:
+            - containerPort: 8081
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://postgres:5432/bankdb
+            - name: SPRING_DATASOURCE_USERNAME
+              value: bank
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: password
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: account-service
+  namespace: banking-system
+spec:
+  selector:
+    app: account-service
+  ports:
+    - port: 8081
+      targetPort: 8081

@@ -1,0 +1,23 @@
+# Node
+client/node_modules
+client/dist
+client/*.tsbuildinfo
+
+# Python
+genai/.venv
+genai/__pycache__
+**/__pycache__
+.pytest_cache
+
+# Java
+**/target
+
+# IDE
+.vscode
+.idea
+*.iml
+
+# Runtime
+.env
+.env.team
+*.log

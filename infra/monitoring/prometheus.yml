@@ -1,0 +1,23 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: account-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["account-service:8081"]
+
+  - job_name: transaction-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["transaction-service:8082"]
+
+  - job_name: orchestrator-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["orchestrator-service:8083"]
+
+  - job_name: genai-service
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["genai-service:8000"]
