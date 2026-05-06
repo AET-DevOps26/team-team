@@ -29,16 +29,13 @@ jobs:
           python-version: '3.12'
 
       - name: Test account-service
-        working-directory: server/account-service
-        run: mvn -B test
+        run: ./gradlew :account-service:test
 
       - name: Test transaction-service
-        working-directory: server/transaction-service
-        run: mvn -B test
+        run: ./gradlew :transaction-service:test
 
       - name: Test orchestrator-service
-        working-directory: server/orchestrator-service
-        run: mvn -B test
+        run: ./gradlew :orchestrator-service:test
 
       - name: Test genai
         working-directory: genai
