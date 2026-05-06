@@ -3,6 +3,7 @@ name: Build and Push All Services to GHCR
 on:
   push:
     branches: ["main"]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -18,16 +19,32 @@ jobs:
 
     strategy:
       matrix:
-        service:
-          - account-service
-          - transaction-service
-          - orchestrator-service
-          - genai-service
-          - client
+        include:
+
+          # 🟢 Spring services (shared Dockerfile)
+          - service: account-service
+            dockerfile: server/Dockerfile
+            context: .
+
+          - service: transaction-service
+            dockerfile: server/Dockerfile
+            context: .
+
+          - service: orchestrator-service
+            dockerfile: server/Dockerfile
+            context: .
+
+          # 🟡 standalone services
+          - service: genai-service
+            dockerfile: genai/Dockerfile
+            context: genai
+
+          - service: client
+            dockerfile: client/Dockerfile
+            context: client
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -36,13 +53,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build Docker image
+      - name: Build and Push
         run: |
           docker build \
             -t $REGISTRY/$OWNER/${{ matrix.service }}:latest \
-            -f server/${{ matrix.service }}/Dockerfile \
-            .
+            -f ${{ matrix.dockerfile }} \
+            --build-arg SERVICE_NAME=${{ matrix.service }} \
+            ${{ matrix.context }}
 
-      - name: Push Docker image
-        run: |
           docker push $REGISTRY/$OWNER/${{ matrix.service }}:latest
