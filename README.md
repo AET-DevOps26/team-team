@@ -1,5 +1,7 @@
 # Multi-Agent Banking System
 
+> For the full problem statement and system overview (architecture, diagrams, backlog), see [docs/problem_statement+system_overview.md](docs/problem_statement+system_overview.md).
+
 This repository contains a full mono-repo banking web application with:
 
 - `client`: React + TypeScript frontend
