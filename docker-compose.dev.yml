@@ -18,7 +18,9 @@ services:
       retries: 5
 
   account-service:
-    image: ghcr.io/aet-devops26/account-service:latest
+    build:
+      context: .
+      dockerfile: server/account-service/Dockerfile
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bankdb
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-bank}
@@ -31,7 +33,9 @@ services:
       - "8081:8081"
 
   transaction-service:
-    image: ghcr.io/aet-devops26/transaction-service:latest
+    build:
+      context: .
+      dockerfile: server/transaction-service/Dockerfile
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bankdb
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-bank}
@@ -43,17 +47,10 @@ services:
     ports:
       - "8082:8082"
 
-  genai-service:
-    image: ghcr.io/aet-devops26/genai-service:latest
-    environment:
-      MODEL_PROVIDER: local
-      OLLAMA_BASE_URL: http://host.docker.internal:11434
-      OLLAMA_MODEL: llama3.1:8b
-    ports:
-      - "8000:8000"
-
   orchestrator-service:
-    image: ghcr.io/aet-devops26/orchestrator-service:latest
+    build:
+      context: .
+      dockerfile: server/orchestrator-service/Dockerfile
     environment:
       SERVER_PORT: 8083
       ACCOUNT_SERVICE_URL: http://account-service:8081
@@ -66,8 +63,21 @@ services:
     ports:
       - "8083:8083"
 
+  genai-service:
+    build:
+      context: ./genai
+      dockerfile: Dockerfile
+    environment:
+      MODEL_PROVIDER: local
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: llama3.1:8b
+    ports:
+      - "8000:8000"
+
   client:
-    image: ghcr.io/aet-devops26/client:latest
+    build:
+      context: ./client
+      dockerfile: Dockerfile
     environment:
       VITE_API_BASE_URL: http://localhost:8083
       VITE_ACCOUNT_ID: 111-222
