@@ -22,3 +22,7 @@ genai/__pycache__
 .env.team
 *.log
 .DS_Store
+
+
+.gradle/
+build/
