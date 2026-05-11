@@ -22,6 +22,8 @@ subprojects {
     apply(plugin = "java")
     apply(plugin = "org.owasp.dependencycheck")
 
+    // Configure central build directory with subproject folders
+    layout.buildDirectory = rootProject.layout.buildDirectory.dir(project.name)
 
     extensions.configure<JavaPluginExtension> {
         toolchain {
