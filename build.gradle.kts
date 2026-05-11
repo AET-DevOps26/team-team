@@ -1,9 +1,9 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 plugins {
-    id("org.springframework.boot") version "3.3.5" apply false
-    id("io.spring.dependency-management") version "1.1.6" apply false
-    id("org.owasp.dependencycheck") version "12.2.2" apply false
+    id("org.springframework.boot") version "3.4.5" apply false
+    id("io.spring.dependency-management") version "1.1.7" apply false
+    id("org.owasp.dependencycheck") version "12.2.2"
     id("co.uzzu.dotenv.gradle") version "4.0.0"
 
 }
@@ -22,14 +22,13 @@ val owaspData = rootProject.layout.projectDirectory.dir("data/owasp-data").asFil
 subprojects {
 
     apply(plugin = "java")
-    apply(plugin = "org.owasp.dependencycheck")
 
     // Configure central build directory with subproject folders
     layout.buildDirectory = rootProject.layout.buildDirectory.dir(project.name)
 
     extensions.configure<JavaPluginExtension> {
         toolchain {
-            languageVersion.set(JavaLanguageVersion.of(17))
+            languageVersion.set(JavaLanguageVersion.of(21))
         }
     }
 
@@ -46,8 +45,8 @@ subprojects {
             showStandardStreams = true
         }
     }
-
-     configure<org.owasp.dependencycheck.gradle.extension.DependencyCheckExtension> {
+}
+configure<org.owasp.dependencycheck.gradle.extension.DependencyCheckExtension> {
         outputDirectory = owaspRoot
         format = org.owasp.dependencycheck.reporting.ReportGenerator.Format.ALL.toString()
         failBuildOnCVSS = 9.0f
@@ -57,4 +56,3 @@ subprojects {
             directory = owaspData.absolutePath
         }
     }
-}
