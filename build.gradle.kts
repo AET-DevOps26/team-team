@@ -49,7 +49,7 @@ subprojects {
 configure<org.owasp.dependencycheck.gradle.extension.DependencyCheckExtension> {
         outputDirectory = owaspRoot
         format = org.owasp.dependencycheck.reporting.ReportGenerator.Format.ALL.toString()
-        failBuildOnCVSS = 9.0f
+        failBuildOnCVSS = 3.0f
         nvd.apiKey = System.getenv("NVD_API_KEY") ?: env.fetchOrNull("NVD_API_KEY") ?: ""
 
         data {

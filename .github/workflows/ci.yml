@@ -56,7 +56,7 @@ jobs:
         continue-on-error: true
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-        run: ./gradlew dependencyCheckAggregate --info
+        run: ./gradlew dependencyCheckAggregate --info --no-configuration-cache
 
       - name: Upload OWASP Report
         continue-on-error: true
