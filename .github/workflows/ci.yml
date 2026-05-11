@@ -14,7 +14,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ---------------- Java (with Gradle cache) ----------------
+      # ---------------- Java + Gradle cache ----------------
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -34,12 +34,25 @@ jobs:
         with:
           python-version: '3.12'
 
+      # ---------------- Cache OWASP DB (IMPORTANT) ----------------
+      - name: Cache OWASP Database
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/dependency-check-data
+            **/build/owasp-data
+          key: owasp-${{ runner.os }}-${{ hashFiles('**/*.gradle*') }}
+          restore-keys: |
+            owasp-${{ runner.os }}-
+
       # ---------------- Gradle Tests ----------------
       - name: Test all services
         run: ./gradlew clean test
 
       # ---------------- OWASP Dependency Check (ALL MODULES) ----------------
       - name: OWASP Dependency Check
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: ./gradlew dependencyCheckAnalyze
 
       # ---------------- Python tests ----------------
