@@ -8,35 +8,41 @@ on:
 jobs:
   build-test:
     runs-on: ubuntu-latest
+
     steps:
+      # ---------------- Checkout ----------------
       - name: Checkout
         uses: actions/checkout@v4
 
+      # ---------------- Java (with Gradle cache) ----------------
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+          cache: gradle
 
+      # ---------------- Node ----------------
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: '22'
 
+      # ---------------- Python ----------------
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: Test account-service
-        run: ./gradlew :account-service:test
+      # ---------------- Gradle Tests ----------------
+      - name: Test all services
+        run: ./gradlew clean test
 
-      - name: Test transaction-service
-        run: ./gradlew :transaction-service:test
+      # ---------------- OWASP Dependency Check (ALL MODULES) ----------------
+      - name: OWASP Dependency Check
+        run: ./gradlew dependencyCheckAnalyze
 
-      - name: Test orchestrator-service
-        run: ./gradlew :orchestrator-service:test
-
+      # ---------------- Python tests ----------------
       - name: Test genai
         working-directory: genai
         run: |
@@ -44,6 +50,7 @@ jobs:
           pip install -r requirements.txt
           pytest
 
+      # ---------------- Frontend tests ----------------
       - name: Test client
         working-directory: client
         run: |
