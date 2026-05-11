@@ -23,6 +23,6 @@ genai/__pycache__
 *.log
 .DS_Store
 
-
+data/
 .gradle/
 build/

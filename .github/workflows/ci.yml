@@ -39,8 +39,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ~/.gradle/dependency-check-data
-            **/build/owasp-data
+            data/owasp-data
           key: owasp-${{ runner.os }}-${{ hashFiles('**/*.gradle*') }}
           restore-keys: |
             owasp-${{ runner.os }}-
@@ -53,7 +52,15 @@ jobs:
       - name: OWASP Dependency Check
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-        run: ./gradlew dependencyCheckAggregate
+        run: ./gradlew dependencyCheckAggregate --info
+
+      - name: Upload OWASP Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports
+          path: |
+            build/reports
+            build/**/security-report
 
       # ---------------- Python tests ----------------
       - name: Test genai

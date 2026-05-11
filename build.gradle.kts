@@ -16,6 +16,8 @@ allprojects {
         mavenCentral()
     }
 }
+val owaspRoot = rootProject.layout.buildDirectory.dir("reports/security-report").get().asFile
+val owaspData = rootProject.layout.projectDirectory.dir("data/owasp-data").asFile
 
 subprojects {
 
@@ -45,14 +47,14 @@ subprojects {
         }
     }
 
-      configure<org.owasp.dependencycheck.gradle.extension.DependencyCheckExtension> {
+     configure<org.owasp.dependencycheck.gradle.extension.DependencyCheckExtension> {
+        outputDirectory = owaspRoot
         format = org.owasp.dependencycheck.reporting.ReportGenerator.Format.ALL.toString()
-        outputDirectory = layout.buildDirectory.dir("security-report").get().asFile
         failBuildOnCVSS = 9.0f
         nvd.apiKey = System.getenv("NVD_API_KEY") ?: env.fetchOrNull("NVD_API_KEY") ?: ""
 
         data {
-            directory = layout.buildDirectory.dir("owasp-data").get().asFile.absolutePath
+            directory = owaspData.absolutePath
         }
     }
 }
