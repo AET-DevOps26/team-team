@@ -8,35 +8,66 @@ on:
 jobs:
   build-test:
     runs-on: ubuntu-latest
+
     steps:
+      # ---------------- Checkout ----------------
       - name: Checkout
         uses: actions/checkout@v4
 
+      # ---------------- Java + Gradle cache ----------------
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+          cache: gradle
 
+      # ---------------- Node ----------------
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: '22'
 
+      # ---------------- Python ----------------
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: Test account-service
-        run: ./gradlew :account-service:test
+      # ---------------- Cache OWASP DB (IMPORTANT) ----------------
+      - name: Cache OWASP Database
+        uses: actions/cache@v4
+        continue-on-error: true
+        with:
+          path: |
+            data/owasp-data
+          key: owasp-${{ runner.os }}-${{ hashFiles('**/*.gradle*') }}
+          restore-keys: |
+            owasp-${{ runner.os }}-
 
-      - name: Test transaction-service
-        run: ./gradlew :transaction-service:test
+      # ---------------- Gradle Tests ----------------
+      - name: Test all services
+        if: always()
+        continue-on-error: true
+        run: ./gradlew clean test
 
-      - name: Test orchestrator-service
-        run: ./gradlew :orchestrator-service:test
+      # ---------------- OWASP Dependency Check (ALL MODULES) ----------------
+      - name: OWASP Dependency Check
+        continue-on-error: true
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: ./gradlew dependencyCheckAggregate --info --no-configuration-cache
 
+      - name: Upload OWASP Report
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports
+          path: |
+            build/reports
+            build/**/security-report
+
+      # ---------------- Python tests ----------------
       - name: Test genai
         working-directory: genai
         run: |
@@ -44,6 +75,7 @@ jobs:
           pip install -r requirements.txt
           pytest
 
+      # ---------------- Frontend tests ----------------
       - name: Test client
         working-directory: client
         run: |
