@@ -34,10 +34,9 @@ jobs:
         with:
           python-version: '3.12'
 
-      # ---------------- Cache OWASP DB (IMPORTANT) ----------------
+      # ---------------- Cache OWASP DB ----------------
       - name: Cache OWASP Database
         uses: actions/cache@v4
-        continue-on-error: true
         with:
           path: |
             data/owasp-data
@@ -45,21 +44,27 @@ jobs:
           restore-keys: |
             owasp-${{ runner.os }}-
 
-      # ---------------- Gradle Tests ----------------
+      # ---------------- Tests (backend) ----------------
       - name: Test all services
-        if: always()
-        continue-on-error: true
         run: ./gradlew clean test
 
-      # ---------------- OWASP Dependency Check (ALL MODULES) ----------------
+      # ---------------- OWASP Dependency Check ----------------
       - name: OWASP Dependency Check
-        continue-on-error: true
+        id: owasp
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: ./gradlew dependencyCheckAggregate --info --no-configuration-cache
 
+      # ---------------- OWASP PR Summary + Annotations ----------------
+      - name: OWASP Summary
+        if: always()
+        run: |
+          echo "## 🔐 Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "Check artifacts for full report." >> $GITHUB_STEP_SUMMARY
+
+      # ---------------- Upload OWASP Report ----------------
       - name: Upload OWASP Report
-        continue-on-error: true
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: reports
