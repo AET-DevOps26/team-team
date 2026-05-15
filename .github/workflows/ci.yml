@@ -69,8 +69,8 @@ jobs:
         with:
           name: reports
           path: |
-            build/reports
-            build/**/security-report
+            server/build/reports
+            server/build/**/security-report
 
       # ---------------- Python tests ----------------
       - name: Test genai

@@ -16,6 +16,6 @@ FROM gcr.io/distroless/java21-debian12
 
 WORKDIR /app
 
-COPY --from=build /app/build/account-service/libs/*.jar /app/app.jar
+COPY --from=build /app/server/build/account-service/libs/*.jar /app/app.jar
 
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
