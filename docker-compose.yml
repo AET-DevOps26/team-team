@@ -1,100 +1,227 @@
+
+networks:
+  backend:
+    internal: true
+  edge: {}
+
+volumes:
+  postgres-data:
+
 services:
-  postgres:
+
+  # -------------------------
+  # TRAEFIK (ONLY ENTRY POINT)
+  # -------------------------
+  reverse-proxy:
+    image: traefik:v3.6.15
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedByDefault=false"
+
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+
+      # Let's Encrypt
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=admin@tum.de"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./letsencrypt:/letsencrypt
+
+    networks:
+      - edge
+
+  # -------------------------
+  # DATABASE (INTERNAL ONLY)
+  # -------------------------
+  database:
     image: postgres:16-alpine
-    container_name: bank-postgres
     environment:
       POSTGRES_DB: bankdb
       POSTGRES_USER: ${POSTGRES_USER:-bank}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bank}
-    ports:
-      - "5434:5432"
+
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./infra/docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U bank -d bankdb"]
       interval: 10s
       timeout: 5s
       retries: 5
 
+    networks:
+      - backend
+
+  # -------------------------
+  # ACCOUNT SERVICE
+  # -------------------------
   account-service:
     image: ghcr.io/aet-devops26/account-service:latest
+    build:
+      context: .
+      dockerfile: server/account-service/Dockerfile
+
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bankdb
+      SPRING_DATASOURCE_URL: jdbc:postgresql://database:5432/bankdb
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-bank}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-bank}
       SERVER_PORT: 8081
-    depends_on:
-      postgres:
-        condition: service_healthy
-    ports:
-      - "8081:8081"
 
+    depends_on:
+      database:
+        condition: service_healthy
+
+    networks:
+      - backend
+
+  # -------------------------
+  # TRANSACTION SERVICE
+  # -------------------------
   transaction-service:
     image: ghcr.io/aet-devops26/transaction-service:latest
+    build:
+      context: .
+      dockerfile: server/transaction-service/Dockerfile
+
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bankdb
+      SPRING_DATASOURCE_URL: jdbc:postgresql://database:5432/bankdb
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-bank}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-bank}
       SERVER_PORT: 8082
-    depends_on:
-      postgres:
-        condition: service_healthy
-    ports:
-      - "8082:8082"
 
+    depends_on:
+      database:
+        condition: service_healthy
+
+    networks:
+      - backend
+
+  # -------------------------
+  # GENAI SERVICE
+  # -------------------------
   genai-service:
     image: ghcr.io/aet-devops26/genai-service:latest
+    build:
+      context: ./genai
+      dockerfile: Dockerfile
+
     environment:
       MODEL_PROVIDER: local
       OLLAMA_BASE_URL: http://host.docker.internal:11434
       OLLAMA_MODEL: llama3.1:8b
-    ports:
-      - "8000:8000"
 
+    networks:
+      - backend
+
+  # -------------------------
+  # ORCHESTRATOR (API GATEWAY)
+  # -------------------------
   orchestrator-service:
     image: ghcr.io/aet-devops26/orchestrator-service:latest
+    build:
+      context: .
+      dockerfile: server/orchestrator-service/Dockerfile
+
     environment:
       SERVER_PORT: 8083
       ACCOUNT_SERVICE_URL: http://account-service:8081
       TRANSACTION_SERVICE_URL: http://transaction-service:8082
       GENAI_SERVICE_URL: http://genai-service:8000
-    depends_on:
-      - account-service
-      - transaction-service
-      - genai-service
-    ports:
-      - "8083:8083"
 
+    depends_on:
+      account-service:
+        condition: service_healthy
+      transaction-service:
+        condition: service_healthy
+
+    networks:
+      - backend
+      - edge
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`${APP_HOSTNAME}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.api.entrypoints=websecure"
+      - "traefik.http.routers.api.tls.certresolver=letsencrypt"
+
+      - "traefik.http.middlewares.api-strip.stripprefix.prefixes=/api"
+      - "traefik.http.routers.api.middlewares=api-strip"
+
+      - "traefik.http.services.api.loadbalancer.server.port=8083"
+
+  # -------------------------
+  # CLIENT (FRONTEND)
+  # -------------------------
   client:
     image: ghcr.io/aet-devops26/client:latest
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+
     environment:
-      VITE_API_BASE_URL: http://localhost:8083
-      VITE_ACCOUNT_ID: 111-222
+      PUBLIC_API_URL: https://${APP_HOSTNAME}/api
+
     depends_on:
       - orchestrator-service
-    ports:
-      - "3000:80"
 
+    networks:
+      - edge
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`${APP_HOSTNAME}`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+
+      - "traefik.http.middlewares.compress.compress=true"
+      - "traefik.http.routers.frontend.middlewares=compress"
+
+      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
+
+  # -------------------------
+  # PROMETHEUS
+  # -------------------------
   prometheus:
     image: prom/prometheus:v2.54.1
     volumes:
       - ./infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    ports:
-      - "9090:9090"
+    networks:
+      - backend
 
+  # -------------------------
+  # GRAFANA
+  # -------------------------
   grafana:
     image: grafana/grafana:11.1.4
+
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
+
     volumes:
       - ./infra/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./infra/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
-    depends_on:
-      - prometheus
-    ports:
-      - "3001:3000"
 
-volumes:
-  postgres-data:
+    networks:
+      - edge
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`${APP_HOSTNAME}`) && PathPrefix(`/grafana`)"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls.certresolver=letsencrypt"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+
