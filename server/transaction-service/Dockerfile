@@ -11,11 +11,11 @@ COPY server/ ./server/
 RUN chmod +x gradlew && \
     ./gradlew :transaction-service:build -x test
 
-# ---- runtime stage ----
-FROM eclipse-temurin:21-jre
+# ---- runtime stage (distroless) ----
+FROM gcr.io/distroless/java21-debian12
 
 WORKDIR /app
 
-COPY --from=build /app/server/transaction-service/build/libs/*.jar app.jar
+COPY --from=build /app/server/transaction-service/build/libs/*.jar /app/app.jar
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
