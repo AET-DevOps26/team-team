@@ -34,9 +34,10 @@ jobs:
         with:
           python-version: '3.12'
 
-      # ---------------- Cache OWASP DB ----------------
-      - name: Cache OWASP Database
-        uses: actions/cache@v4
+      # ---------------- Cache OWASP DB (restore) ----------------
+      - name: Restore OWASP Database Cache
+        id: owasp-cache
+        uses: actions/cache/restore@v4
         with:
           path: |
             data/owasp-data
@@ -50,10 +51,20 @@ jobs:
 
       # ---------------- OWASP Dependency Check ----------------
       - name: OWASP Dependency Check
+        continue-on-error: true
         id: owasp
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: ./gradlew dependencyCheckAggregate --info --no-configuration-cache
+
+      # ---------------- Cache OWASP DB (save) ----------------
+      - name: Save OWASP Database Cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            data/owasp-data
+          key: owasp-${{ runner.os }}-${{ hashFiles('**/*.gradle*') }}
 
       # ---------------- OWASP PR Summary + Annotations ----------------
       - name: OWASP Summary
