@@ -1,5 +1,5 @@
 # ---- build stage ----
-FROM eclipse-temurin:17 AS build
+FROM eclipse-temurin:21 AS build
 
 WORKDIR /app
 
@@ -12,7 +12,7 @@ RUN chmod +x gradlew && \
     ./gradlew :transaction-service:build -x test
 
 # ---- runtime stage ----
-FROM eclipse-temurin:17-jre
+FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
