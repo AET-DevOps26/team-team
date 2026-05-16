@@ -1,4 +1,3 @@
-
 networks:
   backend:
     internal: true
@@ -10,43 +9,35 @@ volumes:
 services:
 
   # -------------------------
-  # TRAEFIK (ONLY ENTRY POINT)
+  # TRAEFIK (EDGE ROUTER)
   # -------------------------
   reverse-proxy:
     image: traefik:v3.6.15
-    command:
-      - "--providers.docker=true"
-      - "--providers.docker.exposedByDefault=false"
-
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-
-      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
-
-      # Let's Encrypt
-      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
-      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
-      - "--certificatesresolvers.letsencrypt.acme.email=admin@tum.de"
-      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+    container_name: traefik
 
     restart: unless-stopped
+
     ports:
       - "80:80"
       - "443:443"
+      - "8080:8080"
 
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./letsencrypt:/letsencrypt
+      - ./config/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./config/traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
 
     networks:
       - edge
 
+
   # -------------------------
-  # DATABASE (INTERNAL ONLY)
+  # DATABASE
   # -------------------------
   database:
     image: postgres:16-alpine
+
     environment:
       POSTGRES_DB: bankdb
       POSTGRES_USER: ${POSTGRES_USER:-bank}
@@ -64,6 +55,7 @@ services:
 
     networks:
       - backend
+
 
   # -------------------------
   # ACCOUNT SERVICE
@@ -87,6 +79,7 @@ services:
     networks:
       - backend
 
+
   # -------------------------
   # TRANSACTION SERVICE
   # -------------------------
@@ -109,6 +102,7 @@ services:
     networks:
       - backend
 
+
   # -------------------------
   # GENAI SERVICE
   # -------------------------
@@ -126,8 +120,9 @@ services:
     networks:
       - backend
 
+
   # -------------------------
-  # ORCHESTRATOR (API GATEWAY)
+  # ORCHESTRATOR (BFF / API LAYER)
   # -------------------------
   orchestrator-service:
     image: ghcr.io/aet-devops26/orchestrator-service:latest
@@ -151,16 +146,6 @@ services:
       - backend
       - edge
 
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.api.rule=Host(`${APP_HOSTNAME}`) && PathPrefix(`/api`)"
-      - "traefik.http.routers.api.entrypoints=websecure"
-      - "traefik.http.routers.api.tls.certresolver=letsencrypt"
-
-      - "traefik.http.middlewares.api-strip.stripprefix.prefixes=/api"
-      - "traefik.http.routers.api.middlewares=api-strip"
-
-      - "traefik.http.services.api.loadbalancer.server.port=8083"
 
   # -------------------------
   # CLIENT (FRONTEND)
@@ -180,16 +165,6 @@ services:
     networks:
       - edge
 
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`${APP_HOSTNAME}`)"
-      - "traefik.http.routers.frontend.entrypoints=websecure"
-      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
-
-      - "traefik.http.middlewares.compress.compress=true"
-      - "traefik.http.routers.frontend.middlewares=compress"
-
-      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
 
   # -------------------------
   # PROMETHEUS
@@ -200,6 +175,7 @@ services:
       - ./infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     networks:
       - backend
+
 
   # -------------------------
   # GRAFANA
@@ -217,11 +193,3 @@ services:
 
     networks:
       - edge
-
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=Host(`${APP_HOSTNAME}`) && PathPrefix(`/grafana`)"
-      - "traefik.http.routers.grafana.entrypoints=websecure"
-      - "traefik.http.routers.grafana.tls.certresolver=letsencrypt"
-      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
-

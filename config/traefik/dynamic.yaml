@@ -1,0 +1,60 @@
+http:
+
+  routers:
+
+    api:
+      rule: "Host(`${APP_HOSTNAME}`) && PathPrefix(`/api`)"
+      entryPoints:
+        - websecure
+      service: api-service
+      middlewares:
+        - api-strip
+      tls:
+        certResolver: letsencrypt
+
+    frontend:
+      rule: "Host(`${APP_HOSTNAME}`)"
+      entryPoints:
+        - websecure
+      service: frontend-service
+      middlewares:
+        - compress
+      tls:
+        certResolver: letsencrypt
+
+    grafana:
+      rule: "Host(`${APP_HOSTNAME}`) && PathPrefix(`/grafana`)"
+      entryPoints:
+        - websecure
+      service: grafana-service
+      tls:
+        certResolver: letsencrypt
+
+
+  services:
+
+    api-service:
+      loadBalancer:
+        servers:
+          - url: "http://orchestrator-service:8083"
+
+    frontend-service:
+      loadBalancer:
+        servers:
+          - url: "http://client:3000"
+
+    grafana-service:
+      loadBalancer:
+        servers:
+          - url: "http://grafana:3000"
+
+
+  middlewares:
+
+    api-strip:
+      stripPrefix:
+        prefixes:
+          - /api
+
+    compress:
+      compress: {}
