@@ -23,7 +23,7 @@ export interface DashboardPayload {
   aiSummary: string;
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8083";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
 export async function fetchDashboard(accountId: string): Promise<DashboardPayload> {
   const response = await fetch(`${API_BASE}/api/dashboard/${accountId}`);
