@@ -47,12 +47,14 @@ jobs:
 
       # ---------------- Tests (backend) ----------------
       - name: Test all services
+        working-directory: server
         run: ./gradlew clean test
 
       # ---------------- OWASP Dependency Check ----------------
       - name: OWASP Dependency Check
         continue-on-error: true
         id: owasp
+        working-directory: server
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: ./gradlew dependencyCheckAggregate --info --no-configuration-cache

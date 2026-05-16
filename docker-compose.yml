@@ -63,8 +63,8 @@ services:
   account-service:
     image: ghcr.io/aet-devops26/account-service:latest
     build:
-      context: .
-      dockerfile: server/account-service/Dockerfile
+      context: ./server
+      dockerfile: account-service/Dockerfile
 
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://database:5432/bankdb
@@ -86,8 +86,8 @@ services:
   transaction-service:
     image: ghcr.io/aet-devops26/transaction-service:latest
     build:
-      context: .
-      dockerfile: server/transaction-service/Dockerfile
+      context: ./server
+      dockerfile: transaction-service/Dockerfile
 
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://database:5432/bankdb
@@ -127,8 +127,8 @@ services:
   orchestrator-service:
     image: ghcr.io/aet-devops26/orchestrator-service:latest
     build:
-      context: .
-      dockerfile: server/orchestrator-service/Dockerfile
+      context: ./server
+      dockerfile: orchestrator-service/Dockerfile
 
     environment:
       SERVER_PORT: 8083

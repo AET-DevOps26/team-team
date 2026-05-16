@@ -12,8 +12,8 @@ plugins {
 group = "de.tum.teamteam"
 version = "0.0.1-SNAPSHOT"
 
-// Move all build output under server/build
-layout.buildDirectory = layout.projectDirectory.dir("server/build")
+// Root build output goes under build/
+layout.buildDirectory = layout.projectDirectory.dir("build")
 
 allprojects {
     repositories {
@@ -21,7 +21,7 @@ allprojects {
     }
 }
 val owaspRoot = rootProject.layout.buildDirectory.dir("reports/security-report").get().asFile
-val owaspData = rootProject.layout.projectDirectory.dir("data/owasp-data").asFile
+val owaspData = rootProject.layout.projectDirectory.dir("../data/owasp-data").asFile
 
 subprojects {
 
@@ -34,7 +34,7 @@ subprojects {
         }
     }
 
-    // Subproject build outputs go under server/build/<project-name>
+    // Subproject build outputs go under build/<project-name>
     layout.buildDirectory = rootProject.layout.buildDirectory.dir(project.name)
 
     extensions.configure<JavaPluginExtension> {
