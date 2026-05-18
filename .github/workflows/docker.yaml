@@ -21,17 +21,17 @@ jobs:
       matrix:
         include:
 
-          # 🟢 Spring services (shared Dockerfile)
+          # 🟢 Spring services (own Dockerfile per service)
           - service: account-service
-            dockerfile: server/Dockerfile
+            dockerfile: server/account-service/Dockerfile
             context: .
 
           - service: transaction-service
-            dockerfile: server/Dockerfile
+            dockerfile: server/transaction-service/Dockerfile
             context: .
 
           - service: orchestrator-service
-            dockerfile: server/Dockerfile
+            dockerfile: server/orchestrator-service/Dockerfile
             context: .
 
           # 🟡 standalone services
@@ -58,7 +58,6 @@ jobs:
           docker build \
             -t $REGISTRY/$OWNER/${{ matrix.service }}:latest \
             -f ${{ matrix.dockerfile }} \
-            --build-arg SERVICE_NAME=${{ matrix.service }} \
             ${{ matrix.context }}
 
           docker push $REGISTRY/$OWNER/${{ matrix.service }}:latest

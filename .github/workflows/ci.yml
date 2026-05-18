@@ -19,7 +19,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
           cache: gradle
 
       # ---------------- Node ----------------
@@ -34,10 +34,10 @@ jobs:
         with:
           python-version: '3.12'
 
-      # ---------------- Cache OWASP DB (IMPORTANT) ----------------
-      - name: Cache OWASP Database
-        uses: actions/cache@v4
-        continue-on-error: true
+      # ---------------- Cache OWASP DB (restore) ----------------
+      - name: Restore OWASP Database Cache
+        id: owasp-cache
+        uses: actions/cache/restore@v4
         with:
           path: |
             data/owasp-data
@@ -45,27 +45,45 @@ jobs:
           restore-keys: |
             owasp-${{ runner.os }}-
 
-      # ---------------- Gradle Tests ----------------
+      # ---------------- Tests (backend) ----------------
       - name: Test all services
-        if: always()
-        continue-on-error: true
+        working-directory: server
         run: ./gradlew clean test
 
-      # ---------------- OWASP Dependency Check (ALL MODULES) ----------------
+      # ---------------- OWASP Dependency Check ----------------
       - name: OWASP Dependency Check
         continue-on-error: true
+        id: owasp
+        working-directory: server
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: ./gradlew dependencyCheckAggregate --info --no-configuration-cache
 
+      # ---------------- Cache OWASP DB (save) ----------------
+      - name: Save OWASP Database Cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            data/owasp-data
+          key: owasp-${{ runner.os }}-${{ hashFiles('**/*.gradle*') }}
+
+      # ---------------- OWASP PR Summary + Annotations ----------------
+      - name: OWASP Summary
+        if: always()
+        run: |
+          echo "## 🔐 Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "Check artifacts for full report." >> $GITHUB_STEP_SUMMARY
+
+      # ---------------- Upload OWASP Report ----------------
       - name: Upload OWASP Report
-        continue-on-error: true
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: reports
           path: |
-            build/reports
-            build/**/security-report
+            server/build/reports
+            server/build/**/security-report
 
       # ---------------- Python tests ----------------
       - name: Test genai

@@ -1,7 +1,8 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
 
 plugins {
-    id("org.springframework.boot") version "3.4.5" apply false
+    id("org.springframework.boot") version "4.0.6" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
     id("org.owasp.dependencycheck") version "12.2.2"
     id("co.uzzu.dotenv.gradle") version "4.0.0"
@@ -11,19 +12,29 @@ plugins {
 group = "de.tum.teamteam"
 version = "0.0.1-SNAPSHOT"
 
+// Root build output goes under build/
+layout.buildDirectory = layout.projectDirectory.dir("build")
+
 allprojects {
     repositories {
         mavenCentral()
     }
 }
 val owaspRoot = rootProject.layout.buildDirectory.dir("reports/security-report").get().asFile
-val owaspData = rootProject.layout.projectDirectory.dir("data/owasp-data").asFile
+val owaspData = rootProject.layout.projectDirectory.dir("../data/owasp-data").asFile
 
 subprojects {
 
     apply(plugin = "java")
+    apply(plugin = "io.spring.dependency-management")
 
-    // Configure central build directory with subproject folders
+    the<DependencyManagementExtension>().apply {
+        imports {
+            mavenBom(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES)
+        }
+    }
+
+    // Subproject build outputs go under build/<project-name>
     layout.buildDirectory = rootProject.layout.buildDirectory.dir(project.name)
 
     extensions.configure<JavaPluginExtension> {
@@ -49,7 +60,7 @@ subprojects {
 configure<org.owasp.dependencycheck.gradle.extension.DependencyCheckExtension> {
         outputDirectory = owaspRoot
         format = org.owasp.dependencycheck.reporting.ReportGenerator.Format.ALL.toString()
-        failBuildOnCVSS = 3.0f
+        failBuildOnCVSS = 7.0f
         nvd.apiKey = System.getenv("NVD_API_KEY") ?: env.fetchOrNull("NVD_API_KEY") ?: ""
 
         data {

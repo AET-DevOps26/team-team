@@ -5,9 +5,9 @@
 This repository contains a full mono-repo banking web application with:
 
 - `client`: React + TypeScript frontend
-- `server`: Java Spring Boot microservices (3 services)
+- `server`: Java Spring Boot microservices (3 services, Gradle-built)
 - `genai`: Python-based GenAI microservice
-- `infra`: Docker Compose, Kubernetes manifests, monitoring stack
+- `infra`: Docker Compose, Traefik reverse proxy, Kubernetes manifests, monitoring stack
 
 ## Prerequisites & Requirements
 
@@ -31,9 +31,10 @@ https://docs.docker.com/desktop/setup/install/linux/
 | Component | Language | Framework | Version |
 |-----------|----------|-----------|---------|
 | Frontend | TypeScript | React + Vite | 18.3.1 + 5.4.0 |
-| Backend Services | Java | Spring Boot | 3.3.5 |
+| Backend Services | Java | Spring Boot (Gradle) | 4.0.6 |
 | GenAI Service | Python | FastAPI | 3.12 |
 | Database | SQL | PostgreSQL | 16 |
+| Reverse Proxy | Go | Traefik | 3.6 |
 
 **Linux System Packages:**
 ```bash
@@ -43,14 +44,15 @@ sudo apt-get install -y \
   build-essential \
   curl \
   git \
-  openjdk-17-jdk \
-  maven \
+  openjdk-21-jdk \
   nodejs \
   npm \
   python3.12 \
   python3-pip \
   postgresql-client
 ```
+
+> **Note:** The project uses the Gradle wrapper (`./gradlew`) — no separate Gradle or Maven install needed.
 
 
 **Python Dependencies:**
@@ -65,14 +67,16 @@ cd client
 npm install
 ```
 
-**Maven Central Repository:**
-- Java Spring Boot and Jackson dependencies auto-downloaded
-- Maven wrapper pre-configured to use Maven 3.9.9
+**Gradle & Dependency Management:**
+- Uses Gradle wrapper (`gradlew`) — no pre-installed Gradle required
+- Spring Boot dependencies resolved from Maven Central via the Gradle version catalog (`server/gradle/libs.versions.toml`)
+- Java toolchain configured to JDK 21
 
 ## 1. System Architecture
 
 ### Subsystems
 
+- **Traefik** reverse proxy (`config/traefik/`) handles TLS termination, routing, and load balancing for all services.
 - Frontend (`client`) renders dashboard and assistant UI.
 - Orchestrator service (`server/orchestrator-service`) aggregates data from all backend services and exposes a unified API.
 - Account service (`server/account-service`) manages account-level data and trend points.
@@ -110,12 +114,13 @@ Optional: pass a custom env file path.
 ./scripts/dev-up.sh .env
 ```
 
-App endpoints:
+App endpoints (routed through Traefik):
 
-- Frontend: `http://localhost:3000`
-- Orchestrator API: `http://localhost:8083`
+- Frontend: `https://<APP_HOSTNAME>` (or `http://localhost:3000` directly)
+- Orchestrator API: `https://<APP_HOSTNAME>/api` (or `http://localhost:8083` directly)
+- Traefik Dashboard: `http://localhost:8080`
 - Prometheus: `http://localhost:9090`
-- Grafana: `http://localhost:3001` (admin/admin)
+- Grafana: `https://<APP_HOSTNAME>/grafana` (or `http://localhost:3001`, admin/admin)
 
 ## 3. GenAI Model Modes (No Cloud Dependency)
 
@@ -128,11 +133,14 @@ Configure in `docker-compose.yml` through env vars:
 
 GitHub Actions workflows:
 
-- CI: `.github/workflows/ci.yml`
-	- builds and tests all services (Java, Python, React)
-- CD: `.github/workflows/cd.yml`
-	- deploys Kubernetes manifests on push to `main`
-	- expects `KUBECONFIG` in GitHub secrets
+- **CI** (`.github/workflows/ci.yml`):
+	- Builds & tests all services with Gradle (`./gradlew clean test`), Python (`pytest`), and React (`npm test`)
+	- Runs OWASP Dependency Check for vulnerability scanning
+	- Uses Java 21 (Temurin), Node 22, Python 3.12
+	- Uploads test reports and OWASP security reports as artifacts
+- **CD** (`.github/workflows/cd.yml`):
+	- Deploys Kubernetes manifests via `kubectl apply -k infra/k8s/base` on push to `main`
+	- Expects `KUBECONFIG` in GitHub secrets
 
 ## 5. Kubernetes Deployment
 
@@ -172,9 +180,17 @@ Tracked metrics include:
 Manual local test commands (without Docker):
 
 ```bash
-cd server/account-service && mvn test
-cd server/transaction-service && mvn test
-cd server/orchestrator-service && mvn test
+# All Java services (Gradle)
+cd server && ./gradlew test
+
+# Individual services
+cd server && ./gradlew :account-service:test
+cd server && ./gradlew :transaction-service:test
+cd server && ./gradlew :orchestrator-service:test
+
+# Python
 cd genai && pip install -r requirements.txt && pytest
+
+# React
 cd client && npm install && npm run test
 ```
