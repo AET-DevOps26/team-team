@@ -23,7 +23,7 @@ Create branches from `main` using this format:
 
 Examples:
 - `feat/142-dashboard-expense-chart`
-- `fix/188-docker-maven-parent-resolution`
+- `fix/188-docker-gradle-build-resolution`
 - `chore/205-update-readme-requirements`
 - `docs/211-add-contributing-guide`
 
@@ -62,7 +62,7 @@ PR title format:
 `<type>: <short description> (#<issue-number>)`
 
 Examples:
-- `fix: resolve docker compose parent pom build error (#188)`
+- `fix: resolve docker compose Gradle build error (#188)`
 - `feat: add spending trend sparkline to client dashboard (#142)`
 
 PR description should include:
@@ -81,13 +81,16 @@ Keep PRs focused and small.
 Before opening a PR, run relevant tests locally:
 
 ```bash
-# Java services
-cd server/account-service && mvn test
-cd ../transaction-service && mvn test
-cd ../orchestrator-service && mvn test
+# Java services (Gradle)
+cd server && ./gradlew test
+
+# Individual services
+cd server && ./gradlew :account-service:test
+cd server && ./gradlew :transaction-service:test
+cd server && ./gradlew :orchestrator-service:test
 
 # GenAI service
-cd ../../genai && pip install -r requirements.txt && pytest
+cd ../genai && pip install -r requirements.txt && pytest
 
 # Frontend
 cd ../client && npm install && npm run test && npm run build
