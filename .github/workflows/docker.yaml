@@ -50,7 +50,7 @@ jobs:
       - name: Build Docker image (no push)
         run: |
           docker build \
-            -t $REGISTRY/$OWNER/${{ matrix.service }}:build-${{ github.ref_name }} \
+            -t $REGISTRY/$OWNER/${{ matrix.service }}:ci-build \
             -f ${{ matrix.dockerfile }} \
             ${{ matrix.context }}
 
