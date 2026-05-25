@@ -101,7 +101,7 @@ Create or update your local environment file:
 ```bash
 # if .env already exists, just edit it
 # otherwise create it
-cp .env.example .env
+touch .env
 ```
 
 Start with the team launcher (enforces required env file and variables):

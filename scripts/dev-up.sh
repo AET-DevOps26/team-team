@@ -9,7 +9,7 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
-required_vars=(POSTGRES_USER POSTGRES_PASSWORD)
+required_vars=(POSTGRES_USER POSTGRES_PASSWORD APP_HOSTNAME)
 for var in "${required_vars[@]}"; do
   if ! grep -Eq "^${var}=.+$" "$ENV_FILE"; then
     echo "Missing required variable $var in $ENV_FILE"
