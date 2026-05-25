@@ -96,10 +96,12 @@ Prerequisites:
 
 - Docker + Docker Compose plugin
 
-Create your team-local environment file for database credentials:
+Create or update your local environment file:
 
 ```bash
-cp .env.team.example .env.team
+# if .env already exists, just edit it
+# otherwise create it
+cp .env.example .env
 ```
 
 Start with the team launcher (enforces required env file and variables):
@@ -111,16 +113,22 @@ Start with the team launcher (enforces required env file and variables):
 Optional: pass a custom env file path.
 
 ```bash
-./scripts/dev-up.sh .env
+./scripts/dev-up.sh path/to/file.env
+```
+
+Stop the stack:
+
+```bash
+./scripts/dev-down.sh
 ```
 
 App endpoints (routed through Traefik):
 
-- Frontend: `https://<APP_HOSTNAME>` (or `http://localhost:3000` directly)
-- Orchestrator API: `https://<APP_HOSTNAME>/api` (or `http://localhost:8083` directly)
+- Frontend: `http://localhost:8088` (or `https://localhost:8443`)
+- Orchestrator API: `http://localhost:8088/api` (or `https://localhost:8443/api`)
 - Traefik Dashboard: `http://localhost:8080`
 - Prometheus: `http://localhost:9090`
-- Grafana: `https://<APP_HOSTNAME>/grafana` (or `http://localhost:3001`, admin/admin)
+- Grafana: `http://localhost:8088/grafana`
 
 ## 3. GenAI Model Modes (No Cloud Dependency)
 

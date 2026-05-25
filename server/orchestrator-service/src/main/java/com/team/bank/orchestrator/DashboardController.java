@@ -35,6 +35,19 @@ public class DashboardController {
         this.restTemplate = restTemplate;
     }
 
+    @GetMapping(value = {"", "/"}, produces = MediaType.APPLICATION_JSON_VALUE)
+    public Map<String, Object> apiIndex() {
+        return Map.of(
+            "service", "orchestrator-service",
+            "status", "UP",
+            "endpoints", List.of(
+                "GET /api/health",
+                "GET /api/dashboard/{accountId}",
+                "POST /api/chat"
+            )
+        );
+    }
+
     @GetMapping(value = "/dashboard/{accountId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public DashboardResponse dashboard(@PathVariable UUID accountId) {
         AccountSummary account = restTemplate.getForObject(

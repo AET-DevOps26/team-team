@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ENV_FILE="${1:-.env.team}"
+ENV_FILE="${1:-.env}"
 
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Missing env file: $ENV_FILE"
-  echo "Create it from .env.team.example and fill team-provided values."
+  echo "Create it and define POSTGRES_USER, POSTGRES_PASSWORD, and APP_HOSTNAME."
   exit 1
 fi
 
