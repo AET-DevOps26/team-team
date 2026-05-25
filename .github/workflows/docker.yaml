@@ -24,15 +24,15 @@ jobs:
           # 🟢 Spring services (own Dockerfile per service)
           - service: account-service
             dockerfile: server/account-service/Dockerfile
-            context: .
+            context: server
 
           - service: transaction-service
             dockerfile: server/transaction-service/Dockerfile
-            context: .
+            context: server
 
           - service: orchestrator-service
             dockerfile: server/orchestrator-service/Dockerfile
-            context: .
+            context: server
 
           # 🟡 standalone services
           - service: genai-service

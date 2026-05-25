@@ -124,11 +124,14 @@ Stop the stack:
 
 App endpoints (routed through Traefik):
 
-- Frontend: `http://localhost:8088` (or `https://localhost:8443`)
-- Orchestrator API: `http://localhost:8088/api` (or `https://localhost:8443/api`)
-- Traefik Dashboard: `http://localhost:8080`
-- Prometheus: `http://localhost:9090`
-- Grafana: `http://localhost:8088/grafana`
+- Frontend app: `https://localhost/`
+- Backend API index: `https://localhost/api`
+- Backend health: `https://localhost/api/health`
+- Swagger UI: `https://localhost/swagger-ui/index.html`
+- OpenAPI JSON: `https://localhost/v3/api-docs`
+- Grafana: `https://localhost/grafana/` (default login: `admin` / `admin`)
+- Traefik dashboard: `http://localhost:8080/dashboard/`
+- Traefik API (raw data): `http://localhost:8080/api/rawdata`
 
 ## 3. GenAI Model Modes (No Cloud Dependency)
 

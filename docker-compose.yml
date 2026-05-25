@@ -187,8 +187,8 @@ services:
 
     environment:
       GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin
-      GF_SERVER_ROOT_URL: http://localhost:3000/grafana/
+      GF_SECURITY_ADMIN_PASSWORD: admin1
+      GF_SERVER_ROOT_URL: https://localhost/grafana/
       GF_SERVER_SERVE_FROM_SUB_PATH: "true"
 
     volumes:
