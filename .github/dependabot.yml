@@ -2,8 +2,61 @@
 version: 2
 
 updates:
+  # ── GitHub Actions ──────────────────────────────────────────
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "daily"
     open-pull-requests-limit: 20
+
+  # ── Gradle (Java backend services) ──────────────────────────
+  - package-ecosystem: "gradle"
+    directory: "/server"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 20
+
+  # ── npm (React frontend) ────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/client"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 20
+
+  # ── pip (Python genai service) ──────────────────────────────
+  - package-ecosystem: "pip"
+    directory: "/genai"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 20
+
+  # ── Docker base images ──────────────────────────────────────
+  - package-ecosystem: "docker"
+    directory: "/client"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 10
+
+  - package-ecosystem: "docker"
+    directory: "/genai"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 10
+
+  - package-ecosystem: "docker"
+    directory: "/server/account-service"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 10
+
+  - package-ecosystem: "docker"
+    directory: "/server/orchestrator-service"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 10
+
+  - package-ecosystem: "docker"
+    directory: "/server/transaction-service"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 10
