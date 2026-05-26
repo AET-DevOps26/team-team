@@ -12,10 +12,6 @@ spring:
     properties:
       hibernate:
         format_sql: true
-  jackson:
-    serialization:
-      write-dates-as-timestamps: false
-
 management:
   endpoints:
     web:

@@ -28,6 +28,7 @@ genai/__pycache__
 .DS_Store
 
 data/
+letsencrypt/
 .gradle/
 build/
 
