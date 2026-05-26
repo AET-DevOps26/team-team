@@ -1,3 +1,28 @@
+namespace: banking-system
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+secretGenerator:
+  - name: postgres-credentials
+    envs:
+      - .env
+
+configMapGenerator:
+  - name: prometheus-config
+    files:
+      - monitoring/prometheus.yml
+      - monitoring/alerts.yml
+  - name: grafana-datasources
+    files:
+      - monitoring/grafana/provisioning/datasources/datasource.yml
+  - name: grafana-dashboard-providers
+    files:
+      - monitoring/grafana/provisioning/dashboards/dashboard.yml
+  - name: grafana-dashboards
+    files:
+      - monitoring/grafana/dashboards/banking-overview.json
+
 resources:
   - namespace.yaml
   - postgres.yaml
@@ -6,3 +31,5 @@ resources:
   - genai-service.yaml
   - orchestrator-service.yaml
   - client.yaml
+  - prometheus.yaml
+  - grafana.yaml

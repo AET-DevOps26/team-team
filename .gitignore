@@ -38,6 +38,8 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
+.env.secret
+
 ### STS ###
 .apt_generated
 .classpath

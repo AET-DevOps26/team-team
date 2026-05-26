@@ -27,7 +27,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: postgres-credentials
-                  key: password
+                  key: POSTGRES_PASSWORD
 ---
 apiVersion: v1
 kind: Service
@@ -40,3 +40,4 @@ spec:
   ports:
     - port: 8081
       targetPort: 8081
+  type: ClusterIP
