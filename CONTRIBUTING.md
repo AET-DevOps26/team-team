@@ -148,3 +148,35 @@ Notes:
 ./scripts/dev-up.sh path/to/file.env
 ./scripts/dev-down.sh path/to/file.env
 ```
+
+## 10. Local Service Endpoints
+
+After `./scripts/dev-up.sh` finishes, use these URLs:
+
+- Frontend app: `https://localhost/`
+- Backend API index: `https://localhost/api`
+- Backend health: `https://localhost/api/health`
+- Swagger UI: `https://localhost/swagger-ui/index.html`
+- OpenAPI JSON: `https://localhost/v3/api-docs`
+- Grafana: `https://localhost/grafana/` (default login: `admin` / `admin`)
+- Traefik dashboard: `http://localhost:8080/dashboard/`
+- Traefik API (raw data): `http://localhost:8080/api/rawdata`
+
+Service visibility notes:
+- Prometheus is internal-only by default (not published on host ports).
+- Postgres is internal-only by default (container name `database`, port `5432`).
+- Internal service names reachable from containers on Compose networks:
+  - `http://orchestrator-service:8083`
+  - `http://account-service:8081`
+  - `http://transaction-service:8082`
+  - `http://genai-service:8000`
+
+Internal checks from your terminal (without opening host ports):
+- Prometheus health:
+```bash
+docker compose --env-file .env exec prometheus wget -qO- http://localhost:9090/-/healthy
+```
+- Postgres shell:
+```bash
+docker compose --env-file .env exec database psql -U bank -d bankdb
+```

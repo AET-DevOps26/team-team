@@ -3,17 +3,17 @@ http:
   routers:
 
     api:
-      rule: "Host(`${APP_HOSTNAME}`) && PathPrefix(`/api`)"
+      rule: "PathPrefix(`/api`)"
+      priority: 90
       entryPoints:
         - websecure
       service: api-service
-      middlewares:
-        - api-strip
       tls:
         certResolver: letsencrypt
 
     frontend:
-      rule: "Host(`${APP_HOSTNAME}`)"
+      rule: "PathPrefix(`/`)"
+      priority: 1
       entryPoints:
         - websecure
       service: frontend-service
@@ -23,10 +23,29 @@ http:
         certResolver: letsencrypt
 
     grafana:
-      rule: "Host(`${APP_HOSTNAME}`) && PathPrefix(`/grafana`)"
+      rule: "PathPrefix(`/grafana`)"
+      priority: 100
       entryPoints:
         - websecure
       service: grafana-service
+      tls:
+        certResolver: letsencrypt
+
+    swagger:
+      rule: "PathPrefix(`/swagger-ui`)"
+      priority: 80
+      entryPoints:
+        - websecure
+      service: api-service
+      tls:
+        certResolver: letsencrypt
+
+    openapi:
+      rule: "PathPrefix(`/v3/api-docs`)"
+      priority: 70
+      entryPoints:
+        - websecure
+      service: api-service
       tls:
         certResolver: letsencrypt
 
@@ -41,7 +60,7 @@ http:
     frontend-service:
       loadBalancer:
         servers:
-          - url: "http://client:3000"
+          - url: "http://client:80"
 
     grafana-service:
       loadBalancer:
@@ -50,11 +69,6 @@ http:
 
 
   middlewares:
-
-    api-strip:
-      stripPrefix:
-        prefixes:
-          - /api
 
     compress:
       compress: {}
