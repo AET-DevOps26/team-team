@@ -1,0 +1,136 @@
+# This file contains the default values for the Banking Application Helm chart.
+
+# Add your tumid here
+tumid: ge42cer
+
+##################################################################################################################
+# No changes needed below this line
+namespace:
+  create: false
+
+# Global image pull policy
+imagePullPolicy: Always
+
+# ---------- Account Service ----------
+accountService:
+  image:
+    repository: ghcr.io/aet-devops26/account-service
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 8081
+    targetPort: 8081
+  replicaCount: 2
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+
+# ---------- Transaction Service ----------
+transactionService:
+  image:
+    repository: ghcr.io/aet-devops26/transaction-service
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 8082
+    targetPort: 8082
+  replicaCount: 2
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+
+# ---------- Orchestrator Service ----------
+orchestratorService:
+  image:
+    repository: ghcr.io/aet-devops26/orchestrator-service
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 8083
+    targetPort: 8083
+  replicaCount: 2
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+
+# ---------- GenAI Service ----------
+genaiService:
+  image:
+    repository: ghcr.io/aet-devops26/genai-service
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+
+# ---------- Client (Frontend) ----------
+client:
+  image:
+    repository: ghcr.io/aet-devops26/client
+    tag: latest
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+  replicaCount: 2
+  resources:
+    limits:
+      cpu: "200m"
+      memory: "128Mi"
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+
+# ---------- PostgreSQL ----------
+postgres:
+  image:
+    repository: postgres
+    tag: 16-alpine
+  service:
+    type: ClusterIP
+    port: 5432
+    targetPort: 5432
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+  storage:
+    size: 1Gi
+  database:
+    name: bankdb
+    user: bank
+    # IMPORTANT: Override this via --set or a custom values file
+    password: change-me-before-deploy
+
+# ---------- Ingress ----------
+ingress:
+  enabled: true
+  className: "nginx"
+  tls: true
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"

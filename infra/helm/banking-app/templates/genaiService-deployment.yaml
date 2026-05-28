@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: genai-service
+  namespace: "{{ .Values.tumid }}-devops26"
+spec:
+  replicas: {{ .Values.genaiService.replicaCount }}
+  selector:
+    matchLabels:
+      app: genai-service-selector
+  template:
+    metadata:
+      labels:
+        app: genai-service-selector
+    spec:
+      containers:
+        - name: genai-service
+          image: "{{ .Values.genaiService.image.repository }}:{{ .Values.genaiService.image.tag }}"
+          imagePullPolicy: {{ $.Values.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.genaiService.service.targetPort }}
+          env:
+            - name: MODEL_PROVIDER
+              value: local
+          resources:
+            {{- toYaml .Values.genaiService.resources | nindent 12 }}
