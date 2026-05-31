@@ -21,6 +21,8 @@ http:
         - compress
       tls:
         certResolver: letsencrypt
+        domains:
+          - main: "APP_HOSTNAME_PLACEHOLDER"
 
     grafana:
       rule: "PathPrefix(`/grafana`)"
