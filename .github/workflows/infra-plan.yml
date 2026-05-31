@@ -54,11 +54,15 @@ jobs:
         # isn't tripped up by lines we appended below.
         run: terraform fmt -check -recursive
 
-      - name: Write SSH public key for VM
+      - name: Write SSH keys for VM
         run: |
           mkdir -p ssh
           printf '%s\n' "${{ secrets.VM_SSH_PUBLIC_KEY }}" > ssh/id_rsa.pub
           chmod 644 ssh/id_rsa.pub
+          # Private key is required by the ansible_inventory precondition
+          # (fileexists check) even during plan.
+          printf '%s\n' "${{ secrets.VM_SSH_PRIVATE_KEY }}" > ssh/id_rsa
+          chmod 600 ssh/id_rsa
           # Avoid Terraform regenerating a key — point it at the supplied one.
           echo 'ssh_public_key_path = "ssh/id_rsa.pub"' >> terraform.tfvars
           # Required: explicit CIDR allowed to SSH the VM (never "*").
