@@ -48,6 +48,12 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
+      - name: Terraform fmt
+        # Only checks .tf / .tfvars files committed to the repo.
+        # Runs before we write any generated terraform.tfvars so the check
+        # isn't tripped up by lines we appended below.
+        run: terraform fmt -check -recursive
+
       - name: Write SSH public key for VM
         run: |
           mkdir -p ssh
@@ -57,9 +63,6 @@ jobs:
           echo 'ssh_public_key_path = "ssh/id_rsa.pub"' >> terraform.tfvars
           # Required: explicit CIDR allowed to SSH the VM (never "*").
           echo "allowed_ssh_cidr = \"${{ secrets.ALLOWED_SSH_CIDR }}\"" >> terraform.tfvars
-
-      - name: Terraform fmt
-        run: terraform fmt -check -recursive
 
       - name: Terraform init (remote backend)
         run: |
