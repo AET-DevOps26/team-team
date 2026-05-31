@@ -142,11 +142,13 @@
         regexp: '^(\s*email:\s*).*$'
         replace: '\1{{ acme_email }}'
 
-    - name: Set ACME domain in Traefik dynamic config
-      ansible.builtin.replace:
-        path: "{{ app_dir }}/config/traefik/dynamic.yaml"
-        regexp: 'APP_HOSTNAME_PLACEHOLDER'
-        replace: '{{ app_env.APP_HOSTNAME }}'
+    - name: Render Traefik dynamic config with real ACME domain
+      ansible.builtin.template:
+        src: dynamic.yaml.j2
+        dest: "{{ app_dir }}/config/traefik/dynamic.yaml"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0644"
 
     # ---------------------------------------------------------------------
     # Render .env on the VM

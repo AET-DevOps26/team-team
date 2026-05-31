@@ -10,12 +10,12 @@ app_dir: /opt/team-team
 local_project_root: "{{ playbook_dir }}/../.."
 
 # Email used by Traefik for Let's Encrypt ACME registration / expiry notices.
-acme_email: berdiguly.yaylymov@tum.de
+acme_email: admin@tum.de
 
 # Environment file rendered onto the VM.
 # Override these via --extra-vars or a vault file in production.
 app_env:
-  POSTGRES_USER: admin-bankuser
+  POSTGRES_USER: bank
   POSTGRES_PASSWORD: admin-bankpass
   APP_HOSTNAME: "{{ app_fqdn | default(app_public_ip) }}"
   TRAEFIK_HTTP_PORT: "80"

@@ -11,6 +11,11 @@ admin_username = "azureuser"
 # ssh_public_key_path = "~/.ssh/id_rsa.pub"
 ssh_public_key_path = ""
 
-# Lock SSH down to your IP for safety (find it via https://ifconfig.me)
-# allowed_ssh_cidr = "1.2.3.4/32"
-allowed_ssh_cidr = "*"
+# Optional: explicit path to the matching PRIVATE key. Only needed when your
+# keys don't follow the "<name>" / "<name>.pub" convention. When omitted, the
+# private path is derived by stripping ".pub" from ssh_public_key_path.
+# ssh_private_key_path = "~/.ssh/team-team-azure"
+
+# Lock SSH down to your IP. REQUIRED — wildcards are rejected by validation.
+# Find your IP via https://ifconfig.me and append "/32".
+allowed_ssh_cidr = "1.2.3.4/32"

@@ -1,6 +1,6 @@
 # Azure deployment (Terraform + Ansible)
 
-Provisions a single Ubuntu 24.04 VM in **Sweden Central** and deploys the full
+Provisions a single Ubuntu 24.04 VM in **Poland Central** and deploys the full
 `docker-compose.yml` stack onto it.
 
 ## Layout

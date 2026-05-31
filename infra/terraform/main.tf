@@ -27,7 +27,7 @@ resource "local_file" "public_key" {
 }
 
 locals {
-  ssh_public_key = var.ssh_public_key_path == "" ? tls_private_key.generated[0].public_key_openssh : file(var.ssh_public_key_path)
+  ssh_public_key = var.ssh_public_key_path == "" ? tls_private_key.generated[0].public_key_openssh : file(pathexpand(var.ssh_public_key_path))
 }
 
 # ---------------------------------------------------------------------------
@@ -165,6 +165,18 @@ resource "azurerm_linux_virtual_machine" "vm" {
 # ---------------------------------------------------------------------------
 # Render Ansible inventory once the VM exists
 # ---------------------------------------------------------------------------
+locals {
+  # Resolve the private-key path the Ansible inventory will reference.
+  #   1. Generated key      -> ./ssh/id_rsa (absolute)
+  #   2. Explicit override  -> var.ssh_private_key_path
+  #   3. Otherwise          -> strip ".pub" from var.ssh_public_key_path
+  resolved_ssh_private_key_path = (
+    var.ssh_public_key_path == "" ? abspath("${path.module}/ssh/id_rsa") :
+    var.ssh_private_key_path != "" ? pathexpand(var.ssh_private_key_path) :
+    pathexpand(replace(var.ssh_public_key_path, ".pub", ""))
+  )
+}
+
 resource "local_file" "ansible_inventory" {
   filename        = "${path.module}/../ansible/inventory.ini"
   file_permission = "0644"
@@ -172,6 +184,13 @@ resource "local_file" "ansible_inventory" {
     public_ip      = azurerm_public_ip.pip.ip_address
     fqdn           = azurerm_public_ip.pip.fqdn
     admin_username = var.admin_username
-    ssh_key_path   = var.ssh_public_key_path == "" ? abspath("${path.module}/ssh/id_rsa") : replace(var.ssh_public_key_path, ".pub", "")
+    ssh_key_path   = local.resolved_ssh_private_key_path
   })
+
+  lifecycle {
+    precondition {
+      condition     = var.ssh_public_key_path == "" || fileexists(local.resolved_ssh_private_key_path)
+      error_message = "Resolved SSH private key '${local.resolved_ssh_private_key_path}' does not exist. Set ssh_private_key_path explicitly to the matching private key file."
+    }
+  }
 }
