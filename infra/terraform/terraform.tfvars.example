@@ -1,0 +1,21 @@
+# Copy to terraform.tfvars and edit values
+
+project_name = "team-team"
+environment  = "dev"
+location     = "polandcentral"
+vm_size      = "Standard_B4s_v2"
+
+admin_username = "azureuser"
+
+# Leave empty to auto-generate a key pair in ./ssh/, or point at an existing public key
+# ssh_public_key_path = "~/.ssh/id_rsa.pub"
+ssh_public_key_path = ""
+
+# Optional: explicit path to the matching PRIVATE key. Only needed when your
+# keys don't follow the "<name>" / "<name>.pub" convention. When omitted, the
+# private path is derived by stripping ".pub" from ssh_public_key_path.
+# ssh_private_key_path = "~/.ssh/team-team-azure"
+
+# Lock SSH down to your IP. REQUIRED — wildcards are rejected by validation.
+# Find your IP via https://ifconfig.me and append "/32".
+allowed_ssh_cidr = "1.2.3.4/32"

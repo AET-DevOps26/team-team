@@ -1,0 +1,23 @@
+---
+# Edit values, then point the playbook at this file via -e @group_vars/all.yml
+# (Already wired through ansible.cfg + the deploy script.)
+
+# Directory on the VM where the project will live
+app_dir: /opt/team-team
+
+# Local path (on the control machine) to the repository root that will be synced to the VM.
+# Defaults to two levels above the ansible directory.
+local_project_root: "{{ playbook_dir }}/../.."
+
+# Email used by Traefik for Let's Encrypt ACME registration / expiry notices.
+acme_email: admin@tum.de
+
+# Environment file rendered onto the VM.
+# Override these via --extra-vars or a vault file in production.
+app_env:
+  POSTGRES_USER: bank
+  POSTGRES_PASSWORD: admin-bankpass
+  APP_HOSTNAME: "{{ app_fqdn | default(app_public_ip) }}"
+  TRAEFIK_HTTP_PORT: "80"
+  TRAEFIK_HTTPS_PORT: "443"
+  TRAEFIK_DASHBOARD_PORT: "8080"
