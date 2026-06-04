@@ -1,3 +1,7 @@
+{# Rendered by Ansible into {{ app_dir }}/config/traefik/dynamic.yaml on the VM. #}
+{# Keep this file in sync with config/traefik/dynamic.yaml — the only diff is the #}
+{# tls.domains block injected for the catch-all frontend router so Traefik can     #}
+{# request a Let's Encrypt cert for the real FQDN.                                 #}
 http:
 
   routers:
@@ -21,11 +25,8 @@ http:
         - compress
       tls:
         certResolver: letsencrypt
-        # NOTE: For deployments that need a Let's Encrypt cert, the Ansible
-        # playbook renders `infra/ansible/templates/dynamic.yaml.j2` over this
-        # file and injects a `domains:` block pointing at the real FQDN.
-        # Local docker-compose intentionally has no `domains:` here — Traefik
-        # falls back to its self-signed default cert, which is fine for dev.
+        domains:
+          - main: "{{ app_env.APP_HOSTNAME }}"
 
     grafana:
       rule: "PathPrefix(`/grafana`)"
