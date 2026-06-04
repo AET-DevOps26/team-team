@@ -1,0 +1,30 @@
+server:
+  port: ${SERVER_PORT:8084}
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/bankdb}
+    username: ${SPRING_DATASOURCE_USERNAME:bank}
+    password: ${SPRING_DATASOURCE_PASSWORD:bankpass}
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        format_sql: true
+
+enablebanking:
+  app-id: ${ENABLE_BANKING_APP_ID:}
+  private-key-path: ${ENABLE_BANKING_PRIVATE_KEY_PATH:}
+  redirect-url: ${ENABLE_BANKING_REDIRECT_URL:http://localhost:3000/callback}
+  base-url: ${ENABLE_BANKING_BASE_URL:https://api.enablebanking.com}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
