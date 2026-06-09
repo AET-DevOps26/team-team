@@ -22,6 +22,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+/**
+ * Mints the bearer tokens used to authenticate against Enable Banking. The RSA private key is
+ * loaded once at construction; {@link #sign()} then issues a short-lived RS256 JWT per request.
+ * If the key isn't configured the service still starts (key loading is best-effort) but signing
+ * fails fast the first time it is attempted.
+ */
 @Component
 public class EnableBankingJwtSigner {
 
@@ -41,6 +47,7 @@ public class EnableBankingJwtSigner {
             return null;
         }
         try {
+            // Strip the PEM armor and whitespace to recover the raw base64 PKCS#8 DER bytes.
             String pem = Files.readString(Path.of(path));
             String base64 = pem
                 .replace("-----BEGIN PRIVATE KEY-----", "")
@@ -65,6 +72,9 @@ public class EnableBankingJwtSigner {
             JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256)
                 .keyID(config.getAppId())
                 .build();
+            // Enable Banking authenticates the caller via these JWT claims: a fixed issuer and
+            // the API host as audience (taken from the configured base URL, defaulting to the
+            // canonical host). Token is valid for one hour.
             String audience = java.net.URI.create(config.getBaseUrl()).getHost();
             JWTClaimsSet claims = new JWTClaimsSet.Builder()
                 .issuer("enablebanking.com")

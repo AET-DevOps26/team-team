@@ -16,6 +16,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+/**
+ * Pulls the latest balance and transactions for a linked account from Enable Banking and writes
+ * them into the shared {@code accounts}/{@code transactions} tables. Invoked once a connection
+ * becomes ACTIVE and on demand via the controller's sync endpoint.
+ */
 @Service
 public class BankingSyncService {
 
@@ -87,7 +92,10 @@ public class BankingSyncService {
                         ? tx.get("remittanceInformationUnstructured").toString()
                         : "Uncategorized";
 
-                    // Dedup check
+                    // Best-effort dedup: Enable Banking transactions carry no stable id we
+                    // persist, so we skip rows already present with the same account, category,
+                    // amount and direction. (Trade-off: genuinely identical transactions are
+                    // also dropped.)
                     List<Transaction> existing = transactionRepository
                         .findByAccountIdAndCategoryAndAmountAndDirection(
                             connection.getAccountId(), category, txAmount, direction);

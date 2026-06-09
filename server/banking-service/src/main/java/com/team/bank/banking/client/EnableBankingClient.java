@@ -13,6 +13,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+/**
+ * Thin client over the Enable Banking REST API. Every request carries a freshly signed,
+ * short-lived JWT (see {@link EnableBankingJwtSigner}) as a bearer token. Responses are returned
+ * as loosely-typed maps because Enable Banking's PSD2 payloads vary by bank and endpoint;
+ * callers pick out the fields they need.
+ */
 @Component
 public class EnableBankingClient {
 
@@ -57,6 +63,8 @@ public class EnableBankingClient {
 
     @SuppressWarnings("unchecked")
     public String initiateAuth(String bankName, String country, String redirectUrl, String state) {
+        // Map.of below rejects null values, so bail out early on missing input; the controller
+        // treats a null return as "could not start authorization".
         if (bankName == null || bankName.isBlank()
             || country == null || country.isBlank()
             || redirectUrl == null || redirectUrl.isBlank()

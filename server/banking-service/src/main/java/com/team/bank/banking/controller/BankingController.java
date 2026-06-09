@@ -22,6 +22,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST entry point for linking a bank account through Enable Banking.
+ *
+ * <p>The linking flow is: {@code POST /connect} persists a PENDING connection and returns the
+ * bank's hosted authorization URL; the user authorizes there and is redirected back, at which
+ * point {@code POST /callback} exchanges the code for a session, marks the connection ACTIVE
+ * and runs an initial sync. The random {@code state} token ties the asynchronous callback back
+ * to the originating connection. {@code /status} and {@code /sync} act on an already-linked
+ * account.
+ */
 @RestController
 @RequestMapping("/api/banking")
 public class BankingController {
