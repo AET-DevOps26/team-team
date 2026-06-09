@@ -65,9 +65,10 @@ public class EnableBankingJwtSigner {
             JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256)
                 .keyID(config.getAppId())
                 .build();
+            String audience = java.net.URI.create(config.getBaseUrl()).getHost();
             JWTClaimsSet claims = new JWTClaimsSet.Builder()
                 .issuer("enablebanking.com")
-                .audience("api.enablebanking.com")
+                .audience(audience != null ? audience : "api.enablebanking.com")
                 .issueTime(Date.from(now))
                 .expirationTime(Date.from(now.plusSeconds(3600)))
                 .build();
