@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -80,6 +81,11 @@ public class BankingController {
         String code = body.get("code");
         String state = body.get("state");
 
+        // Both are required to complete the handshake; createSession(code) would NPE on a null code.
+        if (code == null || code.isBlank() || state == null || state.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+
         Optional<BankingConnection> optConnection = connectionRepository.findByState(state);
         if (optConnection.isEmpty()) {
             return ResponseEntity.badRequest().build();
@@ -87,12 +93,21 @@ public class BankingController {
 
         BankingConnection connection = optConnection.get();
         Map<String, Object> session = ebClient.createSession(code);
+        if (session == null) {
+            // Upstream returned no session body; leave the connection PENDING.
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).build();
+        }
 
         String sessionId = (String) session.get("session_id");
         List<Map<String, Object>> accounts = (List<Map<String, Object>>) session.get("accounts");
         String externalUid = accounts != null && !accounts.isEmpty()
             ? (String) accounts.get(0).get("uid")
             : null;
+
+        // Without an external account UID we can't sync, so don't mark the connection ACTIVE.
+        if (externalUid == null || externalUid.isBlank()) {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).build();
+        }
 
         connection.setSessionId(sessionId);
         connection.setExternalAccountUid(externalUid);

@@ -39,6 +39,13 @@ public class BankingSyncService {
     @SuppressWarnings("unchecked")
     public void syncAccount(BankingConnection connection) {
         String externalUid = connection.getExternalAccountUid();
+        // Without an external account UID every Enable Banking call would hit /accounts/null/...
+        // Skip the sync (and don't touch the connection) so it isn't falsely marked as synced.
+        if (externalUid == null || externalUid.isBlank()) {
+            log.warn("Skipping sync for connection {} (bank: {}): no external account UID",
+                connection.getId(), connection.getBankName());
+            return;
+        }
 
         // Sync balances
         Map<String, Object> balanceResponse = ebClient.getBalances(externalUid);
@@ -65,7 +72,13 @@ public class BankingSyncService {
             List<Map<String, Object>> transactions = (List<Map<String, Object>>) txResponse.get("transactions");
             if (transactions != null) {
                 for (Map<String, Object> tx : transactions) {
-                    BigDecimal txAmount = new BigDecimal(tx.get("transactionAmount").toString());
+                    // transactionAmount is a nested object ({amount, currency}) just like
+                    // balanceAmount above, so read the inner "amount" rather than stringifying
+                    // the whole map (which would throw NumberFormatException).
+                    BigDecimal txAmount = parseAmount(tx.get("transactionAmount"));
+                    if (txAmount == null) {
+                        continue;
+                    }
                     String creditDebitIndicator = (String) tx.get("creditDebitIndicator");
                     String direction = "CRDT".equalsIgnoreCase(creditDebitIndicator)
                         || "CREDIT".equalsIgnoreCase(creditDebitIndicator)
@@ -99,5 +112,26 @@ public class BankingSyncService {
         bankingConnectionRepository.save(connection);
 
         log.info("Synced account for connection {} (bank: {})", connection.getId(), connection.getBankName());
+    }
+
+    /**
+     * Extracts a monetary value from an Enable Banking amount field, which may be either a
+     * nested object ({@code {amount, currency}}) or a bare scalar. Returns null when no usable
+     * amount is present so callers can skip the record instead of failing the whole sync.
+     */
+    @SuppressWarnings("unchecked")
+    private BigDecimal parseAmount(Object amountField) {
+        Object raw = amountField instanceof Map
+            ? ((Map<String, Object>) amountField).get("amount")
+            : amountField;
+        if (raw == null) {
+            return null;
+        }
+        try {
+            return new BigDecimal(raw.toString());
+        } catch (NumberFormatException e) {
+            log.warn("Could not parse transaction amount '{}'", raw);
+            return null;
+        }
     }
 }
