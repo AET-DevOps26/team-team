@@ -10,6 +10,8 @@ rootProject.name = "team-team"
 include(":orchestrator-service")
 include(":account-service")
 include(":transaction-service")
+include(":banking-service")
 project(":orchestrator-service").projectDir = file("orchestrator-service")
 project(":account-service").projectDir = file("account-service")
 project(":transaction-service").projectDir = file("transaction-service")
+project(":banking-service").projectDir = file("banking-service")
