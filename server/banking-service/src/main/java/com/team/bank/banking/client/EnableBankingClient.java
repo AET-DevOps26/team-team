@@ -57,6 +57,13 @@ public class EnableBankingClient {
 
     @SuppressWarnings("unchecked")
     public String initiateAuth(String bankName, String country, String redirectUrl, String state) {
+        if (bankName == null || bankName.isBlank()
+            || country == null || country.isBlank()
+            || redirectUrl == null || redirectUrl.isBlank()
+            || state == null || state.isBlank()) {
+            return null;
+        }
+
         String url = config.getBaseUrl() + "/auth";
         String validUntil = Instant.now().plus(90, ChronoUnit.DAYS).toString();
         Map<String, Object> body = Map.of(
