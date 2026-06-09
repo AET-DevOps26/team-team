@@ -6,9 +6,9 @@ import org.junit.jupiter.api.Test;
 
 class ChatRequestTest {
 
-    @Test
-    void shouldStoreMessage() {
-        ChatRequest request = new ChatRequest("hello");
-        assertEquals("hello", request.message());
-    }
+  @Test
+  void shouldStoreMessage() {
+    ChatRequest request = new ChatRequest("hello");
+    assertEquals("hello", request.message());
+  }
 }
