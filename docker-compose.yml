@@ -126,7 +126,7 @@ services:
         condition: service_healthy
 
     volumes:
-      - ${ENABLE_BANKING_PRIVATE_KEY_PATH:-./secrets/private.pem}:/run/secrets/eb_private_key:ro
+      - ${ENABLE_BANKING_PRIVATE_KEY_PATH?Set ENABLE_BANKING_PRIVATE_KEY_PATH to the host path of the Enable Banking private key PEM}:/run/secrets/eb_private_key:ro
 
     networks:
       - backend
