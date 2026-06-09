@@ -60,7 +60,7 @@ public class BankingController {
 
         BankingConnection connection = new BankingConnection();
         connection.setId(UUID.randomUUID());
-        connection.setAccountId(UUID.fromString(request.accountId()));
+        connection.setAccountId(request.accountId());
         connection.setBankName(request.bankName());
         connection.setCountry(request.country());
         connection.setState(state);
