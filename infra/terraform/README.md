@@ -6,15 +6,15 @@ State lives in a remote Azure Storage backend (see [infra/CI-CD.md](../CI-CD.md)
 
 ## Files
 
-| File | Purpose |
-|------|---------|
-| `providers.tf`           | Provider versions, remote state backend |
-| `variables.tf`           | Input variables + validation |
-| `main.tf`                | All Azure resources + generated Ansible inventory |
-| `outputs.tf`             | `public_ip`, `fqdn`, `ssh_command`, `resource_group` |
-| `terraform.tfvars`       | Local values (gitignored) |
-| `terraform.tfvars.example` | Template |
-| `templates/inventory.tmpl` | Ansible inventory rendered after `apply` |
+| File                       | Purpose                                              |
+| -------------------------- | ---------------------------------------------------- |
+| `providers.tf`             | Provider versions, remote state backend              |
+| `variables.tf`             | Input variables + validation                         |
+| `main.tf`                  | All Azure resources + generated Ansible inventory    |
+| `outputs.tf`               | `public_ip`, `fqdn`, `ssh_command`, `resource_group` |
+| `terraform.tfvars`         | Local values (gitignored)                            |
+| `terraform.tfvars.example` | Template                                             |
+| `templates/inventory.tmpl` | Ansible inventory rendered after `apply`             |
 
 ## Required variables
 

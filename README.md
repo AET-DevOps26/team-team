@@ -14,12 +14,14 @@ This repository contains a full mono-repo banking web application with:
 ### Option 1: Docker-Based (Recommended)
 
 **Linux System Requirements:**
+
 ```bash
 # Install Docker
 https://docs.docker.com/desktop/setup/install/linux/
 ```
 
 **Versions:**
+
 - Docker: 20.10+ (any recent version)
 - Docker Compose: 2.0+
 - Git: 2.0+
@@ -28,15 +30,16 @@ https://docs.docker.com/desktop/setup/install/linux/
 
 **Required Languages & Frameworks:**
 
-| Component | Language | Framework | Version |
-|-----------|----------|-----------|---------|
-| Frontend | TypeScript | React + Vite | 18.3.1 + 5.4.0 |
-| Backend Services | Java | Spring Boot (Gradle) | 4.0.6 |
-| GenAI Service | Python | FastAPI | 3.12 |
-| Database | SQL | PostgreSQL | 16 |
-| Reverse Proxy | Go | Traefik | 3.6 |
+| Component        | Language   | Framework            | Version        |
+| ---------------- | ---------- | -------------------- | -------------- |
+| Frontend         | TypeScript | React + Vite         | 18.3.1 + 5.4.0 |
+| Backend Services | Java       | Spring Boot (Gradle) | 4.0.6          |
+| GenAI Service    | Python     | FastAPI              | 3.12           |
+| Database         | SQL        | PostgreSQL           | 16             |
+| Reverse Proxy    | Go         | Traefik              | 3.6            |
 
 **Linux System Packages:**
+
 ```bash
 # Ubuntu/Debian
 sudo apt-get update
@@ -54,20 +57,34 @@ sudo apt-get install -y \
 
 > **Note:** The project uses the Gradle wrapper (`./gradlew`) — no separate Gradle or Maven install needed.
 
-
 **Python Dependencies:**
+
 ```bash
 cd genai
 pip install -r requirements.txt
 ```
 
 **Node.js Dependencies:**
+
 ```bash
 cd client
 npm install
 ```
 
-**Gradle & Dependency Management:**
+**Pre-commit Hooks:**
+
+```bash
+python3 -m pip install pre-commit
+pre-commit install
+pre-commit run --all-files
+```
+
+This repository includes `.pre-commit-config.yaml` at the project root. Hooks cover:
+
+- repository hygiene: whitespace, end-of-file, YAML syntax, merge conflicts
+- formatting for Markdown, YAML, JSON, CSS, HTML, JS/TS via Prettier
+- Python formatting for `genai/` via Black and isort
+  **Gradle & Dependency Management:**
 - Uses Gradle wrapper (`gradlew`) — no pre-installed Gradle required
 - Spring Boot dependencies resolved from Maven Central via the Gradle version catalog (`server/gradle/libs.versions.toml`)
 - Java toolchain configured to JDK 21
@@ -145,13 +162,13 @@ Configure in `docker-compose.yml` through env vars:
 GitHub Actions workflows:
 
 - **CI** (`.github/workflows/ci.yml`):
-	- Builds & tests all services with Gradle (`./gradlew clean test`), Python (`pytest`), and React (`npm test`)
-	- Runs OWASP Dependency Check for vulnerability scanning
-	- Uses Java 21 (Temurin), Node 22, Python 3.12
-	- Uploads test reports and OWASP security reports as artifacts
+  - Builds & tests all services with Gradle (`./gradlew clean test`), Python (`pytest`), and React (`npm test`)
+  - Runs OWASP Dependency Check for vulnerability scanning
+  - Uses Java 21 (Temurin), Node 22, Python 3.12
+  - Uploads test reports and OWASP security reports as artifacts
 - **CD** (`.github/workflows/cd.yml`):
-	- Deploys Kubernetes manifests via `kubectl apply -k infra/k8s/base` on push to `main`
-	- Expects `KUBECONFIG` in GitHub secrets
+  - Deploys Kubernetes manifests via `kubectl apply -k infra/k8s/base` on push to `main`
+  - Expects `KUBECONFIG` in GitHub secrets
 
 ## 5. Kubernetes Deployment
 

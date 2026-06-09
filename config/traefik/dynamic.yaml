@@ -1,7 +1,5 @@
 http:
-
   routers:
-
     api:
       rule: "PathPrefix(`/api`)"
       priority: 90
@@ -54,9 +52,7 @@ http:
       tls:
         certResolver: letsencrypt
 
-
   services:
-
     api-service:
       loadBalancer:
         servers:
@@ -72,8 +68,6 @@ http:
         servers:
           - url: "http://grafana:3000"
 
-
   middlewares:
-
     compress:
       compress: {}

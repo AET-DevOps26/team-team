@@ -13,7 +13,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write   # for azure/login OIDC
+  id-token: write # for azure/login OIDC
 
 concurrency:
   # Never run two deploys at the same time — Terraform state lock + idempotent Ansible runs.
