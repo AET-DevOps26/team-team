@@ -1,4 +1,5 @@
 version: 2
+
 updates:
   - package-ecosystem: "npm"
     directory: "/client"
@@ -7,6 +8,21 @@ updates:
     open-pull-requests-limit: 5
     allow:
       - dependency-type: "all"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "npm"
+    rebase-strategy: auto
+    groups:
+      npm-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+      npm-major:
+        update-types:
+          - "major"
 
   - package-ecosystem: "gradle"
     directory: "/server"
@@ -15,6 +31,21 @@ updates:
     open-pull-requests-limit: 5
     allow:
       - dependency-type: "all"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "gradle"
+    rebase-strategy: auto
+    groups:
+      gradle-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+      gradle-major:
+        update-types:
+          - "major"
 
   - package-ecosystem: "pip"
     directory: "/genai"
@@ -23,15 +54,52 @@ updates:
     open-pull-requests-limit: 5
     allow:
       - dependency-type: "all"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "python"
+    rebase-strategy: auto
+    groups:
+      pip-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+      pip-major:
+        update-types:
+          - "major"
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    groups:
+      actions-updates:
+        update-types:
+          - "minor"
+          - "patch"
+          - "major"
 
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+    labels:
+      - "dependencies"
+      - "docker"
+    groups:
+      docker-updates:
+        update-types:
+          - "minor"
+          - "patch"
+          - "major"
