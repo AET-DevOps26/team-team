@@ -1,11 +1,11 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { DashboardPayload, fetchDashboard, sendChat } from "./api";
+import { DashboardPayload, fetchDashboard, sendChat, fetchBanks, connectBank, handleBankCallback, BankListItem } from "./api";
 
 const DEFAULT_ACCOUNT_UUID = "11111111-1111-1111-1111-111111111111";
 const FRIENDLY_ACCOUNT_ALIAS = "111-222";
 
 function formatMoney(value: number): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
 }
 
 function resolveAccountId(): string {
@@ -20,6 +20,10 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [chatInput, setChatInput] = useState("");
   const [chatReply, setChatReply] = useState("");
+  const [bankPickerOpen, setBankPickerOpen] = useState(false);
+  const [banks, setBanks] = useState<BankListItem[]>([]);
+  const [selectedCountry, setSelectedCountry] = useState("DE");
+  const [connecting, setConnecting] = useState(false);
   const accountId = useMemo(resolveAccountId, []);
 
   useEffect(() => {
@@ -39,6 +43,28 @@ function App() {
         setLoading(false);
       });
   }, [accountId]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    const state = params.get("state");
+    if (!code || !state) return;
+
+    setLoading(true);
+    handleBankCallback(code, state)
+      .then(() => {
+        window.history.replaceState({}, "", window.location.pathname);
+        return fetchDashboard(accountId);
+      })
+      .then((payload) => {
+        setData(payload);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError("Bank connection failed. Please try again.");
+        setLoading(false);
+      });
+  }, []);
 
   const chartPoints = useMemo(() => {
     if (!data?.trend?.length) {
@@ -79,6 +105,8 @@ function App() {
     return <main className="shell"><section className="glass">{error || "Unexpected error"}</section></main>;
   }
 
+  const isDemo = data.connectionStatus?.status !== "ACTIVE";
+
   return (
     <main className="shell">
       <header className="topbar glass">
@@ -86,27 +114,81 @@ function App() {
           <p className="brand">Home Banking Assistant</p>
           <h1>Dashboard Overview</h1>
         </div>
-        <p className="muted">Customer: {data.account.customerName} | Account: {FRIENDLY_ACCOUNT_ALIAS}</p>
+        <div style={{ textAlign: "right" }}>
+          <p className="muted">Customer: {data.account.customerName} | Account: {FRIENDLY_ACCOUNT_ALIAS}</p>
+          {isDemo && <span className="demo-badge">Demo Data</span>}
+        </div>
       </header>
 
+      {isDemo && (
+        <section className="demo-banner glass">
+          You are viewing sample data. Connect your bank below to see real balances and transactions.
+        </section>
+      )}
+
       <section className="cards">
-        <article className="card glass">
-          <p>Total Balance</p>
+        <article className={`card glass${isDemo ? " card--demo" : ""}`}>
+          <p>Total Balance {isDemo && <span className="demo-tag">sample</span>}</p>
           <h2>{formatMoney(data.account.totalBalance)}</h2>
         </article>
-        <article className="card glass">
-          <p>Total Credit Limit</p>
+        <article className={`card glass${isDemo ? " card--demo" : ""}`}>
+          <p>Total Credit Limit {isDemo && <span className="demo-tag">sample</span>}</p>
           <h2>{formatMoney(data.account.totalCreditLimit)}</h2>
         </article>
-        <article className="card glass">
-          <p>Utilization Rate</p>
+        <article className={`card glass${isDemo ? " card--demo" : ""}`}>
+          <p>Utilization Rate {isDemo && <span className="demo-tag">sample</span>}</p>
           <h2>{(data.account.utilizationRate * 100).toFixed(1)}%</h2>
         </article>
       </section>
 
+      <section className="panel glass">
+        <h3>Bank Connection</h3>
+        {data.connectionStatus?.status === "ACTIVE" ? (
+          <p className="connection-active">Connected to <strong>{data.connectionStatus.bankName}</strong> ({data.connectionStatus.country})</p>
+        ) : (
+          <>
+            <p className="muted">Connect your bank account to see real balances and transactions.</p>
+            <div className="bank-picker">
+              <select value={selectedCountry} onChange={(e) => setSelectedCountry(e.target.value)}>
+                <option value="DE">Germany</option>
+                <option value="FI">Finland</option>
+                <option value="SE">Sweden</option>
+                <option value="NL">Netherlands</option>
+              </select>
+              <button onClick={() => { fetchBanks(selectedCountry).then(setBanks).then(() => setBankPickerOpen(true)); }}>
+                Load Banks
+              </button>
+            </div>
+            {bankPickerOpen && banks.length > 0 && (
+              <ul className="bank-list">
+                {banks.map((bank) => (
+                  <li key={bank.name}>
+                    <span>{bank.name}</span>
+                    <button
+                      disabled={connecting}
+                      onClick={async () => {
+                        setConnecting(true);
+                        try {
+                          const { authUrl } = await connectBank(bank.name, bank.country, accountId);
+                          window.location.href = authUrl;
+                        } catch {
+                          setConnecting(false);
+                        }
+                      }}
+                    >
+                      {connecting ? "Connecting..." : "Connect"}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+      </section>
+
       <section className="split">
-        <article className="panel glass">
-          <h3>Account Balance Trend</h3>
+        <article className={`panel glass${isDemo ? " panel--demo" : ""}`}>
+          <h3>Account Balance Trend {isDemo && <span className="demo-tag">sample</span>}</h3>
           <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="chart">
             <polyline points={chartPoints} />
           </svg>
@@ -117,8 +199,8 @@ function App() {
           </div>
         </article>
 
-        <article className="panel glass">
-          <h3>Expense Categories</h3>
+        <article className={`panel glass${isDemo ? " panel--demo" : ""}`}>
+          <h3>Expense Categories {isDemo && <span className="demo-tag">sample</span>}</h3>
           <ul className="expense-list">
             {data.expenses.map((slice) => (
               <li key={slice.category}>

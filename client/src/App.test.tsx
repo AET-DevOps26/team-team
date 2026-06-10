@@ -15,7 +15,8 @@ vi.spyOn(api, "fetchDashboard").mockResolvedValue({
     { month: "Feb", balance: 1200 }
   ],
   expenses: [{ category: "Utilities", percentage: 40 }],
-  aiSummary: "Summary"
+  aiSummary: "Summary",
+  connectionStatus: null
 });
 
 vi.spyOn(api, "sendChat").mockResolvedValue("reply");
