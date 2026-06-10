@@ -48,7 +48,7 @@ services:
       - ./infra/docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
 
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bank -d bankdb"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -104,6 +104,35 @@ services:
 
 
   # -------------------------
+  # BANKING SERVICE (ENABLE BANKING / PSD2)
+  # -------------------------
+  banking-service:
+    image: ghcr.io/aet-devops26/banking-service:latest
+    build:
+      context: ./server
+      dockerfile: banking-service/Dockerfile
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://database:5432/bankdb
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-bank}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-bank}
+      SERVER_PORT: 8084
+      ENABLE_BANKING_APP_ID: ${ENABLE_BANKING_APP_ID:-}
+      ENABLE_BANKING_PRIVATE_KEY_PATH: /run/secrets/eb_private_key
+      ENABLE_BANKING_REDIRECT_URL: ${ENABLE_BANKING_REDIRECT_URL:-http://localhost:3000/callback}
+
+    depends_on:
+      database:
+        condition: service_healthy
+
+    volumes:
+      - ${ENABLE_BANKING_PRIVATE_KEY_PATH?Set ENABLE_BANKING_PRIVATE_KEY_PATH to the host path of the Enable Banking private key PEM}:/run/secrets/eb_private_key:ro
+
+    networks:
+      - backend
+
+
+  # -------------------------
   # GENAI SERVICE
   # -------------------------
   genai-service:
@@ -135,6 +164,7 @@ services:
       ACCOUNT_SERVICE_URL: http://account-service:8081
       TRANSACTION_SERVICE_URL: http://transaction-service:8082
       GENAI_SERVICE_URL: http://genai-service:8000
+      BANKING_SERVICE_URL: http://banking-service:8084
 
     depends_on:
       account-service:
@@ -142,6 +172,8 @@ services:
       transaction-service:
         condition: service_started
       genai-service:
+        condition: service_started
+      banking-service:
         condition: service_started
 
     networks:

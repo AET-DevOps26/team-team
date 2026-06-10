@@ -7,10 +7,10 @@ COPY transaction-service/ ./transaction-service/
 COPY orchestrator-service/ ./orchestrator-service/
 COPY banking-service/ ./banking-service/
 RUN chmod +x gradlew && \
-    ./gradlew :orchestrator-service:build -x test && \
-    find build/orchestrator-service/libs -name "*.jar" ! -name "*plain*" -exec cp {} orchestrator-service.jar \;
+    ./gradlew :banking-service:build -x test && \
+    find build/banking-service/libs -name "*.jar" ! -name "*plain*" -exec cp {} banking-service.jar \;
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-COPY --from=build /app/orchestrator-service.jar app.jar
+COPY --from=build /app/banking-service.jar app.jar
 ENTRYPOINT ["java", "-jar", "app.jar"]

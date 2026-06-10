@@ -69,3 +69,6 @@ out/
 
 ### VS Code ###
 .vscode/
+
+# Enable Banking secrets
+secrets/
