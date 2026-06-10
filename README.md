@@ -5,7 +5,7 @@
 This repository contains a full mono-repo banking web application with:
 
 - `client`: React + TypeScript frontend
-- `server`: Java Spring Boot microservices (3 services, Gradle-built)
+- `server`: Java Spring Boot microservices (4 services, Gradle-built)
 - `genai`: Python-based GenAI microservice
 - `infra`: Docker Compose, Traefik reverse proxy, Kubernetes manifests, monitoring stack
 
@@ -81,6 +81,7 @@ npm install
 - Orchestrator service (`server/orchestrator-service`) aggregates data from all backend services and exposes a unified API.
 - Account service (`server/account-service`) manages account-level data and trend points.
 - Transaction service (`server/transaction-service`) serves transactions and expense analytics.
+- Banking service (`server/banking-service`) integrates with Enable Banking (PSD2/Open Banking) to link external bank accounts and sync balances and transactions into the shared schema. See [ENABLE_BANKING_INTEGRATION.md](ENABLE_BANKING_INTEGRATION.md).
 - GenAI service (`genai`) provides summary and chat capabilities with local-first fallback.
 - PostgreSQL stores persistent account and transaction data.
 

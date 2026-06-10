@@ -42,17 +42,17 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Azure login (OIDC)
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
@@ -91,7 +91,7 @@ jobs:
           echo "resource_group=$(terraform output -raw resource_group)" >> "$GITHUB_OUTPUT"
 
       - name: Upload generated inventory
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ansible-inventory
           path: infra/ansible/inventory.ini
@@ -107,10 +107,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download generated inventory
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ansible-inventory
           path: infra/ansible
