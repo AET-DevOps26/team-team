@@ -8,6 +8,9 @@ on:
       - "infra/ansible/**"
       - "config/**"
       - "docker-compose.yml"
+      - "client/**"
+      - "server/**"
+      - "genai/**"
       - ".github/workflows/infra-deploy.yml"
   workflow_dispatch:
 
