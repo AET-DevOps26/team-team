@@ -63,7 +63,9 @@ jobs:
         id: ip
         # The validation rule rejects "*" / "0.0.0.0/0". Pin SSH access to the
         # runner's own /32 so the NSG only opens port 22 to this runner.
-        run: echo "cidr=$(curl -fsS https://api.ipify.org)/32" >> "$GITHUB_OUTPUT"
+run: |
+          ip="$(curl -4 -fsS --retry 3 --connect-timeout 5 --max-time 10 https://api.ipify.org | tr -d '\n')"
+          echo "cidr=${ip}/32" >> "$GITHUB_OUTPUT"
 
       - name: Write SSH keys for VM
         run: |
