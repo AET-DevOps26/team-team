@@ -6,6 +6,8 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,6 +23,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class DashboardController {
 
     private final RestTemplate restTemplate;
+    private final AccountService accountService;
 
     @Value("${services.account.url}")
     private String accountServiceUrl;
@@ -31,8 +34,9 @@ public class DashboardController {
     @Value("${services.genai.url}")
     private String genaiServiceUrl;
 
-    public DashboardController(RestTemplate restTemplate) {
+    public DashboardController(RestTemplate restTemplate, AccountService accountService) {
         this.restTemplate = restTemplate;
+        this.accountService = accountService;
     }
 
     @GetMapping(value = {"", "/"}, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -49,7 +53,12 @@ public class DashboardController {
     }
 
     @GetMapping(value = "/dashboard/{accountId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public DashboardResponse dashboard(@PathVariable UUID accountId) {
+    public DashboardResponse dashboard(@PathVariable UUID accountId, @AuthenticationPrincipal UserDetails currentUser) {
+        // Security fix: Verify that the requested accountId belongs to the authenticated user to prevent IDOR
+        if (currentUser == null || !accountService.isAccountOwnedBy(accountId, currentUser.getUsername())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+        }
+
         AccountSummary account = restTemplate.getForObject(
             accountServiceUrl + "/api/accounts/" + accountId,
             AccountSummary.class

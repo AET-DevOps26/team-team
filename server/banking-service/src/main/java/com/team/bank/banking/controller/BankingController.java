@@ -6,6 +6,7 @@ import com.team.bank.banking.dto.ConnectBankRequest;
 import com.team.bank.banking.dto.ConnectionStatus;
 import com.team.bank.banking.model.BankingConnection;
 import com.team.bank.banking.model.BankingConnectionRepository;
+import com.team.bank.banking.service.AccountOwnershipService;
 import com.team.bank.banking.service.BankingSyncService;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -14,6 +15,8 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -40,15 +43,18 @@ public class BankingController {
     private final EnableBankingConfig ebConfig;
     private final BankingConnectionRepository connectionRepository;
     private final BankingSyncService syncService;
+    private final AccountOwnershipService accountOwnershipService;
 
     public BankingController(EnableBankingClient ebClient,
                              EnableBankingConfig ebConfig,
                              BankingConnectionRepository connectionRepository,
-                             BankingSyncService syncService) {
+                             BankingSyncService syncService,
+                             AccountOwnershipService accountOwnershipService) {
         this.ebClient = ebClient;
         this.ebConfig = ebConfig;
         this.connectionRepository = connectionRepository;
         this.syncService = syncService;
+        this.accountOwnershipService = accountOwnershipService;
     }
 
     @GetMapping("/banks")
@@ -64,7 +70,12 @@ public class BankingController {
     }
 
     @PostMapping("/connect")
-    public ResponseEntity<Map<String, String>> connect(@RequestBody ConnectBankRequest request) {
+    public ResponseEntity<Map<String, String>> connect(@RequestBody ConnectBankRequest request, @AuthenticationPrincipal UserDetails user) {
+        // Security fix: Verify account ownership to prevent IDOR
+        if (!accountOwnershipService.verifyOwnership(request.accountId(), user)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
         String state = UUID.randomUUID().toString();
         LocalDateTime now = LocalDateTime.now();
 
@@ -132,7 +143,12 @@ public class BankingController {
     }
 
     @GetMapping("/status/{accountId}")
-    public ResponseEntity<ConnectionStatus> status(@PathVariable UUID accountId) {
+    public ResponseEntity<ConnectionStatus> status(@PathVariable UUID accountId, @AuthenticationPrincipal UserDetails user) {
+        // Security fix: Verify account ownership to prevent IDOR
+        if (!accountOwnershipService.verifyOwnership(accountId, user)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
         List<BankingConnection> connections = connectionRepository.findByAccountId(accountId);
         if (connections.isEmpty()) {
             return ResponseEntity.ok(new ConnectionStatus("NONE", null, null));
@@ -143,7 +159,12 @@ public class BankingController {
     }
 
     @PostMapping("/sync/{accountId}")
-    public ResponseEntity<ConnectionStatus> sync(@PathVariable UUID accountId) {
+    public ResponseEntity<ConnectionStatus> sync(@PathVariable UUID accountId, @AuthenticationPrincipal UserDetails user) {
+        // Security fix: Verify account ownership to prevent IDOR
+        if (!accountOwnershipService.verifyOwnership(accountId, user)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
         Optional<BankingConnection> optConnection =
             connectionRepository.findByAccountIdAndStatus(accountId, "ACTIVE");
         if (optConnection.isEmpty()) {
