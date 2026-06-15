@@ -175,8 +175,7 @@ function App() {
             {bankPickerOpen && banks.length > 0 && (
               <ul className="bank-list">
                 {banks.map((bank) => (
-                  <li key={bank.name}>
-                    <span>{bank.name}</span>
+                  <li key={`${bank.country}:${bank.name}`}>
                     <button
                       disabled={connecting}
                       onClick={async () => {
