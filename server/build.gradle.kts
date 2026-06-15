@@ -2,7 +2,7 @@ import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
 
 plugins {
-    id("org.springframework.boot") version "4.0.6" apply false
+    id("org.springframework.boot") version "4.1.0" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
     id("org.owasp.dependencycheck") version "12.2.2"
     id("co.uzzu.dotenv.gradle") version "4.0.0"
