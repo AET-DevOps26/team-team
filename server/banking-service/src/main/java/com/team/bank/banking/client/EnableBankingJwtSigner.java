@@ -7,6 +7,7 @@ import com.nimbusds.jose.crypto.RSASSASigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.team.bank.banking.config.EnableBankingConfig;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -36,6 +37,7 @@ public class EnableBankingJwtSigner {
   private final EnableBankingConfig config;
   private final RSAPrivateKey privateKey;
 
+  @SuppressFBWarnings("CT_CONSTRUCTOR_THROW")
   public EnableBankingJwtSigner(EnableBankingConfig config) {
     this.config = config;
     this.privateKey = loadPrivateKey(config.getPrivateKeyPath());

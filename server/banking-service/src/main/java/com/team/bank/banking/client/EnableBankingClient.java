@@ -1,6 +1,7 @@
 package com.team.bank.banking.client;
 
 import com.team.bank.banking.config.EnableBankingConfig;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -26,6 +27,7 @@ public class EnableBankingClient {
   private final EnableBankingJwtSigner jwtSigner;
   private final EnableBankingConfig config;
 
+  @SuppressFBWarnings("EI_EXPOSE_REP2")
   public EnableBankingClient(
       RestTemplate restTemplate, EnableBankingJwtSigner jwtSigner, EnableBankingConfig config) {
     this.restTemplate = restTemplate;
