@@ -84,7 +84,7 @@ This repository includes `.pre-commit-config.yaml` at the project root. Hooks co
 
 - repository hygiene: whitespace, end-of-file, YAML syntax, merge conflicts
 - formatting for Markdown, YAML, JSON, CSS, HTML, JS/TS via Prettier
-- Python formatting for `genai/` via Black and isort
+- Python linting & formatting for `genai/` via Ruff
 
 **Gradle & Dependency Management:**
 
