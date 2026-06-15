@@ -82,28 +82,9 @@ pre-commit run --all-files
 
 This repository includes `.pre-commit-config.yaml` at the project root. Hooks cover:
 
-- repository hygiene: whitespace, end-of-file, YAML/JSON syntax, merge conflicts, large files
-- security scanning via Gitleaks
-- Python linting & formatting for `genai/` via Ruff (`ruff` + `ruff-format`)
-- frontend linting via ESLint (JS/TS)
-- frontend formatting for Markdown, YAML, JSON, CSS, HTML, JS/TS via Prettier
-- backend formatting for Java via Gradle Spotless
-- backend formatting for Java via Gradle Spotless
-- backend quality gate: tests + Spotless + SpotBugs + Detekt + Error Prone via `./gradlew check`
-- commit message enforcement via Conventional Commits
-
-**Quality Tools:**
-
-| Tool        | Scope                  | Purpose                              | Runs via                   |
-| ----------- | ---------------------- | ------------------------------------ | -------------------------- |
-| Ruff        | Python (`genai/`)      | Linting + formatting                 | pre-commit                 |
-| ESLint      | TypeScript (`client/`) | Static analysis + bug prevention     | pre-commit, `npm run lint` |
-| Prettier    | Frontend + config      | Code formatting                      | pre-commit                 |
-| Spotless    | Java (`server/`)       | Code formatting (Google Java Format) | `./gradlew check`          |
-| SpotBugs    | Java (`server/`)       | Static analysis (bug patterns)       | `./gradlew check`          |
-| Detekt      | Kotlin (`server/`)     | Static analysis (Kotlin)             | `./gradlew check`          |
-| Error Prone | Java (`server/`)       | Compile-time bug prevention          | `./gradlew check`          |
-| Gitleaks    | All                    | Secrets detection                    | pre-commit                 |
+- repository hygiene: whitespace, end-of-file, YAML syntax, merge conflicts
+- formatting for Markdown, YAML, JSON, CSS, HTML, JS/TS via Prettier
+- Python formatting for `genai/` via Black and isort
 
 **Gradle & Dependency Management:**
 
