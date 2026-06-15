@@ -155,7 +155,17 @@ function App() {
                 <option value="SE">Sweden</option>
                 <option value="NL">Netherlands</option>
               </select>
-              <button onClick={() => { fetchBanks(selectedCountry).then(setBanks).then(() => setBankPickerOpen(true)); }}>
+              <button
+                onClick={async () => {
+                  try {
+                    const list = await fetchBanks(selectedCountry);
+                    setBanks(list);
+                    setBankPickerOpen(true);
+                  } catch (e) {
+                    setError(e instanceof Error ? e.message : "Failed to load banks");
+                  }
+                }}
+              >
                 Load Banks
               </button>
             </div>
