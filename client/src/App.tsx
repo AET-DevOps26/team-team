@@ -50,12 +50,15 @@ function App() {
     const state = params.get("state");
     if (!code || !state) return;
 
+    // Remove one-time OAuth params right away (but keep other params like accountId)
+    params.delete("code");
+    params.delete("state");
+    const query = params.toString();
+    window.history.replaceState({}, "", query ? `${window.location.pathname}?${query}` : window.location.pathname);
+
     setLoading(true);
     handleBankCallback(code, state)
-      .then(() => {
-        window.history.replaceState({}, "", window.location.pathname);
-        return fetchDashboard(accountId);
-      })
+      .then(() => fetchDashboard(accountId))
       .then((payload) => {
         setData(payload);
         setLoading(false);
@@ -64,7 +67,7 @@ function App() {
         setError("Bank connection failed. Please try again.");
         setLoading(false);
       });
-  }, []);
+  }, [accountId]);
 
   const chartPoints = useMemo(() => {
     if (!data?.trend?.length) {
