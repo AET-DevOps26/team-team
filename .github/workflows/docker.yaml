@@ -33,6 +33,10 @@ jobs:
             dockerfile: server/orchestrator-service/Dockerfile
             context: server
 
+          - service: banking-service
+            dockerfile: server/banking-service/Dockerfile
+            context: server
+
           # 🟡 standalone services
           - service: genai-service
             dockerfile: genai/Dockerfile
@@ -43,10 +47,10 @@ jobs:
             context: client
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}

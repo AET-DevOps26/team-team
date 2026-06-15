@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
-import App from "./App";
+
 import * as api from "./api";
+import App from "./App";
 
 vi.spyOn(api, "fetchDashboard").mockResolvedValue({
   account: {

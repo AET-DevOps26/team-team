@@ -37,13 +37,13 @@ repos:
   # -----------------------------------
   # Frontend linting (ESLint)
   # -----------------------------------
-  - repo: https://github.com/pre-commit/mirrors-eslint
-    rev: v9.8.0
+  - repo: local
     hooks:
       - id: eslint
+        name: eslint
+        entry: sh -c 'cd client && npx eslint --fix'
+        language: system
         files: ^client/.*\.(js|jsx|ts|tsx)$
-        additional_dependencies:
-          - eslint
 
   # -----------------------------------
   # Frontend formatting (Prettier)
@@ -52,9 +52,8 @@ repos:
     hooks:
       - id: prettier
         name: prettier
-        entry: sh -c 'npx prettier --write .'
+        entry: npx prettier --write
         language: system
-        pass_filenames: false
         files: \.(md|json|yaml|yml|css|html|js|jsx|ts|tsx)$
 
   # -----------------------------------
@@ -79,6 +78,7 @@ repos:
         entry: sh -c 'cd server && ./gradlew check'
         language: system
         pass_filenames: false
+        files: ^server/.*\.(java|kt|kts|gradle|properties|toml|xml|yml|yaml)$
         stages: [pre-commit]
 
   # -----------------------------------
@@ -88,3 +88,4 @@ repos:
     rev: v3.2.0
     hooks:
       - id: conventional-pre-commit
+        stages: [commit-msg]

@@ -32,6 +32,7 @@ export async function fetchDashboard(
   if (!response.ok) {
     throw new Error("Failed to load dashboard");
   }
+
   return response.json() as Promise<DashboardPayload>;
 }
 
@@ -45,5 +46,6 @@ export async function sendChat(message: string): Promise<string> {
     throw new Error("Failed to send message");
   }
   const data = (await response.json()) as { reply: string };
+
   return data.reply;
 }

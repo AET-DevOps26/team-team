@@ -1,5 +1,8 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { DashboardPayload, fetchDashboard, sendChat } from "./api";
+import type { FormEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+import type { DashboardPayload } from "./api";
+import { fetchDashboard, sendChat } from "./api";
 
 const DEFAULT_ACCOUNT_UUID = "11111111-1111-1111-1111-111111111111";
 const FRIENDLY_ACCOUNT_ALIAS = "111-222";
@@ -18,6 +21,7 @@ function resolveAccountId(): string {
   );
   const configured =
     queryAccountId || import.meta.env.VITE_ACCOUNT_ID || FRIENDLY_ACCOUNT_ALIAS;
+
   return configured === FRIENDLY_ACCOUNT_ALIAS
     ? DEFAULT_ACCOUNT_UUID
     : configured;
@@ -37,6 +41,7 @@ function App() {
         "Missing accountId. Set VITE_ACCOUNT_ID or use ?accountId=<uuid> in URL.",
       );
       setLoading(false);
+
       return;
     }
 
@@ -63,6 +68,7 @@ function App() {
       .map((p, index) => {
         const x = (index / Math.max(1, data.trend.length - 1)) * 100;
         const y = 100 - ((p.balance - min) / spread) * 100;
+
         return `${x},${y}`;
       })
       .join(" ");

@@ -8,6 +8,9 @@ on:
       - "infra/ansible/**"
       - "config/**"
       - "docker-compose.yml"
+      - "client/**"
+      - "server/**"
+      - "genai/**"
       - ".github/workflows/infra-deploy.yml"
   workflow_dispatch:
 
@@ -29,32 +32,40 @@ env:
   ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
 
 jobs:
-  terraform-apply:
-    name: Terraform apply
+  deploy:
+    name: Terraform apply + Ansible deploy
     runs-on: ubuntu-latest
-    outputs:
-      public_ip: ${{ steps.tf-outputs.outputs.public_ip }}
-      fqdn: ${{ steps.tf-outputs.outputs.fqdn }}
-      resource_group: ${{ steps.tf-outputs.outputs.resource_group }}
+    # Apply and Ansible run in a SINGLE job so they share the same runner —
+    # and therefore the same public IP. The NSG SSH rule is pinned to that
+    # /32, so the very runner that provisions the VM is also the only host
+    # allowed to SSH into it for the Ansible step.
     defaults:
       run:
         working-directory: infra/terraform
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Azure login (OIDC)
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Detect runner public IP
+        id: ip
+        # The validation rule rejects "*" / "0.0.0.0/0". Pin SSH access to the
+        # runner's own /32 so the NSG only opens port 22 to this runner.
+        run: |
+          ip="$(curl -4 -fsS --retry 3 --connect-timeout 5 --max-time 10 https://api.ipify.org | tr -d '\n')"
+          echo "cidr=${ip}/32" >> "$GITHUB_OUTPUT"
 
       - name: Write SSH keys for VM
         run: |
@@ -62,12 +73,12 @@ jobs:
           printf '%s\n' "${{ secrets.VM_SSH_PUBLIC_KEY }}" > ssh/id_rsa.pub
           chmod 644 ssh/id_rsa.pub
           # Private key required by ansible_inventory precondition and used
-          # later by the Ansible job.
+          # later by the Ansible step.
           printf '%s\n' "${{ secrets.VM_SSH_PRIVATE_KEY }}" > ssh/id_rsa
           chmod 600 ssh/id_rsa
           echo 'ssh_public_key_path = "ssh/id_rsa.pub"' >> terraform.tfvars
-          # Required: explicit CIDR allowed to SSH the VM (never "*").
-          echo "allowed_ssh_cidr = \"${{ secrets.ALLOWED_SSH_CIDR }}\"" >> terraform.tfvars
+          # Required: explicit CIDR allowed to SSH the VM (the runner's /32).
+          echo "allowed_ssh_cidr = \"${{ steps.ip.outputs.cidr }}\"" >> terraform.tfvars
 
       - name: Terraform init (remote backend)
         run: |
@@ -90,37 +101,13 @@ jobs:
           echo "fqdn=$(terraform output -raw fqdn)" >> "$GITHUB_OUTPUT"
           echo "resource_group=$(terraform output -raw resource_group)" >> "$GITHUB_OUTPUT"
 
-      - name: Upload generated inventory
-        uses: actions/upload-artifact@v4
-        with:
-          name: ansible-inventory
-          path: infra/ansible/inventory.ini
-          if-no-files-found: error
-
-  ansible-deploy:
-    name: Ansible deploy
-    needs: terraform-apply
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: infra/ansible
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Download generated inventory
-        uses: actions/download-artifact@v4
-        with:
-          name: ansible-inventory
-          path: infra/ansible
-
       - name: Install Ansible
         run: |
           python3 -m pip install --upgrade pip
           pip install "ansible-core>=2.16"
 
       - name: Install collections
+        working-directory: infra/ansible
         run: ansible-galaxy collection install -r requirements.yml
 
       - name: Configure SSH
@@ -131,15 +118,17 @@ jobs:
           chmod 700 ~/.ssh
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/team-team-azure
           chmod 600 ~/.ssh/team-team-azure
-          ssh-keyscan -H "${{ needs.terraform-apply.outputs.public_ip }}" \
+          ssh-keyscan -H "${{ steps.tf-outputs.outputs.public_ip }}" \
             >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Override inventory SSH key path
+        working-directory: infra/ansible
         run: |
           sed -i "s|ansible_ssh_private_key_file=[^ ]*|ansible_ssh_private_key_file=$HOME/.ssh/team-team-azure|g" inventory.ini
           cat inventory.ini
 
       - name: Run playbook
+        working-directory: infra/ansible
         env:
           ANSIBLE_HOST_KEY_CHECKING: "False"
           ANSIBLE_FORCE_COLOR: "1"
@@ -148,5 +137,5 @@ jobs:
       - name: Summary
         run: |
           echo "## Deployment complete" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Public IP: \`${{ needs.terraform-apply.outputs.public_ip }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- FQDN: https://${{ needs.terraform-apply.outputs.fqdn }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Public IP: \`${{ steps.tf-outputs.outputs.public_ip }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- FQDN: https://${{ steps.tf-outputs.outputs.fqdn }}" >> "$GITHUB_STEP_SUMMARY"

@@ -2,7 +2,7 @@ import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
 
 plugins {
-    id("org.springframework.boot") version "4.0.6" apply false
+    id("org.springframework.boot") version "4.1.0" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
 
     id("org.owasp.dependencycheck") version "12.2.2"
@@ -12,6 +12,7 @@ plugins {
     id("com.diffplug.spotless") version "6.25.0"
     id("com.github.spotbugs") version "6.0.20"
     id("io.gitlab.arturbosch.detekt") version "1.23.6" apply false
+    id("net.ltgt.errorprone") version "4.1.0" apply false
 }
 
 group = "de.tum.teamteam"
@@ -39,6 +40,7 @@ subprojects {
     apply(plugin = "com.diffplug.spotless")
     apply(plugin = "com.github.spotbugs")
     apply(plugin = "io.gitlab.arturbosch.detekt")
+    apply(plugin = "net.ltgt.errorprone")
 
     // -----------------------------
     // Spring dependency management
@@ -97,25 +99,12 @@ subprojects {
     // -----------------------------
     // Error Prone (Java compile-time checks)
     // -----------------------------
-    configurations {
-        create("errorprone")
-    }
-
     dependencies {
         add("errorprone", "com.google.errorprone:error_prone_core:2.23.0")
     }
 
     tasks.withType<JavaCompile>().configureEach {
         options.compilerArgs.add("-Werror")
-
-        options.forkOptions.jvmArgs?.addAll(listOf(
-            "--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED",
-            "--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED",
-            "--add-exports=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED",
-            "--add-exports=jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED",
-            "--add-exports=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED",
-            "--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED"
-        ))
     }
 
     // -----------------------------

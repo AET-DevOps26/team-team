@@ -5,7 +5,7 @@
 This repository contains a full mono-repo banking web application with:
 
 - `client`: React + TypeScript frontend
-- `server`: Java Spring Boot microservices (3 services, Gradle-built)
+- `server`: Java Spring Boot microservices (4 services, Gradle-built)
 - `genai`: Python-based GenAI microservice
 - `infra`: Docker Compose, Traefik reverse proxy, Kubernetes manifests, monitoring stack
 
@@ -82,9 +82,28 @@ pre-commit run --all-files
 
 This repository includes `.pre-commit-config.yaml` at the project root. Hooks cover:
 
-- repository hygiene: whitespace, end-of-file, YAML syntax, merge conflicts
-- formatting for Markdown, YAML, JSON, CSS, HTML, JS/TS via Prettier
-- Python formatting for `genai/` via Black and isort
+- repository hygiene: whitespace, end-of-file, YAML/JSON syntax, merge conflicts, large files
+- security scanning via Gitleaks
+- Python linting & formatting for `genai/` via Ruff (`ruff` + `ruff-format`)
+- frontend linting via ESLint (JS/TS)
+- frontend formatting for Markdown, YAML, JSON, CSS, HTML, JS/TS via Prettier
+- backend formatting for Java via Gradle Spotless
+- backend formatting for Java via Gradle Spotless
+- backend quality gate: tests + Spotless + SpotBugs + Detekt + Error Prone via `./gradlew check`
+- commit message enforcement via Conventional Commits
+
+**Quality Tools:**
+
+| Tool        | Scope                  | Purpose                              | Runs via                   |
+| ----------- | ---------------------- | ------------------------------------ | -------------------------- |
+| Ruff        | Python (`genai/`)      | Linting + formatting                 | pre-commit                 |
+| ESLint      | TypeScript (`client/`) | Static analysis + bug prevention     | pre-commit, `npm run lint` |
+| Prettier    | Frontend + config      | Code formatting                      | pre-commit                 |
+| Spotless    | Java (`server/`)       | Code formatting (Google Java Format) | `./gradlew check`          |
+| SpotBugs    | Java (`server/`)       | Static analysis (bug patterns)       | `./gradlew check`          |
+| Detekt      | Kotlin (`server/`)     | Static analysis (Kotlin)             | `./gradlew check`          |
+| Error Prone | Java (`server/`)       | Compile-time bug prevention          | `./gradlew check`          |
+| Gitleaks    | All                    | Secrets detection                    | pre-commit                 |
 
 **Gradle & Dependency Management:**
 
@@ -101,6 +120,7 @@ This repository includes `.pre-commit-config.yaml` at the project root. Hooks co
 - Orchestrator service (`server/orchestrator-service`) aggregates data from all backend services and exposes a unified API.
 - Account service (`server/account-service`) manages account-level data and trend points.
 - Transaction service (`server/transaction-service`) serves transactions and expense analytics.
+- Banking service (`server/banking-service`) integrates with Enable Banking (PSD2/Open Banking) to link external bank accounts and sync balances and transactions into the shared schema. See [ENABLE_BANKING_INTEGRATION.md](ENABLE_BANKING_INTEGRATION.md).
 - GenAI service (`genai`) provides summary and chat capabilities with local-first fallback.
 - PostgreSQL stores persistent account and transaction data.
 
@@ -165,7 +185,9 @@ Configure in `docker-compose.yml` through env vars:
 GitHub Actions workflows:
 
 - **CI** (`.github/workflows/ci.yml`):
-  - Builds & tests all services with Gradle (`./gradlew clean test`), Python (`pytest`), and React (`npm test`)
+  - Runs the full quality gate for backend via `./gradlew clean check` (compilation + Error Prone + Spotless + SpotBugs + Detekt + tests)
+  - Lints, tests, and builds the React frontend (`npm run lint`, `npm run test`, `npm run build`)
+  - Tests the Python GenAI service (`pytest`)
   - Runs OWASP Dependency Check for vulnerability scanning
   - Uses Java 21 (Temurin), Node 22, Python 3.12
   - Uploads test reports and OWASP security reports as artifacts
