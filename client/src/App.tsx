@@ -184,7 +184,8 @@ function App() {
                         try {
                           const { authUrl } = await connectBank(bank.name, bank.country, accountId);
                           window.location.href = authUrl;
-                        } catch {
+                        } catch (e) {
+                          setError(e instanceof Error ? e.message : "Failed to initiate connection");
                           setConnecting(false);
                         }
                       }}
