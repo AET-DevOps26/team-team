@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
-import App from "./App";
+
 import * as api from "./api";
+import App from "./App";
 
 vi.spyOn(api, "fetchDashboard").mockResolvedValue({
   account: {
@@ -8,14 +9,14 @@ vi.spyOn(api, "fetchDashboard").mockResolvedValue({
     customerName: "Test User",
     totalBalance: 1200,
     totalCreditLimit: 4000,
-    utilizationRate: 0.3
+    utilizationRate: 0.3,
   },
   trend: [
     { month: "Jan", balance: 1000 },
-    { month: "Feb", balance: 1200 }
+    { month: "Feb", balance: 1200 },
   ],
   expenses: [{ category: "Utilities", percentage: 40 }],
-  aiSummary: "Summary"
+  aiSummary: "Summary",
 });
 
 vi.spyOn(api, "sendChat").mockResolvedValue("reply");

@@ -16,7 +16,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write   # for azure/login OIDC
+  id-token: write # for azure/login OIDC
 
 concurrency:
   # Never run two deploys at the same time — Terraform state lock + idempotent Ansible runs.
@@ -63,7 +63,7 @@ jobs:
         id: ip
         # The validation rule rejects "*" / "0.0.0.0/0". Pin SSH access to the
         # runner's own /32 so the NSG only opens port 22 to this runner.
-run: |
+        run: |
           ip="$(curl -4 -fsS --retry 3 --connect-timeout 5 --max-time 10 https://api.ipify.org | tr -d '\n')"
           echo "cidr=${ip}/32" >> "$GITHUB_OUTPUT"
 

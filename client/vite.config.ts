@@ -5,12 +5,12 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      "/api": "http://localhost:8083"
-    }
+      "/api": "http://localhost:8083",
+    },
   },
   test: {
     globals: true,
     environment: "jsdom",
-    setupFiles: "./src/test/setup.ts"
-  }
+    setupFiles: "./src/test/setup.ts",
+  },
 });

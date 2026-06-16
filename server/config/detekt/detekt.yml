@@ -1,0 +1,76 @@
+# Detekt configuration for a Java-first Spring Boot project with Kotlin Gradle DSL.
+# Only Kotlin files (*.kt, *.kts) are analyzed; build files in server/ are the primary target.
+
+build:
+  maxIssues: 0
+  excludeCorrectable: false
+  weights:
+    complexity: 2
+    formatting: 1
+    style: 1
+
+config:
+  validation: true
+  warningsAsErrors: false
+
+style:
+  active: true
+  MagicNumber:
+    active: true
+    ignoreNumbers: ["-1", "0", "1", "2", "100", "1000"]
+    ignoreHashCodeFunction: true
+    ignorePropertyDeclaration: true
+    ignoreConstantDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+    ignoreEnums: true
+    ignoreRanges: true
+    ignoreExtensionFunctions: true
+  WildcardImport:
+    active: true
+  ForbiddenComment:
+    active: true
+    values: ["TODO", "FIXME", "STOPSHIP"]
+    allowedPatterns: ""
+    customMessage: ""
+  UnusedImports:
+    active: true
+  UnusedPrivateMember:
+    active: true
+  MaxLineLength:
+    active: true
+    maxLineLength: 140
+    excludePackageStatements: true
+    excludeImportStatements: true
+    excludeCommentStatements: false
+
+complexity:
+  active: true
+  LongParameterList:
+    active: true
+    functionThreshold: 6
+    constructorThreshold: 7
+    ignoreDefaultParameters: false
+    ignoreDataClasses: true
+    ignoreAnnotatedParameter: []
+  TooManyFunctions:
+    active: true
+    thresholdInFiles: 15
+    thresholdInClasses: 15
+    thresholdInInterfaces: 11
+    thresholdInObjects: 11
+    thresholdInEnums: 11
+    ignoreDeprecated: true
+    ignorePrivate: true
+    ignoreOverridden: true
+  ComplexCondition:
+    active: true
+    threshold: 3
+
+naming:
+  active: true
+  FunctionNaming:
+    active: true
+  ClassNaming:
+    active: true
+  VariableNaming:
+    active: true

@@ -7,13 +7,13 @@ paths:
     get:
       summary: API index and available endpoints
       responses:
-        '200':
+        "200":
           description: API info response
   /api/health:
     get:
       summary: Health status for orchestrator
       responses:
-        '200':
+        "200":
           description: Service health response
   /api/dashboard/{accountId}:
     get:
@@ -26,7 +26,7 @@ paths:
             type: string
             format: uuid
       responses:
-        '200':
+        "200":
           description: Dashboard response
   /api/chat:
     post:
@@ -41,5 +41,5 @@ paths:
                 message:
                   type: string
       responses:
-        '200':
+        "200":
           description: Chat response
