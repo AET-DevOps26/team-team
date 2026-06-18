@@ -72,4 +72,8 @@ test("loads and renders the bank list when Load Banks is clicked", async () => {
   const connectButtons = await screen.findAllByText("Connect");
   expect(connectButtons).toHaveLength(2);
   expect(fetchBanks).toHaveBeenCalledWith("DE");
+
+  // each row shows the bank name next to its Connect button
+  expect(screen.getByText("Bank A")).toBeInTheDocument();
+  expect(screen.getByText("Bank B")).toBeInTheDocument();
 });

@@ -200,6 +200,7 @@ function App() {
               <ul className="bank-list">
                 {banks.map((bank) => (
                   <li key={`${bank.country}:${bank.name}`}>
+                    <span className="bank-name">{bank.name}</span>
                     <button
                       disabled={connecting}
                       onClick={async () => {
