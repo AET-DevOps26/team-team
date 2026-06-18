@@ -17,12 +17,12 @@ infra/
 
 On your workstation (WSL / Linux / macOS — Ansible is not first-class on Windows):
 
-| Tool        | Min version | Install |
-|-------------|-------------|---------|
-| Azure CLI   | 2.60        | `az --version` |
-| Terraform   | 1.6         | https://developer.hashicorp.com/terraform/install |
-| Ansible     | 2.16        | `pipx install ansible` or `apt install ansible` |
-| rsync, ssh  | any         | usually preinstalled |
+| Tool       | Min version | Install                                           |
+| ---------- | ----------- | ------------------------------------------------- |
+| Azure CLI  | 2.60        | `az --version`                                    |
+| Terraform  | 1.6         | https://developer.hashicorp.com/terraform/install |
+| Ansible    | 2.16        | `pipx install ansible` or `apt install ansible`   |
+| rsync, ssh | any         | usually preinstalled                              |
 
 Login to Azure:
 
@@ -65,16 +65,16 @@ After it finishes, open `http://<public-ip>/` in a browser.
 
 ### Terraform (`infra/terraform/terraform.tfvars`)
 
-| Variable              | Default               | Notes |
-|-----------------------|-----------------------|-------|
-| `project_name`        | `team-team`           | Used as a prefix for every resource |
-| `environment`         | `dev`                 | Tag + name suffix |
-| `location`            | `polandcentral`       | Azure region |
-| `vm_size`             | `Standard_B4s_v2`     | See SKU list |
-| `admin_username`      | `azureuser`           | Linux user |
-| `ssh_public_key_path` | `""` (auto-generate)  | Or point at `~/.ssh/id_rsa.pub` |
-| `allowed_ssh_cidr`    | `*`                   | Lock to `your.ip/32` |
-| `os_disk_size_gb`     | `64`                  | StandardSSD_LRS |
+| Variable              | Default              | Notes                               |
+| --------------------- | -------------------- | ----------------------------------- |
+| `project_name`        | `team-team`          | Used as a prefix for every resource |
+| `environment`         | `dev`                | Tag + name suffix                   |
+| `location`            | `polandcentral`      | Azure region                        |
+| `vm_size`             | `Standard_B4s_v2`    | See SKU list                        |
+| `admin_username`      | `azureuser`          | Linux user                          |
+| `ssh_public_key_path` | `""` (auto-generate) | Or point at `~/.ssh/id_rsa.pub`     |
+| `allowed_ssh_cidr`    | `*`                  | Lock to `your.ip/32`                |
+| `os_disk_size_gb`     | `64`                 | StandardSSD_LRS                     |
 
 ### Ansible (`infra/ansible/group_vars/all.yml`)
 
@@ -83,7 +83,7 @@ After it finishes, open `http://<public-ip>/` in a browser.
 ```yaml
 app_env:
   POSTGRES_USER: bank
-  POSTGRES_PASSWORD: bank        # CHANGE for anything beyond a demo
+  POSTGRES_PASSWORD: bank # CHANGE for anything beyond a demo
   APP_HOSTNAME: "<auto from terraform>"
 ```
 

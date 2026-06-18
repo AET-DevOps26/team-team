@@ -6,15 +6,15 @@ State lives in a remote Azure Storage backend (see [infra/CI-CD.md](../CI-CD.md)
 
 ## Files
 
-| File | Purpose |
-|------|---------|
-| `providers.tf`           | Provider versions, remote state backend |
-| `variables.tf`           | Input variables + validation |
-| `main.tf`                | All Azure resources + generated Ansible inventory |
-| `outputs.tf`             | `public_ip`, `fqdn`, `ssh_command`, `resource_group` |
-| `terraform.tfvars`       | Local values (gitignored) |
-| `terraform.tfvars.example` | Template |
-| `templates/inventory.tmpl` | Ansible inventory rendered after `apply` |
+| File                       | Purpose                                              |
+| -------------------------- | ---------------------------------------------------- |
+| `providers.tf`             | Provider versions, remote state backend              |
+| `variables.tf`             | Input variables + validation                         |
+| `main.tf`                  | All Azure resources + generated Ansible inventory    |
+| `outputs.tf`               | `public_ip`, `fqdn`, `ssh_command`, `resource_group` |
+| `terraform.tfvars`         | Local values (gitignored)                            |
+| `terraform.tfvars.example` | Template                                             |
+| `templates/inventory.tmpl` | Ansible inventory rendered after `apply`             |
 
 ## Required variables
 
@@ -51,7 +51,12 @@ terraform output fqdn          # https://<fqdn>/
 
 ## ⚠️ Manual SSH unlock step (every time your IP changes)
 
-CI uses GitHub-hosted runners with random public IPs, so the `ALLOWED_SSH_CIDR` GitHub secret is intentionally set to a wide range (e.g. `0.0.0.0/0`) **only for CI runs**. Locally you should keep your own `terraform.tfvars` pinned to your `/32`.
+CI uses GitHub-hosted runners with random public IPs. Rather than opening SSH
+to the world, the deploy workflow detects the runner's own public IP at deploy
+time and pins `allowed_ssh_cidr` to that `/32`. Because Terraform apply and the
+Ansible step run in the **same** job (same runner, same IP), the NSG only ever
+exposes port 22 to the runner doing the work. No `ALLOWED_SSH_CIDR` secret is
+needed. Locally you should keep your own `terraform.tfvars` pinned to your `/32`.
 
 Whenever your public IP changes (new café, VPN toggled, home ISP rotation), do this:
 
@@ -82,7 +87,7 @@ az network nsg rule update \
   --source-address-prefixes "${MYIP}/32"
 ```
 
-> **Note:** if you push to `main`, the CI `terraform apply` will overwrite the NSG rule back to whatever `ALLOWED_SSH_CIDR` is set to in GitHub secrets. Re-run the unlock step after every deploy if you need SSH from a narrower CIDR than CI uses.
+> **Note:** if you push to `main`, the CI `terraform apply` will overwrite the NSG rule back to the CI runner's `/32`. Re-run the unlock step after every deploy if you need SSH from your own CIDR.
 
 ## Useful commands
 

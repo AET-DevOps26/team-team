@@ -7,6 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface TransactionRepository extends JpaRepository<Transaction, UUID> {
 
-    List<Transaction> findByAccountIdAndCategoryAndAmountAndDirection(
-        UUID accountId, String category, BigDecimal amount, String direction);
+  List<Transaction> findByAccountIdAndCategoryAndAmountAndDirection(
+      UUID accountId, String category, BigDecimal amount, String direction);
 }

@@ -7,6 +7,7 @@ import com.nimbusds.jose.crypto.RSASSASigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.team.bank.banking.config.EnableBankingConfig;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,69 +25,70 @@ import org.springframework.stereotype.Component;
 
 /**
  * Mints the bearer tokens used to authenticate against Enable Banking. The RSA private key is
- * loaded once at construction; {@link #sign()} then issues a short-lived RS256 JWT per request.
- * If the key isn't configured the service still starts (key loading is best-effort) but signing
- * fails fast the first time it is attempted.
+ * loaded once at construction; {@link #sign()} then issues a short-lived RS256 JWT per request. If
+ * the key isn't configured the service still starts (key loading is best-effort) but signing fails
+ * fast the first time it is attempted.
  */
 @Component
 public class EnableBankingJwtSigner {
 
-    private static final Logger log = LoggerFactory.getLogger(EnableBankingJwtSigner.class);
+  private static final Logger log = LoggerFactory.getLogger(EnableBankingJwtSigner.class);
 
-    private final EnableBankingConfig config;
-    private final RSAPrivateKey privateKey;
+  private final EnableBankingConfig config;
+  private final RSAPrivateKey privateKey;
 
-    public EnableBankingJwtSigner(EnableBankingConfig config) {
-        this.config = config;
-        this.privateKey = loadPrivateKey(config.getPrivateKeyPath());
+  @SuppressFBWarnings("CT_CONSTRUCTOR_THROW")
+  public EnableBankingJwtSigner(EnableBankingConfig config) {
+    this.config = config;
+    this.privateKey = loadPrivateKey(config.getPrivateKeyPath());
+  }
+
+  private RSAPrivateKey loadPrivateKey(String path) {
+    if (path == null || path.isBlank()) {
+      log.warn(
+          "Enable Banking private key path is not configured; JWT signing will be unavailable");
+      return null;
     }
-
-    private RSAPrivateKey loadPrivateKey(String path) {
-        if (path == null || path.isBlank()) {
-            log.warn("Enable Banking private key path is not configured; JWT signing will be unavailable");
-            return null;
-        }
-        try {
-            // Strip the PEM armor and whitespace to recover the raw base64 PKCS#8 DER bytes.
-            String pem = Files.readString(Path.of(path));
-            String base64 = pem
-                .replace("-----BEGIN PRIVATE KEY-----", "")
-                .replace("-----END PRIVATE KEY-----", "")
-                .replaceAll("\\s+", "");
-            byte[] decoded = Base64.getDecoder().decode(base64);
-            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(decoded);
-            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-            return (RSAPrivateKey) keyFactory.generatePrivate(keySpec);
-        } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
-            log.warn("Failed to load Enable Banking private key from {}: {}", path, e.getMessage());
-            return null;
-        }
+    try {
+      // Strip the PEM armor and whitespace to recover the raw base64 PKCS#8 DER bytes.
+      String pem = Files.readString(Path.of(path));
+      String base64 =
+          pem.replace("-----BEGIN PRIVATE KEY-----", "")
+              .replace("-----END PRIVATE KEY-----", "")
+              .replaceAll("\\s+", "");
+      byte[] decoded = Base64.getDecoder().decode(base64);
+      PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(decoded);
+      KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+      return (RSAPrivateKey) keyFactory.generatePrivate(keySpec);
+    } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
+      log.warn("Failed to load Enable Banking private key from {}: {}", path, e.getMessage());
+      return null;
     }
+  }
 
-    public String sign() {
-        if (privateKey == null) {
-            throw new IllegalStateException("Enable Banking private key not configured");
-        }
-        try {
-            Instant now = Instant.now();
-            JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256)
-                .keyID(config.getAppId())
-                .build();
-            // Enable Banking authenticates the caller via these JWT claims: a fixed issuer and
-            // the API host as audience (taken from the configured base URL, defaulting to the
-            // canonical host). Token is valid for one hour.
-            String audience = java.net.URI.create(config.getBaseUrl()).getHost();
-            JWTClaimsSet claims = new JWTClaimsSet.Builder()
-                .issuer("enablebanking.com")
-                .audience(audience != null ? audience : "api.enablebanking.com")
-                .issueTime(Date.from(now))
-                .expirationTime(Date.from(now.plusSeconds(3600)))
-                .build();
-            SignedJWT signedJWT = new SignedJWT(header, claims);
-            signedJWT.sign(new RSASSASigner(privateKey));
-            return signedJWT.serialize();
-        } catch (JOSEException e) {
-            throw new RuntimeException("Failed to sign JWT", e);
-        }
+  public String sign() {
+    if (privateKey == null) {
+      throw new IllegalStateException("Enable Banking private key not configured");
     }
+    try {
+      Instant now = Instant.now();
+      JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(config.getAppId()).build();
+      // Enable Banking authenticates the caller via these JWT claims: a fixed issuer and
+      // the API host as audience (taken from the configured base URL, defaulting to the
+      // canonical host). Token is valid for one hour.
+      String audience = java.net.URI.create(config.getBaseUrl()).getHost();
+      JWTClaimsSet claims =
+          new JWTClaimsSet.Builder()
+              .issuer("enablebanking.com")
+              .audience(audience != null ? audience : "api.enablebanking.com")
+              .issueTime(Date.from(now))
+              .expirationTime(Date.from(now.plusSeconds(3600)))
+              .build();
+      SignedJWT signedJWT = new SignedJWT(header, claims);
+      signedJWT.sign(new RSASSASigner(privateKey));
+      return signedJWT.serialize();
+    } catch (JOSEException e) {
+      throw new RuntimeException("Failed to sign JWT", e);
+    }
+  }
 }

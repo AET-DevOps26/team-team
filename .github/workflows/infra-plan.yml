@@ -25,7 +25,7 @@ jobs:
     name: Terraform fmt / validate / plan
     runs-on: ubuntu-latest
     permissions:
-      id-token: write   # required for azure/login OIDC
+      id-token: write # required for azure/login OIDC
       contents: read
       pull-requests: write
     defaults:
@@ -54,6 +54,15 @@ jobs:
         # isn't tripped up by lines we appended below.
         run: terraform fmt -check -recursive
 
+      - name: Detect runner public IP
+        id: ip
+        # The validation rule rejects "*" / "0.0.0.0/0", so we pin SSH to the
+        # runner's own /32. Plan doesn't connect, but it must still pass the
+        # variable validation.
+        run: |
+          ip="$(curl -4 -fsS --retry 3 --connect-timeout 5 --max-time 10 https://api.ipify.org | tr -d '\n')"
+          echo "cidr=${ip}/32" >> "$GITHUB_OUTPUT"
+
       - name: Write SSH keys for VM
         run: |
           mkdir -p ssh
@@ -66,7 +75,7 @@ jobs:
           # Avoid Terraform regenerating a key — point it at the supplied one.
           echo 'ssh_public_key_path = "ssh/id_rsa.pub"' >> terraform.tfvars
           # Required: explicit CIDR allowed to SSH the VM (never "*").
-          echo "allowed_ssh_cidr = \"${{ secrets.ALLOWED_SSH_CIDR }}\"" >> terraform.tfvars
+          echo "allowed_ssh_cidr = \"${{ steps.ip.outputs.cidr }}\"" >> terraform.tfvars
 
       - name: Terraform init (remote backend)
         run: |

@@ -7,7 +7,6 @@ volumes:
   postgres-data:
 
 services:
-
   # -------------------------
   # TRAEFIK (EDGE ROUTER)
   # -------------------------
@@ -30,7 +29,6 @@ services:
 
     networks:
       - edge
-
 
   # -------------------------
   # DATABASE
@@ -56,7 +54,6 @@ services:
     networks:
       - backend
 
-
   # -------------------------
   # ACCOUNT SERVICE
   # -------------------------
@@ -79,7 +76,6 @@ services:
     networks:
       - backend
 
-
   # -------------------------
   # TRANSACTION SERVICE
   # -------------------------
@@ -101,7 +97,6 @@ services:
 
     networks:
       - backend
-
 
   # -------------------------
   # BANKING SERVICE (ENABLE BANKING / PSD2)
@@ -131,7 +126,6 @@ services:
     networks:
       - backend
 
-
   # -------------------------
   # GENAI SERVICE
   # -------------------------
@@ -148,7 +142,6 @@ services:
 
     networks:
       - backend
-
 
   # -------------------------
   # ORCHESTRATOR (BFF / API LAYER)
@@ -180,7 +173,6 @@ services:
       - backend
       - edge
 
-
   # -------------------------
   # CLIENT (FRONTEND)
   # -------------------------
@@ -199,7 +191,6 @@ services:
     networks:
       - edge
 
-
   # -------------------------
   # PROMETHEUS
   # -------------------------
@@ -209,7 +200,6 @@ services:
       - ./infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     networks:
       - backend
-
 
   # -------------------------
   # GRAFANA

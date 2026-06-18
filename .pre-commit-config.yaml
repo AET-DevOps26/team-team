@@ -1,0 +1,91 @@
+default_install_hook_types: [pre-commit, commit-msg]
+
+repos:
+  # -----------------------------------
+  # General repo hygiene
+  # -----------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+      - id: mixed-line-ending
+
+  # -----------------------------------
+  # Security scanning
+  # -----------------------------------
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+
+  # -----------------------------------
+  # Python (Ruff)
+  # -----------------------------------
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  # -----------------------------------
+  # Frontend linting (ESLint)
+  # -----------------------------------
+  - repo: local
+    hooks:
+      - id: eslint
+        name: eslint
+        entry: sh -c 'cd client && npx eslint --fix'
+        language: system
+        files: ^client/.*\.(js|jsx|ts|tsx)$
+
+  # -----------------------------------
+  # Frontend formatting (Prettier)
+  # -----------------------------------
+  - repo: local
+    hooks:
+      - id: prettier
+        name: prettier
+        entry: npx prettier --write
+        language: system
+        files: \.(md|json|yaml|yml|css|html|js|jsx|ts|tsx)$
+
+  # -----------------------------------
+  # Backend formatting (Gradle Spotless)
+  # -----------------------------------
+  - repo: local
+    hooks:
+      - id: spotless
+        name: spotless apply (gradle)
+        entry: sh -c 'cd server && ./gradlew spotlessApply'
+        language: system
+        pass_filenames: false
+        files: \.java$
+
+  # -----------------------------------
+  # Backend full quality gate (Gradle)
+  # -----------------------------------
+  - repo: local
+    hooks:
+      - id: gradle-check
+        name: gradle check (tests + spotbugs + detekt + etc)
+        entry: sh -c 'cd server && ./gradlew check'
+        language: system
+        pass_filenames: false
+        files: ^server/.*\.(java|kt|kts|gradle|properties|toml|xml|yml|yaml)$
+        stages: [pre-commit]
+
+  # -----------------------------------
+  # Commit message enforcement
+  # -----------------------------------
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.2.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]

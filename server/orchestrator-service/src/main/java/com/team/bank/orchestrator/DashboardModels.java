@@ -9,14 +9,14 @@ record AccountSummary(
     String customerName,
     BigDecimal totalBalance,
     BigDecimal totalCreditLimit,
-    BigDecimal utilizationRate
-) {}
+    BigDecimal utilizationRate) {}
 
 record BalancePoint(String month, BigDecimal balance) {}
 
 record ExpenseSlice(String category, BigDecimal percentage) {}
 
-record SummaryRequest(AccountSummary account, List<BalancePoint> trend, List<ExpenseSlice> expenses) {}
+record SummaryRequest(
+    AccountSummary account, List<BalancePoint> trend, List<ExpenseSlice> expenses) {}
 
 record SummaryResponse(String summary) {}
 
@@ -26,6 +26,7 @@ record DashboardResponse(
     AccountSummary account,
     List<BalancePoint> trend,
     List<ExpenseSlice> expenses,
+    String aiSummary) {}
     String aiSummary,
     ConnectionStatus connectionStatus
 ) {}

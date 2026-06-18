@@ -37,11 +37,14 @@ export interface DashboardPayload {
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
-export async function fetchDashboard(accountId: string): Promise<DashboardPayload> {
+export async function fetchDashboard(
+  accountId: string,
+): Promise<DashboardPayload> {
   const response = await fetch(`${API_BASE}/api/dashboard/${accountId}`);
   if (!response.ok) {
     throw new Error("Failed to load dashboard");
   }
+
   return response.json() as Promise<DashboardPayload>;
 }
 
@@ -75,11 +78,12 @@ export async function sendChat(message: string): Promise<string> {
   const response = await fetch(`${API_BASE}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message })
+    body: JSON.stringify({ message }),
   });
   if (!response.ok) {
     throw new Error("Failed to send message");
   }
   const data = (await response.json()) as { reply: string };
+
   return data.reply;
 }

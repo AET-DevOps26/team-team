@@ -1,11 +1,11 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { DashboardPayload, fetchDashboard, sendChat, fetchBanks, connectBank, handleBankCallback, BankListItem } from "./api";
+import { DashboardPayload, fetchDashboard, sendChat } from "./api";
 
 const DEFAULT_ACCOUNT_UUID = "11111111-1111-1111-1111-111111111111";
 const FRIENDLY_ACCOUNT_ALIAS = "111-222";
 
 function formatMoney(value: number): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
 }
 
 function resolveAccountId(): string {
@@ -28,8 +28,11 @@ function App() {
 
   useEffect(() => {
     if (!accountId) {
-      setError("Missing accountId. Set VITE_ACCOUNT_ID or use ?accountId=<uuid> in URL.");
+      setError(
+        "Missing accountId. Set VITE_ACCOUNT_ID or use ?accountId=<uuid> in URL.",
+      );
       setLoading(false);
+
       return;
     }
 
@@ -81,6 +84,7 @@ function App() {
       .map((p, index) => {
         const x = (index / Math.max(1, data.trend.length - 1)) * 100;
         const y = 100 - ((p.balance - min) / spread) * 100;
+
         return `${x},${y}`;
       })
       .join(" ");
@@ -101,11 +105,19 @@ function App() {
   };
 
   if (loading) {
-    return <main className="shell"><section className="glass">Loading dashboard...</section></main>;
+    return (
+      <main className="shell">
+        <section className="glass">Loading dashboard...</section>
+      </main>
+    );
   }
 
   if (error || !data) {
-    return <main className="shell"><section className="glass">{error || "Unexpected error"}</section></main>;
+    return (
+      <main className="shell">
+        <section className="glass">{error || "Unexpected error"}</section>
+      </main>
+    );
   }
 
   const isDemo = data.connectionStatus?.status !== "ACTIVE";
@@ -121,6 +133,10 @@ function App() {
           <p className="muted">Customer: {data.account.customerName} | Account: {FRIENDLY_ACCOUNT_ALIAS}</p>
           {isDemo && <span className="demo-badge">Demo Data</span>}
         </div>
+        <p className="muted">
+          Customer: {data.account.customerName} | Account:{" "}
+          {FRIENDLY_ACCOUNT_ALIAS}
+        </p>
       </header>
 
       {isDemo && (
@@ -200,6 +216,13 @@ function App() {
       </section>
 
       <section className="split">
+        <article className="panel glass">
+          <h3>Account Balance Trend</h3>
+          <svg
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            className="chart"
+          >
         <article className={`panel glass${isDemo ? " panel--demo" : ""}`}>
           <h3>Account Balance Trend {isDemo && <span className="demo-tag">sample</span>}</h3>
           <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="chart">
@@ -233,7 +256,11 @@ function App() {
       <section className="panel glass">
         <h3>Ask Banking Assistant</h3>
         <form onSubmit={onSubmit} className="chat-form">
-          <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="How can I reduce credit utilization?" />
+          <input
+            value={chatInput}
+            onChange={(e) => setChatInput(e.target.value)}
+            placeholder="How can I reduce credit utilization?"
+          />
           <button type="submit">Send</button>
         </form>
         {chatReply && <p className="chat-reply">{chatReply}</p>}
