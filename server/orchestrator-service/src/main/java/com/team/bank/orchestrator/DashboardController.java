@@ -3,6 +3,8 @@ package com.team.bank.orchestrator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -20,6 +22,8 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 @RequestMapping("/api")
 public class DashboardController {
+
+  private static final Logger log = LoggerFactory.getLogger(DashboardController.class);
 
   private final WebClient webClient;
 
@@ -98,8 +102,9 @@ public class DashboardController {
               .retrieve()
               .bodyToMono(SummaryResponse.class)
               .block();
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       // genai-service unavailable, continue without summary
+      log.warn("genai-service unavailable, continuing without summary", e);
     }
 
     ConnectionStatus connectionStatus = null;
@@ -111,8 +116,9 @@ public class DashboardController {
               .retrieve()
               .bodyToMono(ConnectionStatus.class)
               .block();
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       // banking-service unavailable, continue without it
+      log.warn("banking-service unavailable, continuing without connection status", e);
     }
 
     return new DashboardResponse(

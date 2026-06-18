@@ -1,5 +1,6 @@
 package com.team.bank.account;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.YearMonth;
@@ -28,6 +29,7 @@ public class AccountController {
   private final RestTemplate restTemplate;
   private final String transactionServiceUrl;
 
+  @SuppressFBWarnings("EI_EXPOSE_REP2")
   public AccountController(
       AccountRepository accountRepository,
       RestTemplate restTemplate,
