@@ -32,15 +32,12 @@ public class DashboardController {
   @Value("${services.genai.url}")
   private String genaiServiceUrl;
 
+  @Value("${services.banking.url}")
+  private String bankingServiceUrl;
+
   public DashboardController(WebClient webClient) {
     this.webClient = webClient.mutate().build();
   }
-    @Value("${services.banking.url}")
-    private String bankingServiceUrl;
-
-    public DashboardController(RestTemplate restTemplate) {
-        this.restTemplate = restTemplate;
-    }
 
   @GetMapping(
       value = {"", "/"},
@@ -91,43 +88,40 @@ public class DashboardController {
             trend == null ? List.of() : List.of(trend),
             expenses == null ? List.of() : List.of(expenses));
 
-        SummaryResponse summary = null;
-        try {
-            summary = restTemplate.postForObject(
-                genaiServiceUrl + "/summarize",
-                summaryRequest,
-                SummaryResponse.class
-            );
-        } catch (Exception e) {
-            // genai-service unavailable, continue without summary
-        }
+    SummaryResponse summary = null;
+    try {
+      summary =
+          webClient
+              .post()
+              .uri(genaiServiceUrl + "/summarize")
+              .bodyValue(summaryRequest)
+              .retrieve()
+              .bodyToMono(SummaryResponse.class)
+              .block();
+    } catch (Exception e) {
+      // genai-service unavailable, continue without summary
+    }
 
-        ConnectionStatus connectionStatus = null;
-        try {
-            connectionStatus = restTemplate.getForObject(
-                bankingServiceUrl + "/api/banking/status/" + accountId,
-                ConnectionStatus.class);
-        } catch (Exception e) {
-            // banking-service unavailable, continue without it
-        }
-    SummaryResponse summary =
-        webClient
-            .post()
-            .uri(genaiServiceUrl + "/summarize")
-            .bodyValue(summaryRequest)
-            .retrieve()
-            .bodyToMono(SummaryResponse.class)
-            .block();
+    ConnectionStatus connectionStatus = null;
+    try {
+      connectionStatus =
+          webClient
+              .get()
+              .uri(bankingServiceUrl + "/api/banking/status/{accountId}", accountId)
+              .retrieve()
+              .bodyToMono(ConnectionStatus.class)
+              .block();
+    } catch (Exception e) {
+      // banking-service unavailable, continue without it
+    }
 
     return new DashboardResponse(
         account,
         trend == null ? List.of() : List.of(trend),
         expenses == null ? List.of() : List.of(expenses),
-        summary == null ? "No summary available." : summary.summary());
+        summary == null ? "No summary available." : summary.summary(),
+        connectionStatus);
   }
-        return new DashboardResponse(account, trend == null ? List.of() : List.of(trend), expenses == null ? List.of() : List.of(expenses),
-            summary == null ? "No summary available." : summary.summary(), connectionStatus);
-    }
 
   @PostMapping(value = "/chat", produces = MediaType.APPLICATION_JSON_VALUE)
   public ChatResponse chat(@RequestBody ChatRequest request) {
@@ -145,43 +139,62 @@ public class DashboardController {
     return response == null ? new ChatResponse("I could not process that request.") : response;
   }
 
+  // Thin proxies so the browser reaches banking-service through the orchestrator (single origin /
+  // CORS).
+  @GetMapping("/banking/banks")
+  public Object listBanks(@RequestParam String country) {
+    return webClient
+        .get()
+        .uri(bankingServiceUrl + "/api/banking/banks?country={country}", country)
+        .retrieve()
+        .bodyToMono(Object.class)
+        .block();
+  }
+
+  @PostMapping("/banking/connect")
+  public Object connectBank(@RequestBody Map<String, Object> request) {
+    return webClient
+        .post()
+        .uri(bankingServiceUrl + "/api/banking/connect")
+        .bodyValue(request)
+        .retrieve()
+        .bodyToMono(Object.class)
+        .block();
+  }
+
+  @PostMapping("/banking/callback")
+  public Object handleCallback(@RequestBody Map<String, String> body) {
+    return webClient
+        .post()
+        .uri(bankingServiceUrl + "/api/banking/callback")
+        .bodyValue(body)
+        .retrieve()
+        .bodyToMono(Object.class)
+        .block();
+  }
+
+  @GetMapping("/banking/status/{accountId}")
+  public Object getConnectionStatus(@PathVariable UUID accountId) {
+    return webClient
+        .get()
+        .uri(bankingServiceUrl + "/api/banking/status/{accountId}", accountId)
+        .retrieve()
+        .bodyToMono(Object.class)
+        .block();
+  }
+
+  @PostMapping("/banking/sync/{accountId}")
+  public Object syncAccount(@PathVariable UUID accountId) {
+    return webClient
+        .post()
+        .uri(bankingServiceUrl + "/api/banking/sync/{accountId}", accountId)
+        .retrieve()
+        .bodyToMono(Object.class)
+        .block();
+  }
+
   @GetMapping("/health")
   public Map<String, String> health() {
     return Map.of("status", "UP", "service", "orchestrator-service");
   }
-    // Thin proxies so the browser reaches banking-service through the orchestrator (single origin / CORS).
-    @GetMapping("/banking/banks")
-    public Object listBanks(@RequestParam String country) {
-        return restTemplate.getForObject(
-            bankingServiceUrl + "/api/banking/banks?country=" + country, Object.class);
-    }
-
-    @PostMapping("/banking/connect")
-    public Object connectBank(@RequestBody Map<String, Object> request) {
-        return restTemplate.postForObject(
-            bankingServiceUrl + "/api/banking/connect", request, Object.class);
-    }
-
-    @PostMapping("/banking/callback")
-    public Object handleCallback(@RequestBody Map<String, String> body) {
-        return restTemplate.postForObject(
-            bankingServiceUrl + "/api/banking/callback", body, Object.class);
-    }
-
-    @GetMapping("/banking/status/{accountId}")
-    public Object getConnectionStatus(@PathVariable UUID accountId) {
-        return restTemplate.getForObject(
-            bankingServiceUrl + "/api/banking/status/" + accountId, Object.class);
-    }
-
-    @PostMapping("/banking/sync/{accountId}")
-    public Object syncAccount(@PathVariable UUID accountId) {
-        return restTemplate.postForObject(
-            bankingServiceUrl + "/api/banking/sync/" + accountId, null, Object.class);
-    }
-
-    @GetMapping("/health")
-    public Map<String, String> health() {
-        return Map.of("status", "UP", "service", "orchestrator-service");
-    }
 }

@@ -26,10 +26,8 @@ record DashboardResponse(
     AccountSummary account,
     List<BalancePoint> trend,
     List<ExpenseSlice> expenses,
-    String aiSummary) {}
     String aiSummary,
-    ConnectionStatus connectionStatus
-) {}
+    ConnectionStatus connectionStatus) {}
 
 record ChatRequest(String message) {}
 

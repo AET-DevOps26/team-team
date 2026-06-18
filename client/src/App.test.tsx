@@ -1,7 +1,8 @@
 import { render, screen, fireEvent } from "@testing-library/react";
-import App from "./App";
+
 import * as api from "./api";
-import { DashboardPayload } from "./api";
+import type { DashboardPayload } from "./api";
+import App from "./App";
 
 function dashboard(overrides: Partial<DashboardPayload> = {}): DashboardPayload {
   return {

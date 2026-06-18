@@ -1,16 +1,28 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { DashboardPayload, fetchDashboard, sendChat } from "./api";
+import type { FormEvent} from "react";
+import { useEffect, useMemo, useState } from "react";
+
+import type {
+  DashboardPayload,
+  BankListItem} from "./api";
+import {
+  fetchDashboard,
+  sendChat,
+  fetchBanks,
+  connectBank,
+  handleBankCallback
+} from "./api";
 
 const DEFAULT_ACCOUNT_UUID = "11111111-1111-1111-1111-111111111111";
 const FRIENDLY_ACCOUNT_ALIAS = "111-222";
 
 function formatMoney(value: number): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
 }
 
 function resolveAccountId(): string {
   const queryAccountId = new URLSearchParams(window.location.search).get("accountId");
   const configured = queryAccountId || import.meta.env.VITE_ACCOUNT_ID || FRIENDLY_ACCOUNT_ALIAS;
+
   return configured === FRIENDLY_ACCOUNT_ALIAS ? DEFAULT_ACCOUNT_UUID : configured;
 }
 
@@ -51,7 +63,7 @@ function App() {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
     const state = params.get("state");
-    if (!code || !state) return;
+    if (!code || !state) {return;}
 
     // Remove one-time OAuth params right away (but keep other params like accountId)
     params.delete("code");
@@ -133,10 +145,6 @@ function App() {
           <p className="muted">Customer: {data.account.customerName} | Account: {FRIENDLY_ACCOUNT_ALIAS}</p>
           {isDemo && <span className="demo-badge">Demo Data</span>}
         </div>
-        <p className="muted">
-          Customer: {data.account.customerName} | Account:{" "}
-          {FRIENDLY_ACCOUNT_ALIAS}
-        </p>
       </header>
 
       {isDemo && (
@@ -216,13 +224,6 @@ function App() {
       </section>
 
       <section className="split">
-        <article className="panel glass">
-          <h3>Account Balance Trend</h3>
-          <svg
-            viewBox="0 0 100 100"
-            preserveAspectRatio="none"
-            className="chart"
-          >
         <article className={`panel glass${isDemo ? " panel--demo" : ""}`}>
           <h3>Account Balance Trend {isDemo && <span className="demo-tag">sample</span>}</h3>
           <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="chart">
