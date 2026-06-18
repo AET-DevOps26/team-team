@@ -20,11 +20,14 @@ record SummaryRequest(AccountSummary account, List<BalancePoint> trend, List<Exp
 
 record SummaryResponse(String summary) {}
 
+record ConnectionStatus(String status, String bankName, String country) {}
+
 record DashboardResponse(
     AccountSummary account,
     List<BalancePoint> trend,
     List<ExpenseSlice> expenses,
-    String aiSummary
+    String aiSummary,
+    ConnectionStatus connectionStatus
 ) {}
 
 record ChatRequest(String message) {}

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
@@ -30,6 +31,9 @@ public class DashboardController {
 
     @Value("${services.genai.url}")
     private String genaiServiceUrl;
+
+    @Value("${services.banking.url}")
+    private String bankingServiceUrl;
 
     public DashboardController(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
@@ -71,14 +75,28 @@ public class DashboardController {
 
         SummaryRequest summaryRequest = new SummaryRequest(account, trend == null ? List.of() : List.of(trend), expenses == null ? List.of() : List.of(expenses));
 
-        SummaryResponse summary = restTemplate.postForObject(
-            genaiServiceUrl + "/summarize",
-            summaryRequest,
-            SummaryResponse.class
-        );
+        SummaryResponse summary = null;
+        try {
+            summary = restTemplate.postForObject(
+                genaiServiceUrl + "/summarize",
+                summaryRequest,
+                SummaryResponse.class
+            );
+        } catch (Exception e) {
+            // genai-service unavailable, continue without summary
+        }
+
+        ConnectionStatus connectionStatus = null;
+        try {
+            connectionStatus = restTemplate.getForObject(
+                bankingServiceUrl + "/api/banking/status/" + accountId,
+                ConnectionStatus.class);
+        } catch (Exception e) {
+            // banking-service unavailable, continue without it
+        }
 
         return new DashboardResponse(account, trend == null ? List.of() : List.of(trend), expenses == null ? List.of() : List.of(expenses),
-            summary == null ? "No summary available." : summary.summary());
+            summary == null ? "No summary available." : summary.summary(), connectionStatus);
     }
 
     @PostMapping(value = "/chat", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -88,6 +106,37 @@ public class DashboardController {
         }
         ChatResponse response = restTemplate.postForObject(genaiServiceUrl + "/chat", request, ChatResponse.class);
         return response == null ? new ChatResponse("I could not process that request.") : response;
+    }
+
+    // Thin proxies so the browser reaches banking-service through the orchestrator (single origin / CORS).
+    @GetMapping("/banking/banks")
+    public Object listBanks(@RequestParam String country) {
+        return restTemplate.getForObject(
+            bankingServiceUrl + "/api/banking/banks?country=" + country, Object.class);
+    }
+
+    @PostMapping("/banking/connect")
+    public Object connectBank(@RequestBody Map<String, Object> request) {
+        return restTemplate.postForObject(
+            bankingServiceUrl + "/api/banking/connect", request, Object.class);
+    }
+
+    @PostMapping("/banking/callback")
+    public Object handleCallback(@RequestBody Map<String, String> body) {
+        return restTemplate.postForObject(
+            bankingServiceUrl + "/api/banking/callback", body, Object.class);
+    }
+
+    @GetMapping("/banking/status/{accountId}")
+    public Object getConnectionStatus(@PathVariable UUID accountId) {
+        return restTemplate.getForObject(
+            bankingServiceUrl + "/api/banking/status/" + accountId, Object.class);
+    }
+
+    @PostMapping("/banking/sync/{accountId}")
+    public Object syncAccount(@PathVariable UUID accountId) {
+        return restTemplate.postForObject(
+            bankingServiceUrl + "/api/banking/sync/" + accountId, null, Object.class);
     }
 
     @GetMapping("/health")
