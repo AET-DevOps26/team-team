@@ -12,6 +12,12 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+services:
+  # used by the balance-trend endpoint to reconstruct history from transactions
+  transaction:
+    url: ${TRANSACTION_SERVICE_URL:http://localhost:8082}
+
 management:
   endpoints:
     web:

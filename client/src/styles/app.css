@@ -195,3 +195,113 @@ h1 {
     grid-template-columns: 1fr;
   }
 }
+
+.demo-banner {
+  padding: 0.8rem 1.3rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #92400e;
+  background: rgba(251, 191, 36, 0.15);
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+.demo-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #92400e;
+  background: rgba(251, 191, 36, 0.2);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: 6px;
+  padding: 0.2rem 0.5rem;
+  margin-top: 0.3rem;
+}
+
+.demo-tag {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #92400e;
+  background: rgba(251, 191, 36, 0.18);
+  border-radius: 4px;
+  padding: 0.1rem 0.35rem;
+  vertical-align: middle;
+  margin-left: 0.3rem;
+}
+
+.card--demo,
+.panel--demo {
+  opacity: 0.75;
+}
+
+.connection-active {
+  color: #16a34a;
+  font-weight: 500;
+}
+
+.bank-picker {
+  display: flex;
+  gap: 0.7rem;
+  margin: 0.8rem 0;
+}
+
+.bank-picker select {
+  flex: 1;
+  border: 1px solid rgba(19, 104, 232, 0.2);
+  border-radius: 12px;
+  padding: 0.8rem 0.9rem;
+  font: inherit;
+  background: white;
+  color: inherit;
+}
+
+.bank-picker button,
+.bank-list li button {
+  border: 0;
+  border-radius: 12px;
+  background: var(--accent);
+  color: white;
+  padding: 0.8rem 1.2rem;
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.bank-picker button:hover,
+.bank-list li button:hover {
+  opacity: 0.9;
+}
+
+.bank-list {
+  list-style: none;
+  margin: 0.8rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.bank-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--border, rgba(19, 104, 232, 0.1));
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.bank-list li button {
+  font-size: 0.85rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+}
+
+.bank-list li button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
