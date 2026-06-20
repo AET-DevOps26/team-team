@@ -8,10 +8,13 @@ services:
     url: ${TRANSACTION_SERVICE_URL:http://localhost:8082}
   genai:
     url: ${GENAI_SERVICE_URL:http://localhost:8000}
+  banking:
+    url: ${BANKING_SERVICE_URL:http://localhost:8084}
 
 app:
   cors:
-    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000}
+    # 3000 = client container, 5173 = Vite dev server
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
 
 management:
   endpoints:
