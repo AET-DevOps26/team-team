@@ -12,7 +12,7 @@ jobs:
     steps:
       # ---------------- Checkout ----------------
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       # ---------------- Java + Gradle cache ----------------
       - name: Set up Java
