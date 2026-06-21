@@ -2,12 +2,26 @@
 
 > For the full problem statement and system overview (architecture, diagrams, backlog), see [docs/problem_statement+system_overview.md](docs/problem_statement+system_overview.md).
 
+## 🚀 Endpoints
+
+| Service           | Local (Docker)                            | Production (K8s)                                                            |
+| ----------------- | ----------------------------------------- | --------------------------------------------------------------------------- |
+| Frontend          | `https://localhost/`                      | `https://ge42cer-devops-ss26.stud.k8s.aet.cit.tum.de/`                      |
+| Backend API       | `https://localhost/api`                   | `https://ge42cer-devops-ss26.stud.k8s.aet.cit.tum.de/api`                   |
+| Swagger UI        | `https://localhost/swagger-ui/index.html` | `https://ge42cer-devops-ss26.stud.k8s.aet.cit.tum.de/swagger-ui/index.html` |
+| OpenAPI JSON      | `https://localhost/v3/api-docs`           | `https://ge42cer-devops-ss26.stud.k8s.aet.cit.tum.de/v3/api-docs`           |
+| Grafana           | `https://localhost/grafana/`              | `https://ge42cer-devops-ss26.stud.k8s.aet.cit.tum.de/grafana/`              |
+| Prometheus        | —                                         | `https://ge42cer-devops-ss26.stud.k8s.aet.cit.tum.de/prometheus/`           |
+| Traefik Dashboard | `http://localhost:8080/dashboard/`        | —                                                                           |
+
 This repository contains a full mono-repo banking web application with:
 
 - `client`: React + TypeScript frontend
 - `server`: Java Spring Boot microservices (4 services, Gradle-built)
 - `genai`: Python-based GenAI microservice
-- `infra`: Docker Compose, Traefik reverse proxy, Kubernetes manifests, monitoring stack
+- `infra`: Docker Compose, Traefik reverse proxy, Kubernetes manifests, Helm chart, monitoring stack (Prometheus + Grafana)
+
+---
 
 ## Prerequisites & Requirements
 
@@ -143,16 +157,7 @@ Stop the stack:
 ./scripts/dev-down.sh
 ```
 
-App endpoints (routed through Traefik):
-
-- Frontend app: `https://localhost/`
-- Backend API index: `https://localhost/api`
-- Backend health: `https://localhost/api/health`
-- Swagger UI: `https://localhost/swagger-ui/index.html`
-- OpenAPI JSON: `https://localhost/v3/api-docs`
-- Grafana: `https://localhost/grafana/` (default login: `admin` / `admin`)
-- Traefik dashboard: `http://localhost:8080/dashboard/`
-- Traefik API (raw data): `http://localhost:8080/api/rawdata`
+> See [Endpoints](#-endpoints) at the top of this README for all app URLs.
 
 ## 3. GenAI Model Modes (No Cloud Dependency)
 
@@ -173,20 +178,39 @@ GitHub Actions workflows:
   - Uses Java 21 (Temurin), Node 22, Python 3.12
   - Uploads test reports and OWASP security reports as artifacts
 - **CD** (`.github/workflows/cd.yml`):
-  - Deploys Kubernetes manifests via `kubectl apply -k infra/k8s/base` on push to `main`
-  - Expects `KUBECONFIG` in GitHub secrets
+  - Runs `helm upgrade --install` on merge to `main` (triggers after GHCR image build)
+  - Can also be triggered manually via `workflow_dispatch`
+  - Requires secrets: `KUBECONFIG`, `TUMID`, `POSTGRES_PASSWORD`
 
-## 5. Kubernetes Deployment
+## 5. Kubernetes Deployment (Helm)
 
-Kustomize manifests are in `infra/k8s/base`.
+The Helm chart is in `infra/helm/banking-app`.
 
-Deploy:
+Deploy manually:
 
 ```bash
-kubectl apply -k infra/k8s/base
+helm upgrade --install banking-app ./infra/helm/banking-app \
+  --namespace ge42cer-devops26 --create-namespace \
+  --set tumid=ge42cer \
+  --set postgres.database.password=<secure-password> \
+  --timeout 5m --wait
 ```
 
-Use your GitHub Container Registry image names (for example: `ghcr.io/aet-devops26/...`).
+Disable monitoring if not needed:
+
+```bash
+helm upgrade --install banking-app ./infra/helm/banking-app \
+  --namespace ge42cer-devops26 --create-namespace \
+  --set tumid=ge42cer \
+  --set postgres.database.password=<secure-password> \
+  --set monitoring.prometheus.enabled=false \
+  --set monitoring.grafana.enabled=false \
+  --timeout 5m --wait
+```
+
+Kustomize manifests (legacy) are in `infra/k8s/base`.
+
+Images are pulled from GitHub Container Registry (`ghcr.io/aet-devops26/...`).
 
 ## 6. Monitoring and Alerting
 

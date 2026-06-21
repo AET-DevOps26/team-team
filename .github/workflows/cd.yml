@@ -1,21 +1,42 @@
 name: CD
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Build and Push All Services to GHCR"]
+    types:
+      - completed
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   deploy-k8s:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
-      - name: Configure kubeconfig
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.17.0
+
+      - name: Setup kubeconfig
         run: |
-          mkdir -p "$HOME/.kube"
-          printf '%s' "${{ secrets.KUBECONFIG }}" > "$HOME/.kube/config"
-          chmod 600 "$HOME/.kube/config"
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
 
-      - name: Deploy manifests
-        run: kubectl apply -k infra/k8s/base
+      - name: Test cluster access
+        run: kubectl get nodes
+
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install banking-app ./infra/helm/banking-app \
+            --namespace "${{ secrets.TUMID }}-devops26" \
+            --create-namespace \
+            --set tumid="${{ secrets.TUMID }}" \
+            --set postgres.database.password="${{ secrets.POSTGRES_PASSWORD }}" \
+            --set imagePullPolicy=Always \
+            --timeout 5m \
+            --wait

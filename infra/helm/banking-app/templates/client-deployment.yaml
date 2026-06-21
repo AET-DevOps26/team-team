@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: banking-client
+  namespace: { { .Release.Namespace | quote } }
+spec:
+  replicas: { { .Values.client.replicaCount } }
+  selector:
+    matchLabels:
+      app: banking-client-selector
+  template:
+    metadata:
+      annotations:
+        checksum/app-config:
+          {
+            {
+              include (print $.Template.BasePath "/configmap.yaml") . | sha256sum,
+            },
+          }
+      labels:
+        app: banking-client-selector
+    spec:
+      containers:
+        - name: client
+          image: "{{ .Values.client.image.repository }}:{{ .Values.client.image.tag }}"
+          imagePullPolicy: { { .Values.client.image.pullPolicy } }
+          resources: { { - toYaml .Values.client.resources | nindent 12 } }
+          ports:
+            - containerPort: { { .Values.client.service.targetPort } }
+          env:
+            - name: PUBLIC_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: api_url
