@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: transaction-service
-  namespace: "{{ .Values.tumid }}-devops26"
+  namespace: { { .Release.Namespace | quote } }
 spec:
   replicas: { { .Values.transactionService.replicaCount } }
   selector:
@@ -21,12 +21,10 @@ spec:
             - containerPort:
                 { { .Values.transactionService.service.targetPort } }
           env:
-            - name: SPRING_PROFILES_ACTIVE
-              value: docker
             - name: SPRING_DATASOURCE_URL
-              value: jdbc:postgresql://postgres:{{ .Values.postgres.service.port }}/{{ .Values.postgres.database.name }}
+              value: "jdbc:postgresql://postgres:{{ .Values.postgres.service.port }}/{{ .Values.postgres.database.name }}"
             - name: SPRING_DATASOURCE_USERNAME
-              value: { { .Values.postgres.database.user } }
+              value: "{{ .Values.postgres.database.user }}"
             - name: SPRING_DATASOURCE_PASSWORD
               valueFrom:
                 secretKeyRef:

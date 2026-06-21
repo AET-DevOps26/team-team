@@ -34,6 +34,7 @@ jobs:
         run: |
           helm upgrade --install banking-app ./infra/helm/banking-app \
             --namespace "${{ secrets.TUMID }}-devops26" \
+            --create-namespace \
             --set tumid="${{ secrets.TUMID }}" \
             --set postgres.database.password="${{ secrets.POSTGRES_PASSWORD }}" \
             --set imagePullPolicy=Always \

@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: orchestrator-service
-  namespace: "{{ .Values.tumid }}-devops26"
+  namespace: { { .Release.Namespace | quote } }
 spec:
   replicas: { { .Values.orchestratorService.replicaCount } }
   selector:
@@ -21,13 +21,11 @@ spec:
             - containerPort:
                 { { .Values.orchestratorService.service.targetPort } }
           env:
-            - name: SPRING_PROFILES_ACTIVE
-              value: docker
             - name: ACCOUNT_SERVICE_URL
-              value: http://account-service:{{ .Values.accountService.service.port }}
+              value: "http://account-service:{{ .Values.accountService.service.port }}"
             - name: TRANSACTION_SERVICE_URL
-              value: http://transaction-service:{{ .Values.transactionService.service.port }}
+              value: "http://transaction-service:{{ .Values.transactionService.service.port }}"
             - name: GENAI_SERVICE_URL
-              value: http://genai-service:{{ .Values.genaiService.service.port }}
+              value: "http://genai-service:{{ .Values.genaiService.service.port }}"
           resources:
             { { - toYaml .Values.orchestratorService.resources | nindent 12 } }

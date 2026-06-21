@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: postgres
-  namespace: "{{ .Values.tumid }}-devops26"
+  namespace: { { .Release.Namespace | quote } }
 spec:
   replicas: { { .Values.postgres.replicaCount } }
   selector:
@@ -21,9 +21,9 @@ spec:
             - containerPort: { { .Values.postgres.service.targetPort } }
           env:
             - name: POSTGRES_DB
-              value: { { .Values.postgres.database.name } }
+              value: "{{ .Values.postgres.database.name }}"
             - name: POSTGRES_USER
-              value: { { .Values.postgres.database.user } }
+              value: "{{ .Values.postgres.database.user }}"
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:

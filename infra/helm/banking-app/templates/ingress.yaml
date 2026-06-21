@@ -3,7 +3,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: "banking-ingress"
-  namespace: "{{ .Values.tumid }}-devops26"
+  namespace: {{ .Release.Namespace | quote }}
   {{- $annotations := .Values.ingress.annotations | default dict }}
   {{- if $annotations }}
   annotations:

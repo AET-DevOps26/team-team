@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: banking-client
-  namespace: "{{ .Values.tumid }}-devops26"
+  namespace: { { .Release.Namespace | quote } }
 spec:
   replicas: { { .Values.client.replicaCount } }
   selector:

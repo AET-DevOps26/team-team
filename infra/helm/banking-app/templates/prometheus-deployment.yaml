@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: prometheus
-  namespace: "{{ .Values.tumid }}-devops26"
+  namespace: {{ .Release.Namespace | quote }}
 spec:
   replicas: {{ .Values.monitoring.prometheus.replicaCount }}
   selector:

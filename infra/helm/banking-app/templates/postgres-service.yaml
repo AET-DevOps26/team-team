@@ -2,12 +2,12 @@ apiVersion: v1
 kind: Service
 metadata:
   name: postgres
-  namespace: "{{ .Values.tumid }}-devops26"
+  namespace: { { .Release.Namespace | quote } }
 spec:
   selector:
     app: postgres-selector
   ports:
-    - port: {{ .Values.postgres.service.port }}
-      targetPort: {{ .Values.postgres.service.targetPort }}
+    - port: { { .Values.postgres.service.port } }
+      targetPort: { { .Values.postgres.service.targetPort } }
       protocol: TCP
-  type: {{ .Values.postgres.service.type }}
+  type: { { .Values.postgres.service.type } }
