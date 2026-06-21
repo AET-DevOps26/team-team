@@ -18,8 +18,7 @@ spec:
           image: "{{ .Values.transactionService.image.repository }}:{{ .Values.transactionService.image.tag }}"
           imagePullPolicy: {{ $.Values.imagePullPolicy }}
           ports:
-            - containerPort:
-                {{ .Values.transactionService.service.targetPort }}
+            - containerPort: {{ .Values.transactionService.service.targetPort }}
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: docker

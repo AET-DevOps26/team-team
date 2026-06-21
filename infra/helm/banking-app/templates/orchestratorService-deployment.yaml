@@ -18,8 +18,7 @@ spec:
           image: "{{ .Values.orchestratorService.image.repository }}:{{ .Values.orchestratorService.image.tag }}"
           imagePullPolicy: {{ $.Values.imagePullPolicy }}
           ports:
-            - containerPort:
-                {{ .Values.orchestratorService.service.targetPort }}
+            - containerPort: {{ .Values.orchestratorService.service.targetPort }}
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: docker

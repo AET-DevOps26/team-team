@@ -1,0 +1,45 @@
+{{- if .Values.monitoring.prometheus.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: "{{ .Values.tumid }}-devops26"
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: {{ .Values.monitoring.prometheus.scrapeInterval }}
+
+    scrape_configs:
+      - job_name: account-service
+        metrics_path: /actuator/prometheus
+        static_configs:
+          - targets: ["account-service:{{ .Values.accountService.service.port }}"]
+
+      - job_name: transaction-service
+        metrics_path: /actuator/prometheus
+        static_configs:
+          - targets: ["transaction-service:{{ .Values.transactionService.service.port }}"]
+
+      - job_name: orchestrator-service
+        metrics_path: /actuator/prometheus
+        static_configs:
+          - targets: ["orchestrator-service:{{ .Values.orchestratorService.service.port }}"]
+
+      - job_name: genai-service
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["genai-service:{{ .Values.genaiService.service.port }}"]
+
+  alerts.yml: |
+    groups:
+      - name: banking-alerts
+        rules:
+          - alert: HighP95Latency
+            expr: histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket[5m]))) > 1.5
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High API latency"
+              description: "P95 latency has been above 1.5 seconds for 5 minutes."
+{{- end }}

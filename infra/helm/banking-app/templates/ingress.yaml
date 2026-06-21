@@ -10,6 +10,7 @@ metadata:
     {{- toYaml $annotations | nindent 4 }}
   {{- end }}
 spec:
+  ingressClassName: {{ .Values.ingress.className }}
   {{- if .Values.ingress.tls }}
   tls:
     - hosts:
@@ -34,4 +35,22 @@ spec:
                 name: orchestrator-service
                 port:
                   number: {{ .Values.orchestratorService.service.port }}
+          {{- if .Values.monitoring.grafana.ingressEnabled }}
+          - path: /grafana
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana
+                port:
+                  number: {{ .Values.monitoring.grafana.service.port }}
+          {{- end }}
+          {{- if .Values.monitoring.prometheus.ingressEnabled }}
+          - path: /prometheus
+            pathType: Prefix
+            backend:
+              service:
+                name: prometheus
+                port:
+                  number: {{ .Values.monitoring.prometheus.service.port }}
+          {{- end }}
 {{- end }}

@@ -20,12 +20,7 @@ spec:
           image: "{{ .Values.client.image.repository }}:{{ .Values.client.image.tag }}"
           imagePullPolicy: {{ .Values.client.image.pullPolicy }}
           resources:
-            limits:
-              cpu: "500m"
-              memory: "256Mi"
-            requests:
-              cpu: "50m"
-              memory: "50Mi"
+            {{- toYaml .Values.client.resources | nindent 12 }}
           ports:
             - containerPort: {{ .Values.client.service.targetPort }}
           env:

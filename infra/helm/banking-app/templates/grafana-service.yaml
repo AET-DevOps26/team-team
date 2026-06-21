@@ -1,0 +1,15 @@
+{{- if .Values.monitoring.grafana.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: "{{ .Values.tumid }}-devops26"
+spec:
+  selector:
+    app: grafana-selector
+  ports:
+    - port: {{ .Values.monitoring.grafana.service.port }}
+      targetPort: {{ .Values.monitoring.grafana.service.targetPort }}
+      protocol: TCP
+  type: {{ .Values.monitoring.grafana.service.type }}
+{{- end }}
