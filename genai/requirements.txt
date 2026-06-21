@@ -1,6 +1,6 @@
-fastapi==0.115.6
-uvicorn==0.32.1
-requests==2.32.3
-prometheus-fastapi-instrumentator==7.0.0
-pytest==8.3.4
+fastapi==0.137.1
+uvicorn==0.49.0
+requests==2.34.2
+prometheus-fastapi-instrumentator==8.0.0
+pytest==9.1.0
 httpx==0.28.1

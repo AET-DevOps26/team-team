@@ -4,20 +4,20 @@
 
 ## 🚀 Endpoints
 
-| Service | Local (Docker) | Production (K8s) |
-|---------|---------------|-------------------|
-| Frontend | `https://localhost/` | `https://ge42cer-devops-ss26.stud.k8s.aet.cit.tum.de/` |
-| Backend API | `https://localhost/api` | `https://ge42cer-devops-ss26.stud.k8s.aet.cit.tum.de/api` |
-| Swagger UI | `https://localhost/swagger-ui/index.html` | `https://ge42cer-devops-ss26.stud.k8s.aet.cit.tum.de/swagger-ui/index.html` |
-| OpenAPI JSON | `https://localhost/v3/api-docs` | `https://ge42cer-devops-ss26.stud.k8s.aet.cit.tum.de/v3/api-docs` |
-| Grafana | `https://localhost/grafana/` | `https://ge42cer-devops-ss26.stud.k8s.aet.cit.tum.de/grafana/` |
-| Prometheus | — | `https://ge42cer-devops-ss26.stud.k8s.aet.cit.tum.de/prometheus/` |
-| Traefik Dashboard | `http://localhost:8080/dashboard/` | — |
+| Service           | Local (Docker)                            | Production (K8s)                                                            |
+| ----------------- | ----------------------------------------- | --------------------------------------------------------------------------- |
+| Frontend          | `https://localhost/`                      | `https://ge42cer-devops-ss26.stud.k8s.aet.cit.tum.de/`                      |
+| Backend API       | `https://localhost/api`                   | `https://ge42cer-devops-ss26.stud.k8s.aet.cit.tum.de/api`                   |
+| Swagger UI        | `https://localhost/swagger-ui/index.html` | `https://ge42cer-devops-ss26.stud.k8s.aet.cit.tum.de/swagger-ui/index.html` |
+| OpenAPI JSON      | `https://localhost/v3/api-docs`           | `https://ge42cer-devops-ss26.stud.k8s.aet.cit.tum.de/v3/api-docs`           |
+| Grafana           | `https://localhost/grafana/`              | `https://ge42cer-devops-ss26.stud.k8s.aet.cit.tum.de/grafana/`              |
+| Prometheus        | —                                         | `https://ge42cer-devops-ss26.stud.k8s.aet.cit.tum.de/prometheus/`           |
+| Traefik Dashboard | `http://localhost:8080/dashboard/`        | —                                                                           |
 
 This repository contains a full mono-repo banking web application with:
 
 - `client`: React + TypeScript frontend
-- `server`: Java Spring Boot microservices (3 services, Gradle-built)
+- `server`: Java Spring Boot microservices (4 services, Gradle-built)
 - `genai`: Python-based GenAI microservice
 - `infra`: Docker Compose, Traefik reverse proxy, Kubernetes manifests, Helm chart, monitoring stack (Prometheus + Grafana)
 
@@ -28,12 +28,14 @@ This repository contains a full mono-repo banking web application with:
 ### Option 1: Docker-Based (Recommended)
 
 **Linux System Requirements:**
+
 ```bash
 # Install Docker
 https://docs.docker.com/desktop/setup/install/linux/
 ```
 
 **Versions:**
+
 - Docker: 20.10+ (any recent version)
 - Docker Compose: 2.0+
 - Git: 2.0+
@@ -42,15 +44,16 @@ https://docs.docker.com/desktop/setup/install/linux/
 
 **Required Languages & Frameworks:**
 
-| Component | Language | Framework | Version |
-|-----------|----------|-----------|---------|
-| Frontend | TypeScript | React + Vite | 18.3.1 + 5.4.0 |
-| Backend Services | Java | Spring Boot (Gradle) | 4.0.6 |
-| GenAI Service | Python | FastAPI | 3.12 |
-| Database | SQL | PostgreSQL | 16 |
-| Reverse Proxy | Go | Traefik | 3.6 |
+| Component        | Language   | Framework            | Version        |
+| ---------------- | ---------- | -------------------- | -------------- |
+| Frontend         | TypeScript | React + Vite         | 18.3.1 + 5.4.0 |
+| Backend Services | Java       | Spring Boot (Gradle) | 4.0.6          |
+| GenAI Service    | Python     | FastAPI              | 3.12           |
+| Database         | SQL        | PostgreSQL           | 16             |
+| Reverse Proxy    | Go         | Traefik              | 3.6            |
 
 **Linux System Packages:**
+
 ```bash
 # Ubuntu/Debian
 sudo apt-get update
@@ -68,21 +71,38 @@ sudo apt-get install -y \
 
 > **Note:** The project uses the Gradle wrapper (`./gradlew`) — no separate Gradle or Maven install needed.
 
-
 **Python Dependencies:**
+
 ```bash
 cd genai
 pip install -r requirements.txt
 ```
 
 **Node.js Dependencies:**
+
 ```bash
 cd client
 npm install
 ```
 
+**Pre-commit Hooks:**
+
+```bash
+python3 -m pip install pre-commit
+pre-commit install
+pre-commit install --hook-type commit-msg
+pre-commit run --all-files
+```
+
+This repository includes `.pre-commit-config.yaml` at the project root. Hooks cover:
+
+- repository hygiene: whitespace, end-of-file, YAML syntax, merge conflicts
+- formatting for Markdown, YAML, JSON, CSS, HTML, JS/TS via Prettier
+- Python formatting for `genai/` via Black and isort
+
 **Gradle & Dependency Management:**
-- Uses Gradle wrapper (`gradlew`) — no pre-installed Gradle required
+
+- Uses Gradle wrapper (`./gradlew`) — no pre-installed Gradle required
 - Spring Boot dependencies resolved from Maven Central via the Gradle version catalog (`server/gradle/libs.versions.toml`)
 - Java toolchain configured to JDK 21
 
@@ -95,6 +115,7 @@ npm install
 - Orchestrator service (`server/orchestrator-service`) aggregates data from all backend services and exposes a unified API.
 - Account service (`server/account-service`) manages account-level data and trend points.
 - Transaction service (`server/transaction-service`) serves transactions and expense analytics.
+- Banking service (`server/banking-service`) integrates with Enable Banking (PSD2/Open Banking) to link external bank accounts and sync balances and transactions into the shared schema. See [ENABLE_BANKING_INTEGRATION.md](ENABLE_BANKING_INTEGRATION.md).
 - GenAI service (`genai`) provides summary and chat capabilities with local-first fallback.
 - PostgreSQL stores persistent account and transaction data.
 
@@ -150,14 +171,16 @@ Configure in `docker-compose.yml` through env vars:
 GitHub Actions workflows:
 
 - **CI** (`.github/workflows/ci.yml`):
-	- Builds & tests all services with Gradle (`./gradlew clean test`), Python (`pytest`), and React (`npm test`)
-	- Runs OWASP Dependency Check for vulnerability scanning
-	- Uses Java 21 (Temurin), Node 22, Python 3.12
-	- Uploads test reports and OWASP security reports as artifacts
+  - Runs the full quality gate for backend via `./gradlew clean check` (compilation + Error Prone + Spotless + SpotBugs + Detekt + tests)
+  - Lints, tests, and builds the React frontend (`npm run lint`, `npm run test`, `npm run build`)
+  - Tests the Python GenAI service (`pytest`)
+  - Runs OWASP Dependency Check for vulnerability scanning
+  - Uses Java 21 (Temurin), Node 22, Python 3.12
+  - Uploads test reports and OWASP security reports as artifacts
 - **CD** (`.github/workflows/cd.yml`):
-	- Runs `helm upgrade --install` on merge to `main` (triggers after GHCR image build)
-	- Can also be triggered manually via `workflow_dispatch`
-	- Requires secrets: `KUBECONFIG`, `TUMID`, `POSTGRES_PASSWORD`
+  - Runs `helm upgrade --install` on merge to `main` (triggers after GHCR image build)
+  - Can also be triggered manually via `workflow_dispatch`
+  - Requires secrets: `KUBECONFIG`, `TUMID`, `POSTGRES_PASSWORD`
 
 ## 5. Kubernetes Deployment (Helm)
 

@@ -11,6 +11,7 @@ Every Pull Request (PR) must be linked to an existing issue.
   - `Related to #123`
 
 Before coding:
+
 1. Search existing issues.
 2. If no issue exists, create one.
 3. Wait for maintainer confirmation if the change is large.
@@ -22,12 +23,14 @@ Create branches from `main` using this format:
 `<type>/<issue-number>-<short-kebab-description>`
 
 Examples:
+
 - `feat/142-dashboard-expense-chart`
 - `fix/188-docker-gradle-build-resolution`
 - `chore/205-update-readme-requirements`
 - `docs/211-add-contributing-guide`
 
 Allowed `type` values:
+
 - `feat` for new features
 - `fix` for bug fixes
 - `docs` for documentation only
@@ -45,11 +48,13 @@ Preferred format (Conventional Commits):
 `<type>(<scope>): <short summary> (#<issue-number>)`
 
 Examples:
+
 - `feat(client): add loading state to dashboard cards (#142)`
 - `fix(orchestrator): handle timeout calling genai service (#188)`
 - `docs(readme): add linux local setup requirements (#205)`
 
 Commit message rules:
+
 - Use imperative mood ("add", "fix", "update", not "added", "fixed").
 - Keep summary <= 72 characters when possible.
 - One logical change per commit.
@@ -62,10 +67,12 @@ PR title format:
 `<type>: <short description> (#<issue-number>)`
 
 Examples:
+
 - `fix: resolve docker compose Gradle build error (#188)`
 - `feat: add spending trend sparkline to client dashboard (#142)`
 
 PR description should include:
+
 - What changed
 - Why it changed
 - Linked issue (`Closes #...`)
@@ -73,6 +80,7 @@ PR description should include:
 - Screenshots or API samples for UI/API changes
 
 Keep PRs focused and small.
+
 - Prefer under ~400 lines changed when possible.
 - Split large work into smaller PRs.
 
@@ -127,23 +135,30 @@ docker compose build
 Use the team scripts so everyone runs Compose the same way with an explicit env file.
 
 1. Create your local team env file:
+
 ```bash
 cp .env.team.example .env.team
 ```
+
 2. Fill `.env.team` using values provided by maintainers.
 3. Start the stack:
+
 ```bash
 ./scripts/dev-up.sh
 ```
+
 4. Stop the stack:
+
 ```bash
 ./scripts/dev-down.sh
 ```
 
 Notes:
+
 - `.env.team` is ignored by git and must never be committed.
 - `./scripts/dev-up.sh` validates required variables before startup.
 - If you need a different env file path, both scripts accept one argument:
+
 ```bash
 ./scripts/dev-up.sh path/to/file.env
 ./scripts/dev-down.sh path/to/file.env
@@ -163,6 +178,7 @@ After `./scripts/dev-up.sh` finishes, use these URLs:
 - Traefik API (raw data): `http://localhost:8080/api/rawdata`
 
 Service visibility notes:
+
 - Prometheus is internal-only by default (not published on host ports).
 - Postgres is internal-only by default (container name `database`, port `5432`).
 - Internal service names reachable from containers on Compose networks:
@@ -172,11 +188,15 @@ Service visibility notes:
   - `http://genai-service:8000`
 
 Internal checks from your terminal (without opening host ports):
+
 - Prometheus health:
+
 ```bash
 docker compose --env-file .env exec prometheus wget -qO- http://localhost:9090/-/healthy
 ```
+
 - Postgres shell:
+
 ```bash
 docker compose --env-file .env exec database psql -U bank -d bankdb
 ```

@@ -7,7 +7,6 @@ volumes:
   postgres-data:
 
 services:
-
   # -------------------------
   # TRAEFIK (EDGE ROUTER)
   # -------------------------
@@ -31,7 +30,6 @@ services:
     networks:
       - edge
 
-
   # -------------------------
   # DATABASE
   # -------------------------
@@ -48,14 +46,13 @@ services:
       - ./infra/docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
 
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bank -d bankdb"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 5
 
     networks:
       - backend
-
 
   # -------------------------
   # ACCOUNT SERVICE
@@ -79,7 +76,6 @@ services:
     networks:
       - backend
 
-
   # -------------------------
   # TRANSACTION SERVICE
   # -------------------------
@@ -102,6 +98,36 @@ services:
     networks:
       - backend
 
+  # -------------------------
+  # BANKING SERVICE (ENABLE BANKING / PSD2)
+  # PEM key + app ID are injected by Ansible from GitHub secrets
+  # (EB_PRIVATE_KEY / EB_APP_ID). Without them the volume falls back to
+  # /dev/null and the service can't reach Enable Banking.
+  # -------------------------
+  banking-service:
+    image: ghcr.io/aet-devops26/banking-service:latest
+    build:
+      context: ./server
+      dockerfile: banking-service/Dockerfile
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://database:5432/bankdb
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-bank}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-bank}
+      SERVER_PORT: 8084
+      ENABLE_BANKING_APP_ID: ${ENABLE_BANKING_APP_ID:-}
+      ENABLE_BANKING_PRIVATE_KEY_PATH: /run/secrets/eb_private_key
+      ENABLE_BANKING_REDIRECT_URL: ${ENABLE_BANKING_REDIRECT_URL:-http://localhost:3000/callback}
+
+    depends_on:
+      database:
+        condition: service_healthy
+
+    volumes:
+      - ${ENABLE_BANKING_PRIVATE_KEY_PATH:-/dev/null}:/run/secrets/eb_private_key:ro
+
+    networks:
+      - backend
 
   # -------------------------
   # GENAI SERVICE
@@ -120,7 +146,6 @@ services:
     networks:
       - backend
 
-
   # -------------------------
   # ORCHESTRATOR (BFF / API LAYER)
   # -------------------------
@@ -135,6 +160,7 @@ services:
       ACCOUNT_SERVICE_URL: http://account-service:8081
       TRANSACTION_SERVICE_URL: http://transaction-service:8082
       GENAI_SERVICE_URL: http://genai-service:8000
+      BANKING_SERVICE_URL: http://banking-service:8084
 
     depends_on:
       account-service:
@@ -143,11 +169,12 @@ services:
         condition: service_started
       genai-service:
         condition: service_started
+      banking-service:
+        condition: service_started
 
     networks:
       - backend
       - edge
-
 
   # -------------------------
   # CLIENT (FRONTEND)
@@ -167,7 +194,6 @@ services:
     networks:
       - edge
 
-
   # -------------------------
   # PROMETHEUS
   # -------------------------
@@ -177,7 +203,6 @@ services:
       - ./infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     networks:
       - backend
-
 
   # -------------------------
   # GRAFANA

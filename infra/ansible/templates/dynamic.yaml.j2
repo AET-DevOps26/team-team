@@ -1,0 +1,80 @@
+{# Rendered by Ansible into {{ app_dir }}/config/traefik/dynamic.yaml on the VM. #}
+{# Keep this file in sync with config/traefik/dynamic.yaml — the only diff is the #}
+{# tls.domains block injected for the catch-all frontend router so Traefik can     #}
+{# request a Let's Encrypt cert for the real FQDN.                                 #}
+http:
+
+  routers:
+
+    api:
+      rule: "PathPrefix(`/api`)"
+      priority: 90
+      entryPoints:
+        - websecure
+      service: api-service
+      tls:
+        certResolver: letsencrypt
+
+    frontend:
+      rule: "PathPrefix(`/`)"
+      priority: 1
+      entryPoints:
+        - websecure
+      service: frontend-service
+      middlewares:
+        - compress
+      tls:
+        certResolver: letsencrypt
+        domains:
+          - main: "{{ app_env.APP_HOSTNAME }}"
+
+    grafana:
+      rule: "PathPrefix(`/grafana`)"
+      priority: 100
+      entryPoints:
+        - websecure
+      service: grafana-service
+      tls:
+        certResolver: letsencrypt
+
+    swagger:
+      rule: "PathPrefix(`/swagger-ui`)"
+      priority: 80
+      entryPoints:
+        - websecure
+      service: api-service
+      tls:
+        certResolver: letsencrypt
+
+    openapi:
+      rule: "PathPrefix(`/v3/api-docs`)"
+      priority: 70
+      entryPoints:
+        - websecure
+      service: api-service
+      tls:
+        certResolver: letsencrypt
+
+
+  services:
+
+    api-service:
+      loadBalancer:
+        servers:
+          - url: "http://orchestrator-service:8083"
+
+    frontend-service:
+      loadBalancer:
+        servers:
+          - url: "http://client:80"
+
+    grafana-service:
+      loadBalancer:
+        servers:
+          - url: "http://grafana:3000"
+
+
+  middlewares:
+
+    compress:
+      compress: {}

@@ -4,7 +4,7 @@ metadata:
   name: orchestrator-service
   namespace: "{{ .Values.tumid }}-devops26"
 spec:
-  replicas: {{ .Values.orchestratorService.replicaCount }}
+  replicas: { { .Values.orchestratorService.replicaCount } }
   selector:
     matchLabels:
       app: orchestrator-service-selector
@@ -16,9 +16,10 @@ spec:
       containers:
         - name: orchestrator-service
           image: "{{ .Values.orchestratorService.image.repository }}:{{ .Values.orchestratorService.image.tag }}"
-          imagePullPolicy: {{ $.Values.imagePullPolicy }}
+          imagePullPolicy: { { $.Values.imagePullPolicy } }
           ports:
-            - containerPort: {{ .Values.orchestratorService.service.targetPort }}
+            - containerPort:
+                { { .Values.orchestratorService.service.targetPort } }
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: docker
@@ -29,4 +30,4 @@ spec:
             - name: GENAI_SERVICE_URL
               value: http://genai-service:{{ .Values.genaiService.service.port }}
           resources:
-            {{- toYaml .Values.orchestratorService.resources | nindent 12 }}
+            { { - toYaml .Values.orchestratorService.resources | nindent 12 } }

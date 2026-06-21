@@ -1,7 +1,5 @@
 http:
-
   routers:
-
     api:
       rule: "PathPrefix(`/api`)"
       priority: 90
@@ -21,6 +19,11 @@ http:
         - compress
       tls:
         certResolver: letsencrypt
+        # NOTE: For deployments that need a Let's Encrypt cert, the Ansible
+        # playbook renders `infra/ansible/templates/dynamic.yaml.j2` over this
+        # file and injects a `domains:` block pointing at the real FQDN.
+        # Local docker-compose intentionally has no `domains:` here — Traefik
+        # falls back to its self-signed default cert, which is fine for dev.
 
     grafana:
       rule: "PathPrefix(`/grafana`)"
@@ -49,9 +52,7 @@ http:
       tls:
         certResolver: letsencrypt
 
-
   services:
-
     api-service:
       loadBalancer:
         servers:
@@ -67,8 +68,6 @@ http:
         servers:
           - url: "http://grafana:3000"
 
-
   middlewares:
-
     compress:
       compress: {}

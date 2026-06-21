@@ -4,7 +4,7 @@ metadata:
   name: transaction-service
   namespace: "{{ .Values.tumid }}-devops26"
 spec:
-  replicas: {{ .Values.transactionService.replicaCount }}
+  replicas: { { .Values.transactionService.replicaCount } }
   selector:
     matchLabels:
       app: transaction-service-selector
@@ -16,20 +16,21 @@ spec:
       containers:
         - name: transaction-service
           image: "{{ .Values.transactionService.image.repository }}:{{ .Values.transactionService.image.tag }}"
-          imagePullPolicy: {{ $.Values.imagePullPolicy }}
+          imagePullPolicy: { { $.Values.imagePullPolicy } }
           ports:
-            - containerPort: {{ .Values.transactionService.service.targetPort }}
+            - containerPort:
+                { { .Values.transactionService.service.targetPort } }
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: docker
             - name: SPRING_DATASOURCE_URL
               value: jdbc:postgresql://postgres:{{ .Values.postgres.service.port }}/{{ .Values.postgres.database.name }}
             - name: SPRING_DATASOURCE_USERNAME
-              value: {{ .Values.postgres.database.user }}
+              value: { { .Values.postgres.database.user } }
             - name: SPRING_DATASOURCE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: postgres-credentials
                   key: password
           resources:
-            {{- toYaml .Values.transactionService.resources | nindent 12 }}
+            { { - toYaml .Values.transactionService.resources | nindent 12 } }

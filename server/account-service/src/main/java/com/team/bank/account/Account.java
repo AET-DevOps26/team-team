@@ -12,69 +12,68 @@ import java.util.UUID;
 @Table(name = "accounts")
 public class Account {
 
-    @Id
-    private UUID id;
+  @Id private UUID id;
 
-    @Column(name = "customer_name", nullable = false)
-    private String customerName;
+  @Column(name = "customer_name", nullable = false)
+  private String customerName;
 
-    @Column(name = "account_type", nullable = false)
-    private String accountType;
+  @Column(name = "account_type", nullable = false)
+  private String accountType;
 
-    @Column(nullable = false)
-    private BigDecimal balance;
+  @Column(nullable = false)
+  private BigDecimal balance;
 
-    @Column(name = "credit_limit", nullable = false)
-    private BigDecimal creditLimit;
+  @Column(name = "credit_limit", nullable = false)
+  private BigDecimal creditLimit;
 
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+  @Column(name = "updated_at", nullable = false)
+  private LocalDateTime updatedAt;
 
-    public UUID getId() {
-        return id;
-    }
+  public UUID getId() {
+    return id;
+  }
 
-    public void setId(UUID id) {
-        this.id = id;
-    }
+  public void setId(UUID id) {
+    this.id = id;
+  }
 
-    public String getCustomerName() {
-        return customerName;
-    }
+  public String getCustomerName() {
+    return customerName;
+  }
 
-    public void setCustomerName(String customerName) {
-        this.customerName = customerName;
-    }
+  public void setCustomerName(String customerName) {
+    this.customerName = customerName;
+  }
 
-    public String getAccountType() {
-        return accountType;
-    }
+  public String getAccountType() {
+    return accountType;
+  }
 
-    public void setAccountType(String accountType) {
-        this.accountType = accountType;
-    }
+  public void setAccountType(String accountType) {
+    this.accountType = accountType;
+  }
 
-    public BigDecimal getBalance() {
-        return balance;
-    }
+  public BigDecimal getBalance() {
+    return balance;
+  }
 
-    public void setBalance(BigDecimal balance) {
-        this.balance = balance;
-    }
+  public void setBalance(BigDecimal balance) {
+    this.balance = balance;
+  }
 
-    public BigDecimal getCreditLimit() {
-        return creditLimit;
-    }
+  public BigDecimal getCreditLimit() {
+    return creditLimit;
+  }
 
-    public void setCreditLimit(BigDecimal creditLimit) {
-        this.creditLimit = creditLimit;
-    }
+  public void setCreditLimit(BigDecimal creditLimit) {
+    this.creditLimit = creditLimit;
+  }
 
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
+  public LocalDateTime getUpdatedAt() {
+    return updatedAt;
+  }
 
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
+  public void setUpdatedAt(LocalDateTime updatedAt) {
+    this.updatedAt = updatedAt;
+  }
 }

@@ -5,6 +5,7 @@ COPY gradlew settings.gradle.kts build.gradle.kts ./
 COPY account-service/ ./account-service/
 COPY transaction-service/ ./transaction-service/
 COPY orchestrator-service/ ./orchestrator-service/
+COPY banking-service/ ./banking-service/
 RUN chmod +x gradlew && \
     ./gradlew :account-service:build -x test && \
     find build/account-service/libs -name "*.jar" ! -name "*plain*" -exec cp {} account-service.jar \;
