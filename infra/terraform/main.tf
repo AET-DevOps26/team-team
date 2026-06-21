@@ -65,6 +65,14 @@ resource "azurerm_public_ip" "pip" {
   sku                 = "Standard"
   domain_name_label   = "${var.project_name}-${var.environment}-${substr(md5(azurerm_resource_group.rg.id), 0, 6)}"
   tags                = local.tags
+
+  lifecycle {
+    # Azure auto-populates these post-create (`ip_tags.FirstPartyUsage`,
+    # availability `zones`). They're ForceNew, so without ignoring them
+    # every subsequent apply would destroy+recreate the PIP — and the
+    # destroy fails because the NIC is still attached.
+    ignore_changes = [ip_tags, zones]
+  }
 }
 
 resource "azurerm_network_security_group" "nsg" {
