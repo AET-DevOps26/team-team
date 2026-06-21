@@ -9,10 +9,10 @@ plugins {
     id("co.uzzu.dotenv.gradle") version "4.0.0"
 
     // Quality tools
-    id("com.diffplug.spotless") version "6.25.0"
+    id("com.diffplug.spotless") version "8.7.0"
     id("com.github.spotbugs") version "6.0.20"
     id("io.gitlab.arturbosch.detekt") version "1.23.6" apply false
-    id("net.ltgt.errorprone") version "4.1.0" apply false
+    id("net.ltgt.errorprone") version "5.1.0" apply false
 }
 
 group = "de.tum.teamteam"
