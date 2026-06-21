@@ -21,3 +21,9 @@ app_env:
   TRAEFIK_HTTP_PORT: "80"
   TRAEFIK_HTTPS_PORT: "443"
   TRAEFIK_DASHBOARD_PORT: "8080"
+  # Enable Banking — injected via --extra-vars from GitHub secrets.
+  # When eb_private_key_pem is empty, the volume falls back to /dev/null so
+  # docker compose still starts; banking-service just can't reach the API.
+  ENABLE_BANKING_APP_ID: "{{ eb_app_id | default('') }}"
+  ENABLE_BANKING_PRIVATE_KEY_PATH: "{{ (app_dir ~ '/secrets/eb_private_key.pem') if (eb_private_key_pem | default('') | length > 0) else '/dev/null' }}"
+  ENABLE_BANKING_REDIRECT_URL: "{{ eb_redirect_url | default('http://localhost:3000/callback') }}"
