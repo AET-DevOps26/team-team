@@ -151,6 +151,28 @@
         mode: "0644"
 
     # ---------------------------------------------------------------------
+    # Enable Banking private key (only when secret is provided)
+    # ---------------------------------------------------------------------
+    - name: Ensure secrets directory exists
+      ansible.builtin.file:
+        path: "{{ app_dir }}/secrets"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0700"
+      when: eb_private_key_pem | default('') | length > 0
+
+    - name: Write Enable Banking private key
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/secrets/eb_private_key.pem"
+        content: "{{ eb_private_key_pem }}"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0600"
+      when: eb_private_key_pem | default('') | length > 0
+      no_log: true
+
+    # ---------------------------------------------------------------------
     # Render .env on the VM
     # ---------------------------------------------------------------------
     - name: Render .env file
