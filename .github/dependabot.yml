@@ -11,9 +11,6 @@ updates:
     commit-message:
       prefix: "deps"
       include: "scope"
-    labels:
-      - "dependencies"
-      - "npm"
     rebase-strategy: auto
     groups:
       npm-minor-and-patch:
@@ -34,9 +31,6 @@ updates:
     commit-message:
       prefix: "deps"
       include: "scope"
-    labels:
-      - "dependencies"
-      - "gradle"
     rebase-strategy: auto
     groups:
       gradle-minor-and-patch:
@@ -57,9 +51,6 @@ updates:
     commit-message:
       prefix: "deps"
       include: "scope"
-    labels:
-      - "dependencies"
-      - "python"
     rebase-strategy: auto
     groups:
       pip-minor-and-patch:
@@ -77,9 +68,6 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: "deps"
-    labels:
-      - "dependencies"
-      - "github-actions"
     groups:
       actions-updates:
         update-types:
@@ -94,9 +82,6 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: "deps"
-    labels:
-      - "dependencies"
-      - "docker"
     groups:
       docker-updates:
         update-types:
