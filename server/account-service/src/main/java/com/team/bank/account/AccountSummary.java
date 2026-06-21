@@ -8,6 +8,4 @@ public record AccountSummary(
     String customerName,
     BigDecimal totalBalance,
     BigDecimal totalCreditLimit,
-    BigDecimal utilizationRate
-) {
-}
+    BigDecimal utilizationRate) {}

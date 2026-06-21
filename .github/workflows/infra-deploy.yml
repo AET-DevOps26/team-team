@@ -16,7 +16,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write   # for azure/login OIDC
+  id-token: write # for azure/login OIDC
 
 concurrency:
   # Never run two deploys at the same time — Terraform state lock + idempotent Ansible runs.
@@ -63,7 +63,7 @@ jobs:
         id: ip
         # The validation rule rejects "*" / "0.0.0.0/0". Pin SSH access to the
         # runner's own /32 so the NSG only opens port 22 to this runner.
-run: |
+        run: |
           ip="$(curl -4 -fsS --retry 3 --connect-timeout 5 --max-time 10 https://api.ipify.org | tr -d '\n')"
           echo "cidr=${ip}/32" >> "$GITHUB_OUTPUT"
 
@@ -86,7 +86,9 @@ run: |
             -backend-config="resource_group_name=${{ secrets.TF_BACKEND_RG }}" \
             -backend-config="storage_account_name=${{ secrets.TF_BACKEND_STORAGE }}" \
             -backend-config="container_name=${{ secrets.TF_BACKEND_CONTAINER }}" \
-            -backend-config="key=main.tfstate"
+            -backend-config="key=main.tfstate" \
+            -backend-config="use_azuread_auth=true" \
+            -backend-config="use_oidc=true"
 
       - name: Terraform plan
         run: terraform plan -input=false -out=tfplan
@@ -127,12 +129,30 @@ run: |
           sed -i "s|ansible_ssh_private_key_file=[^ ]*|ansible_ssh_private_key_file=$HOME/.ssh/team-team-azure|g" inventory.ini
           cat inventory.ini
 
+      - name: Write Enable Banking extra-vars
+        env:
+          EB_PRIVATE_KEY: ${{ secrets.EB_PRIVATE_KEY }}
+          EB_APP_ID: ${{ secrets.EB_APP_ID }}
+          EB_REDIRECT_URL: ${{ secrets.EB_REDIRECT_URL }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          data = {
+              "eb_private_key_pem": os.environ.get("EB_PRIVATE_KEY", ""),
+              "eb_app_id":          os.environ.get("EB_APP_ID", ""),
+              "eb_redirect_url":    os.environ.get("EB_REDIRECT_URL", ""),
+          }
+          with open("/tmp/eb-vars.json", "w") as f:
+              json.dump(data, f)
+          PY
+          chmod 600 /tmp/eb-vars.json
+
       - name: Run playbook
         working-directory: infra/ansible
         env:
           ANSIBLE_HOST_KEY_CHECKING: "False"
           ANSIBLE_FORCE_COLOR: "1"
-        run: ansible-playbook -i inventory.ini playbook.yml
+        run: ansible-playbook -i inventory.ini playbook.yml --extra-vars "@/tmp/eb-vars.json"
 
       - name: Summary
         run: |

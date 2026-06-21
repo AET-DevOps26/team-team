@@ -7,9 +7,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface BankingConnectionRepository extends JpaRepository<BankingConnection, UUID> {
 
-    Optional<BankingConnection> findByState(String state);
+  Optional<BankingConnection> findByState(String state);
 
-    Optional<BankingConnection> findByAccountIdAndStatus(UUID accountId, String status);
+  Optional<BankingConnection> findByAccountIdAndStatus(UUID accountId, String status);
 
-    List<BankingConnection> findByAccountId(UUID accountId);
+  List<BankingConnection> findByAccountId(UUID accountId);
 }

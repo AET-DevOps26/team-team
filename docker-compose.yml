@@ -7,7 +7,6 @@ volumes:
   postgres-data:
 
 services:
-
   # -------------------------
   # TRAEFIK (EDGE ROUTER)
   # -------------------------
@@ -30,7 +29,6 @@ services:
 
     networks:
       - edge
-
 
   # -------------------------
   # DATABASE
@@ -56,7 +54,6 @@ services:
     networks:
       - backend
 
-
   # -------------------------
   # ACCOUNT SERVICE
   # -------------------------
@@ -78,7 +75,6 @@ services:
 
     networks:
       - backend
-
 
   # -------------------------
   # TRANSACTION SERVICE
@@ -102,9 +98,11 @@ services:
     networks:
       - backend
 
-
   # -------------------------
   # BANKING SERVICE (ENABLE BANKING / PSD2)
+  # PEM key + app ID are injected by Ansible from GitHub secrets
+  # (EB_PRIVATE_KEY / EB_APP_ID). Without them the volume falls back to
+  # /dev/null and the service can't reach Enable Banking.
   # -------------------------
   banking-service:
     image: ghcr.io/aet-devops26/banking-service:latest
@@ -126,11 +124,10 @@ services:
         condition: service_healthy
 
     volumes:
-      - ${ENABLE_BANKING_PRIVATE_KEY_PATH?Set ENABLE_BANKING_PRIVATE_KEY_PATH to the host path of the Enable Banking private key PEM}:/run/secrets/eb_private_key:ro
+      - ${ENABLE_BANKING_PRIVATE_KEY_PATH:-/dev/null}:/run/secrets/eb_private_key:ro
 
     networks:
       - backend
-
 
   # -------------------------
   # GENAI SERVICE
@@ -148,7 +145,6 @@ services:
 
     networks:
       - backend
-
 
   # -------------------------
   # ORCHESTRATOR (BFF / API LAYER)
@@ -180,7 +176,6 @@ services:
       - backend
       - edge
 
-
   # -------------------------
   # CLIENT (FRONTEND)
   # -------------------------
@@ -199,7 +194,6 @@ services:
     networks:
       - edge
 
-
   # -------------------------
   # PROMETHEUS
   # -------------------------
@@ -209,7 +203,6 @@ services:
       - ./infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     networks:
       - backend
-
 
   # -------------------------
   # GRAFANA

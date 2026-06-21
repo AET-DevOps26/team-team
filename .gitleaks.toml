@@ -1,0 +1,12 @@
+# Gitleaks configuration — allowlist for known false positives.
+# See https://github.com/gitleaks/gitleaks?tab=readme-ov-file#configuration
+
+[allowlist]
+  description = "False positives from PEM-stripping utility code and test fixtures"
+
+  # EnableBankingJwtSigner.java strips PEM armor from a private key file at
+  # runtime — the string literals "-----BEGIN PRIVATE KEY-----" and
+  # "-----END PRIVATE KEY-----" are not actual secrets.
+  paths = [
+    "server/banking-service/src/main/java/com/team/bank/banking/client/EnableBankingJwtSigner.java",
+  ]
