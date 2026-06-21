@@ -6,15 +6,13 @@
 
 | Service | Local (Docker) | Production (K8s) |
 |---------|---------------|-------------------|
-| Frontend | `https://localhost/` | `https://<tumid>-devops-ss26.stud.k8s.aet.cit.tum.de/` |
-| Backend API | `https://localhost/api` | `https://<tumid>-devops-ss26.stud.k8s.aet.cit.tum.de/api` |
-| Swagger UI | `https://localhost/swagger-ui/index.html` | `https://<tumid>-devops-ss26.stud.k8s.aet.cit.tum.de/swagger-ui/index.html` |
-| OpenAPI JSON | `https://localhost/v3/api-docs` | `https://<tumid>-devops-ss26.stud.k8s.aet.cit.tum.de/v3/api-docs` |
-| Grafana | `https://localhost/grafana/` | `https://<tumid>-devops-ss26.stud.k8s.aet.cit.tum.de/grafana/` |
-| Prometheus | — | `https://<tumid>-devops-ss26.stud.k8s.aet.cit.tum.de/prometheus/` |
+| Frontend | `https://localhost/` | `https://ge42cer-devops-ss26.stud.k8s.aet.cit.tum.de/` |
+| Backend API | `https://localhost/api` | `https://ge42cer-devops-ss26.stud.k8s.aet.cit.tum.de/api` |
+| Swagger UI | `https://localhost/swagger-ui/index.html` | `https://ge42cer-devops-ss26.stud.k8s.aet.cit.tum.de/swagger-ui/index.html` |
+| OpenAPI JSON | `https://localhost/v3/api-docs` | `https://ge42cer-devops-ss26.stud.k8s.aet.cit.tum.de/v3/api-docs` |
+| Grafana | `https://localhost/grafana/` | `https://ge42cer-devops-ss26.stud.k8s.aet.cit.tum.de/grafana/` |
+| Prometheus | — | `https://ge42cer-devops-ss26.stud.k8s.aet.cit.tum.de/prometheus/` |
 | Traefik Dashboard | `http://localhost:8080/dashboard/` | — |
-
-> Replace `<tumid>` with your TUM ID (e.g., `ge42cer`).
 
 This repository contains a full mono-repo banking web application with:
 
@@ -169,8 +167,8 @@ Deploy manually:
 
 ```bash
 helm upgrade --install banking-app ./infra/helm/banking-app \
-  --namespace <tumid>-devops26 --create-namespace \
-  --set tumid=<your-tumid> \
+  --namespace ge42cer-devops26 --create-namespace \
+  --set tumid=ge42cer \
   --set postgres.database.password=<secure-password> \
   --timeout 5m --wait
 ```
@@ -179,8 +177,8 @@ Disable monitoring if not needed:
 
 ```bash
 helm upgrade --install banking-app ./infra/helm/banking-app \
-  --namespace <tumid>-devops26 --create-namespace \
-  --set tumid=<your-tumid> \
+  --namespace ge42cer-devops26 --create-namespace \
+  --set tumid=ge42cer \
   --set postgres.database.password=<secure-password> \
   --set monitoring.prometheus.enabled=false \
   --set monitoring.grafana.enabled=false \
