@@ -1,0 +1,54 @@
+{{- if .Values.monitoring.grafana.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  replicas: {{ .Values.monitoring.grafana.replicaCount }}
+  selector:
+    matchLabels:
+      app: grafana-selector
+  template:
+    metadata:
+      labels:
+        app: grafana-selector
+    spec:
+      containers:
+        - name: grafana
+          image: "{{ .Values.monitoring.grafana.image.repository }}:{{ .Values.monitoring.grafana.image.tag }}"
+          imagePullPolicy: {{ $.Values.imagePullPolicy }}
+          env:
+            - name: GF_SERVER_ROOT_URL
+              value: "%(protocol)s://%(domain)s:%(http_port)s/grafana"
+            - name: GF_SERVER_SERVE_FROM_SUB_PATH
+              value: "true"
+            - name: GF_AUTH_ANONYMOUS_ENABLED
+              value: "true"
+            - name: GF_AUTH_ANONYMOUS_ORG_ROLE
+              value: "Admin"
+          ports:
+            - containerPort: {{ .Values.monitoring.grafana.service.targetPort }}
+          volumeMounts:
+            - name: grafana-datasources
+              mountPath: /etc/grafana/provisioning/datasources
+              readOnly: true
+            - name: grafana-dashboards-provider
+              mountPath: /etc/grafana/provisioning/dashboards
+              readOnly: true
+            - name: grafana-dashboard-banking
+              mountPath: /var/lib/grafana/dashboards
+              readOnly: true
+          resources:
+            {{- toYaml .Values.monitoring.grafana.resources | nindent 12 }}
+      volumes:
+        - name: grafana-datasources
+          configMap:
+            name: grafana-datasources
+        - name: grafana-dashboards-provider
+          configMap:
+            name: grafana-dashboards-provider
+        - name: grafana-dashboard-banking
+          configMap:
+            name: grafana-dashboard-banking
+{{- end }}

@@ -1,0 +1,56 @@
+{{- if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: "banking-ingress"
+  namespace: {{ .Release.Namespace | quote }}
+  {{- $annotations := .Values.ingress.annotations | default dict }}
+  {{- if $annotations }}
+  annotations:
+    {{- toYaml $annotations | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    - hosts:
+        - "{{ .Values.tumid }}-devops-ss26.stud.k8s.aet.cit.tum.de"
+      secretName: "banking-devops26-tls"
+  {{- end }}
+  rules:
+    - host: "{{ .Values.tumid }}-devops-ss26.stud.k8s.aet.cit.tum.de"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: client-service
+                port:
+                  number: {{ .Values.client.service.port }}
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: orchestrator-service
+                port:
+                  number: {{ .Values.orchestratorService.service.port }}
+          {{- if .Values.monitoring.grafana.ingressEnabled }}
+          - path: /grafana
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana
+                port:
+                  number: {{ .Values.monitoring.grafana.service.port }}
+          {{- end }}
+          {{- if .Values.monitoring.prometheus.ingressEnabled }}
+          - path: /prometheus
+            pathType: Prefix
+            backend:
+              service:
+                name: prometheus
+                port:
+                  number: {{ .Values.monitoring.prometheus.service.port }}
+          {{- end }}
+{{- end }}

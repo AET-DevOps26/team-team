@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orchestrator-service
+  namespace: { { .Release.Namespace | quote } }
+spec:
+  replicas: { { .Values.orchestratorService.replicaCount } }
+  selector:
+    matchLabels:
+      app: orchestrator-service-selector
+  template:
+    metadata:
+      labels:
+        app: orchestrator-service-selector
+    spec:
+      containers:
+        - name: orchestrator-service
+          image: "{{ .Values.orchestratorService.image.repository }}:{{ .Values.orchestratorService.image.tag }}"
+          imagePullPolicy: { { $.Values.imagePullPolicy } }
+          ports:
+            - containerPort:
+                { { .Values.orchestratorService.service.targetPort } }
+          env:
+            - name: ACCOUNT_SERVICE_URL
+              value: "http://account-service:{{ .Values.accountService.service.port }}"
+            - name: TRANSACTION_SERVICE_URL
+              value: "http://transaction-service:{{ .Values.transactionService.service.port }}"
+            - name: GENAI_SERVICE_URL
+              value: "http://genai-service:{{ .Values.genaiService.service.port }}"
+          resources:
+            { { - toYaml .Values.orchestratorService.resources | nindent 12 } }
