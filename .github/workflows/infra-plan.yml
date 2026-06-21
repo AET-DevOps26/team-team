@@ -83,7 +83,7 @@ jobs:
             -backend-config="resource_group_name=${{ secrets.TF_BACKEND_RG }}" \
             -backend-config="storage_account_name=${{ secrets.TF_BACKEND_STORAGE }}" \
             -backend-config="container_name=${{ secrets.TF_BACKEND_CONTAINER }}" \
-            -backend-config="key=${{ github.ref_name }}.tfstate" \
+            -backend-config="key=main.tfstate" \
             -backend-config="use_azuread_auth=true" \
             -backend-config="use_oidc=true"
 
