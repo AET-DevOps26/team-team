@@ -379,9 +379,17 @@ function App() {
       return;
     }
 
+    // On return from the bank OAuth flow, let the callback effect own the fetch
+    // so the two requests don't race.
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("code") && params.get("state")) {
+      return;
+    }
+
     fetchDashboard(accountId)
       .then((payload) => {
         setData(payload);
+        setError(null);
         setLoading(false);
       })
       .catch((e: Error) => {
@@ -413,6 +421,7 @@ function App() {
       .then(() => fetchDashboard(accountId))
       .then((payload) => {
         setData(payload);
+        setError(null);
         setLoading(false);
       })
       .catch(() => {
