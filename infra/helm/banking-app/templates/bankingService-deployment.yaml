@@ -1,30 +1,30 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: account-service
+  name: banking-service
   namespace: {{ .Release.Namespace | quote }}
 spec:
-  replicas: {{ .Values.accountService.replicaCount }}
+  replicas: {{ .Values.bankingService.replicaCount }}
   selector:
     matchLabels:
-      app: account-service-selector
+      app: banking-service-selector
   template:
     metadata:
       annotations:
         checksum/config: {{ include "banking-app.rolloutChecksum" . }}
       labels:
-        app: account-service-selector
+        app: banking-service-selector
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
-        - name: account-service
-          image: "{{ .Values.accountService.image.repository }}:{{ .Values.accountService.image.tag }}"
+        - name: banking-service
+          image: "{{ .Values.bankingService.image.repository }}:{{ .Values.bankingService.image.tag }}"
           imagePullPolicy: {{ $.Values.imagePullPolicy }}
           ports:
-            - containerPort: {{ .Values.accountService.service.targetPort }}
+            - containerPort: {{ .Values.bankingService.service.targetPort }}
           env:
             - name: SPRING_DATASOURCE_URL
               value: "jdbc:postgresql://postgres:{{ .Values.postgres.service.port }}/{{ .Values.postgres.database.name }}"
@@ -35,5 +35,13 @@ spec:
                 secretKeyRef:
                   name: postgres-credentials
                   key: password
+            - name: ENABLE_BANKING_APP_ID
+              value: "{{ .Values.bankingService.enableBanking.appId }}"
+            - name: ENABLE_BANKING_PRIVATE_KEY_PATH
+              value: "{{ .Values.bankingService.enableBanking.privateKeyPath }}"
+            - name: ENABLE_BANKING_REDIRECT_URL
+              value: "{{ .Values.bankingService.enableBanking.redirectUrl }}"
+            - name: ENABLE_BANKING_BASE_URL
+              value: "{{ .Values.bankingService.enableBanking.baseUrl }}"
           resources:
-            {{- toYaml .Values.accountService.resources | nindent 12 }}
+            {{- toYaml .Values.bankingService.resources | nindent 12 }}
