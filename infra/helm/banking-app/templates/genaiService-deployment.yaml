@@ -2,9 +2,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: genai-service
-  namespace: { { .Release.Namespace | quote } }
+  namespace: {{ .Release.Namespace | quote }}
 spec:
-  replicas: { { .Values.genaiService.replicaCount } }
+  replicas: {{ .Values.genaiService.replicaCount }}
   selector:
     matchLabels:
       app: genai-service-selector
@@ -16,11 +16,11 @@ spec:
       containers:
         - name: genai-service
           image: "{{ .Values.genaiService.image.repository }}:{{ .Values.genaiService.image.tag }}"
-          imagePullPolicy: { { $.Values.imagePullPolicy } }
+          imagePullPolicy: {{ $.Values.imagePullPolicy }}
           ports:
-            - containerPort: { { .Values.genaiService.service.targetPort } }
+            - containerPort: {{ .Values.genaiService.service.targetPort }}
           env:
             - name: MODEL_PROVIDER
               value: "local"
           resources:
-            { { - toYaml .Values.genaiService.resources | nindent 12 } }
+            {{- toYaml .Values.genaiService.resources | nindent 12 }}

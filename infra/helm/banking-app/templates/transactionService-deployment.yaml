@@ -2,9 +2,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: transaction-service
-  namespace: { { .Release.Namespace | quote } }
+  namespace: {{ .Release.Namespace | quote }}
 spec:
-  replicas: { { .Values.transactionService.replicaCount } }
+  replicas: {{ .Values.transactionService.replicaCount }}
   selector:
     matchLabels:
       app: transaction-service-selector
@@ -16,10 +16,10 @@ spec:
       containers:
         - name: transaction-service
           image: "{{ .Values.transactionService.image.repository }}:{{ .Values.transactionService.image.tag }}"
-          imagePullPolicy: { { $.Values.imagePullPolicy } }
+          imagePullPolicy: {{ $.Values.imagePullPolicy }}
           ports:
             - containerPort:
-                { { .Values.transactionService.service.targetPort } }
+                {{ .Values.transactionService.service.targetPort }}
           env:
             - name: SPRING_DATASOURCE_URL
               value: "jdbc:postgresql://postgres:{{ .Values.postgres.service.port }}/{{ .Values.postgres.database.name }}"
@@ -31,4 +31,4 @@ spec:
                   name: postgres-credentials
                   key: password
           resources:
-            { { - toYaml .Values.transactionService.resources | nindent 12 } }
+            {{- toYaml .Values.transactionService.resources | nindent 12 }}

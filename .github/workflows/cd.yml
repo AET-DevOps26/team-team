@@ -1,6 +1,8 @@
 name: CD
 
 on:
+  push:
+    branches: ["**"]
   workflow_run:
     workflows: ["Build and Push All Services to GHCR"]
     types:
@@ -9,9 +11,41 @@ on:
   workflow_dispatch:
 
 jobs:
+  # ── Dry-run on every push & manual events (validates chart, no deploy) ──
+  helm-dry-run:
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'workflow_run'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v5
+        with:
+          version: v3.17.0
+
+      - name: Helm lint
+        run: helm lint ./infra/helm/banking-app
+
+      - name: Helm template (dry-run)
+        run: |
+          helm template banking-app ./infra/helm/banking-app \
+            --namespace "test" \
+            --set tumid="test" \
+            --set postgres.database.password="test-password" \
+            --set imagePullPolicy=Always \
+            --debug
+
+  # ── Real deploy: after Docker build succeeds on main, or manual dispatch ──
   deploy-k8s:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    needs: helm-dry-run
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     steps:
       - name: Checkout
         uses: actions/checkout@v7
