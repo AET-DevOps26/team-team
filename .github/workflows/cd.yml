@@ -19,8 +19,18 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       github.event_name == 'workflow_run'
     steps:
+      - name: Resolve commit SHA
+        id: sha
+        run: |
+          # On workflow_run, github.sha is the default branch HEAD,
+          # not the triggering commit. Use workflow_run.head_sha instead.
+          resolved="${{ github.event.workflow_run.head_sha || github.sha }}"
+          echo "sha=${resolved}" >> "$GITHUB_OUTPUT"
+
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.sha.outputs.sha }}
 
       - name: Set up Helm
         uses: azure/setup-helm@v5
@@ -37,7 +47,7 @@ jobs:
             --set tumid="test" \
             --set postgres.database.password="test-password" \
             --set imagePullPolicy=Always \
-            --set gitCommitSha="${{ github.sha }}" \
+            --set gitCommitSha="${{ steps.sha.outputs.sha }}" \
             --debug
 
   # ── Real deploy: after Docker build succeeds on main, or manual dispatch ──
@@ -48,8 +58,18 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     steps:
+      - name: Resolve commit SHA
+        id: sha
+        run: |
+          # On workflow_run, github.sha is the default branch HEAD,
+          # not the triggering commit. Use workflow_run.head_sha instead.
+          resolved="${{ github.event.workflow_run.head_sha || github.sha }}"
+          echo "sha=${resolved}" >> "$GITHUB_OUTPUT"
+
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.sha.outputs.sha }}
 
       - name: Set up Helm
         uses: azure/setup-helm@v5
@@ -73,6 +93,6 @@ jobs:
             --set tumid="${{ secrets.TUMID }}" \
             --set postgres.database.password="${{ secrets.POSTGRES_PASSWORD }}" \
             --set imagePullPolicy=Always \
-            --set gitCommitSha="${{ github.sha }}" \
+            --set gitCommitSha="${{ steps.sha.outputs.sha }}" \
             --timeout 5m \
             --wait
