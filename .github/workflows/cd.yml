@@ -107,6 +107,22 @@ jobs:
             echo "Namespace '$ns' does not exist — Helm will create it"
           fi
 
+      - name: Clear pending Helm release (if any)
+        run: |
+          ns="${{ secrets.TUMID }}-devops26"
+          # Remove stale pending-upgrade / pending-install locks from
+          # a previous interrupted deploy (timeout, runner killed, etc.)
+          kubectl delete secret -n "$ns" \
+            -l "owner=helm,name=banking-app,status=pending-upgrade" \
+            --ignore-not-found
+          kubectl delete secret -n "$ns" \
+            -l "owner=helm,name=banking-app,status=pending-install" \
+            --ignore-not-found
+          # Also clear any pending-rollback locks
+          kubectl delete secret -n "$ns" \
+            -l "owner=helm,name=banking-app,status=pending-rollback" \
+            --ignore-not-found
+
       - name: Deploy with Helm
         run: |
           helm upgrade --install banking-app ./infra/helm/banking-app \
