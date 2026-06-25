@@ -85,6 +85,22 @@ jobs:
       - name: Test cluster access
         run: kubectl get nodes
 
+      - name: Ensure namespace has Helm ownership
+        run: |
+          ns="${{ secrets.TUMID }}-devops26"
+          if kubectl get namespace "$ns" >/dev/null 2>&1; then
+            echo "Namespace '$ns' exists — adding Helm ownership metadata"
+            kubectl label namespace "$ns" \
+              app.kubernetes.io/managed-by=Helm \
+              --overwrite
+            kubectl annotate namespace "$ns" \
+              meta.helm.sh/release-name=banking-app \
+              meta.helm.sh/release-namespace="$ns" \
+              --overwrite
+          else
+            echo "Namespace '$ns' does not exist — Helm will create it"
+          fi
+
       - name: Deploy with Helm
         run: |
           helm upgrade --install banking-app ./infra/helm/banking-app \
