@@ -1,0 +1,98 @@
+{{- if .Values.monitoring.serviceMonitors.enabled -}}
+{{- $releaseNamespace := .Release.Namespace -}}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: account-service-monitor
+  namespace: {{ $releaseNamespace | quote }}
+  labels:
+    {{- toYaml .Values.monitoring.serviceMonitors.labels | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: account-service-selector
+  namespaceSelector:
+    matchNames:
+      - {{ $releaseNamespace | quote }}
+  endpoints:
+    - port: http
+      path: /actuator/prometheus
+      interval: {{ .Values.monitoring.prometheus.scrapeInterval }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: transaction-service-monitor
+  namespace: {{ $releaseNamespace | quote }}
+  labels:
+    {{- toYaml .Values.monitoring.serviceMonitors.labels | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: transaction-service-selector
+  namespaceSelector:
+    matchNames:
+      - {{ $releaseNamespace | quote }}
+  endpoints:
+    - port: http
+      path: /actuator/prometheus
+      interval: {{ .Values.monitoring.prometheus.scrapeInterval }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: orchestrator-service-monitor
+  namespace: {{ $releaseNamespace | quote }}
+  labels:
+    {{- toYaml .Values.monitoring.serviceMonitors.labels | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: orchestrator-service-selector
+  namespaceSelector:
+    matchNames:
+      - {{ $releaseNamespace | quote }}
+  endpoints:
+    - port: http
+      path: /actuator/prometheus
+      interval: {{ .Values.monitoring.prometheus.scrapeInterval }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: banking-service-monitor
+  namespace: {{ $releaseNamespace | quote }}
+  labels:
+    {{- toYaml .Values.monitoring.serviceMonitors.labels | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: banking-service-selector
+  namespaceSelector:
+    matchNames:
+      - {{ $releaseNamespace | quote }}
+  endpoints:
+    - port: http
+      path: /actuator/prometheus
+      interval: {{ .Values.monitoring.prometheus.scrapeInterval }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: genai-service-monitor
+  namespace: {{ $releaseNamespace | quote }}
+  labels:
+    {{- toYaml .Values.monitoring.serviceMonitors.labels | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: genai-service-selector
+  namespaceSelector:
+    matchNames:
+      - {{ $releaseNamespace | quote }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.monitoring.prometheus.scrapeInterval }}
+{{- end }}

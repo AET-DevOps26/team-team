@@ -14,6 +14,7 @@ spec:
         checksum/config: {{ include "banking-app.rolloutChecksum" . }}
       labels:
         app: orchestrator-service-selector
+        monitoring: "true"
     spec:
       containers:
         - name: orchestrator-service
@@ -29,5 +30,7 @@ spec:
               value: "http://transaction-service:{{ .Values.transactionService.service.port }}"
             - name: GENAI_SERVICE_URL
               value: "http://genai-service:{{ .Values.genaiService.service.port }}"
+            - name: BANKING_SERVICE_URL
+              value: "http://banking-service:{{ .Values.bankingService.service.port }}"
           resources:
             {{- toYaml .Values.orchestratorService.resources | nindent 12 }}

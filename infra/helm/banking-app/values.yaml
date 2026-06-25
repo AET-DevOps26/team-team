@@ -73,6 +73,24 @@ orchestratorService:
       cpu: "250m"
       memory: "256Mi"
 
+# ---------- Banking Service ----------
+bankingService:
+  image:
+    repository: ghcr.io/aet-devops26/banking-service
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 8084
+    targetPort: 8084
+  replicaCount: 2
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+
 # ---------- GenAI Service ----------
 genaiService:
   image:
@@ -157,6 +175,8 @@ monitoring:
       targetPort: 9090
     replicaCount: 1
     scrapeInterval: 15s
+    storage:
+      size: 8Gi
     resources:
       limits:
         cpu: "500m"
@@ -176,6 +196,11 @@ monitoring:
       port: 3000
       targetPort: 3000
     replicaCount: 1
+    storage:
+      size: 2Gi
+    # ⚠️ Override these at deploy time (--set or custom values file)
+    adminUser: admin
+    adminPassword: change-me-before-deploy
     resources:
       limits:
         cpu: "300m"
@@ -183,3 +208,15 @@ monitoring:
       requests:
         cpu: "100m"
         memory: "128Mi"
+
+  serviceMonitors:
+    enabled: true
+    # Must match the serviceMonitorSelector of your Prometheus Operator.
+    # For Rancher Monitoring, this is typically "release: rancher-monitoring".
+    labels:
+      release: rancher-monitoring
+
+  prometheusRules:
+    enabled: true
+    labels:
+      release: rancher-monitoring

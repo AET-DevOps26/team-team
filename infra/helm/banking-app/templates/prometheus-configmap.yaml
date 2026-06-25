@@ -9,37 +9,211 @@ data:
     global:
       scrape_interval: {{ .Values.monitoring.prometheus.scrapeInterval }}
 
+    # Alertmanager is provided by Rancher Monitoring.
+    # Our Prometheus sends alerts to Rancher's Alertmanager for routing.
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets:
+                - "rancher-monitoring-alertmanager.cattle-monitoring-system:9093"
+
+    rule_files:
+      - /etc/prometheus/alerts.yml
+
     scrape_configs:
+      # ── Spring Boot services (Micrometer /actuator/prometheus) ──
+
       - job_name: account-service
         metrics_path: /actuator/prometheus
-        static_configs:
-          - targets: ["account-service:{{ .Values.accountService.service.port }}"]
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - {{ .Release.Namespace | quote }}
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: account-service-selector
+          - source_labels: [__meta_kubernetes_pod_container_port_number]
+            action: keep
+            regex: "{{ .Values.accountService.service.targetPort }}"
+          - source_labels: [__meta_kubernetes_pod_ip, __meta_kubernetes_pod_container_port_number]
+            action: replace
+            regex: (.+);(\d+)
+            replacement: $1:$2
+            target_label: __address__
 
       - job_name: transaction-service
         metrics_path: /actuator/prometheus
-        static_configs:
-          - targets: ["transaction-service:{{ .Values.transactionService.service.port }}"]
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - {{ .Release.Namespace | quote }}
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: transaction-service-selector
+          - source_labels: [__meta_kubernetes_pod_container_port_number]
+            action: keep
+            regex: "{{ .Values.transactionService.service.targetPort }}"
+          - source_labels: [__meta_kubernetes_pod_ip, __meta_kubernetes_pod_container_port_number]
+            action: replace
+            regex: (.+);(\d+)
+            replacement: $1:$2
+            target_label: __address__
 
       - job_name: orchestrator-service
         metrics_path: /actuator/prometheus
-        static_configs:
-          - targets: ["orchestrator-service:{{ .Values.orchestratorService.service.port }}"]
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - {{ .Release.Namespace | quote }}
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: orchestrator-service-selector
+          - source_labels: [__meta_kubernetes_pod_container_port_number]
+            action: keep
+            regex: "{{ .Values.orchestratorService.service.targetPort }}"
+          - source_labels: [__meta_kubernetes_pod_ip, __meta_kubernetes_pod_container_port_number]
+            action: replace
+            regex: (.+);(\d+)
+            replacement: $1:$2
+            target_label: __address__
+
+      - job_name: banking-service
+        metrics_path: /actuator/prometheus
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - {{ .Release.Namespace | quote }}
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: banking-service-selector
+          - source_labels: [__meta_kubernetes_pod_container_port_number]
+            action: keep
+            regex: "{{ .Values.bankingService.service.targetPort }}"
+          - source_labels: [__meta_kubernetes_pod_ip, __meta_kubernetes_pod_container_port_number]
+            action: replace
+            regex: (.+);(\d+)
+            replacement: $1:$2
+            target_label: __address__
+
+      # ── GenAI service (FastAPI Instrumentator /metrics) ──
 
       - job_name: genai-service
         metrics_path: /metrics
-        static_configs:
-          - targets: ["genai-service:{{ .Values.genaiService.service.port }}"]
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - {{ .Release.Namespace | quote }}
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: genai-service-selector
+          - source_labels: [__meta_kubernetes_pod_container_port_number]
+            action: keep
+            regex: "{{ .Values.genaiService.service.targetPort }}"
+          - source_labels: [__meta_kubernetes_pod_ip, __meta_kubernetes_pod_container_port_number]
+            action: replace
+            regex: (.+);(\d+)
+            replacement: $1:$2
+            target_label: __address__
 
   alerts.yml: |
     groups:
       - name: banking-alerts
         rules:
+          # ── Latency (Spring Boot services) ──
           - alert: HighP95Latency
-            expr: histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket[5m]))) > 1.5
+            expr: histogram_quantile(0.95, sum by (le, job) (rate(http_server_requests_seconds_bucket[5m]))) > 1.5
             for: 5m
             labels:
               severity: warning
             annotations:
-              summary: "High API latency"
-              description: "P95 latency has been above 1.5 seconds for 5 minutes."
+              summary: "High P95 latency on {{ "{{" }} $labels.job {{ "}}" }}"
+              description: "P95 latency has been above 1.5 s for 5 minutes (current: {{ "{{" }} $value | humanizeDuration {{ "}}" }})."
+
+          - alert: HighP99Latency
+            expr: histogram_quantile(0.99, sum by (le, job) (rate(http_server_requests_seconds_bucket[5m]))) > 3.0
+            for: 3m
+            labels:
+              severity: critical
+            annotations:
+              summary: "High P99 latency on {{ "{{" }} $labels.job {{ "}}" }}"
+              description: "P99 latency has been above 3 s for 3 minutes (current: {{ "{{" }} $value | humanizeDuration {{ "}}" }})."
+
+          # ── Error rate (Spring Boot services) ──
+          - alert: HighErrorRate
+            expr: |
+              sum by (job) (rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+              /
+              sum by (job) (rate(http_server_requests_seconds_count[5m]))
+              > 0.05
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High 5xx error rate on {{ "{{" }} $labels.job {{ "}}" }}"
+              description: "Error rate is {{ "{{" }} $value | humanizePercentage {{ "}}" }} over the last 5 minutes."
+
+          - alert: CriticalErrorRate
+            expr: |
+              sum by (job) (rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+              /
+              sum by (job) (rate(http_server_requests_seconds_count[5m]))
+              > 0.10
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Critical 5xx error rate on {{ "{{" }} $labels.job {{ "}}" }}"
+              description: "Error rate is {{ "{{" }} $value | humanizePercentage {{ "}}" }} over the last 5 minutes."
+
+          # ── GenAI latency ──
+          - alert: GenAIHighLatency
+            expr: histogram_quantile(0.95, sum by (le, job) (rate(http_request_duration_seconds_bucket{job="genai-service"}[5m]))) > 5.0
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High P95 latency on GenAI service"
+              description: "GenAI P95 latency has been above 5 s for 5 minutes (current: {{ "{{" }} $value | humanizeDuration {{ "}}" }})."
+
+          - alert: GenAIHighErrorRate
+            expr: |
+              sum by (job) (rate(http_requests_total{job="genai-service",status=~"5.."}[5m]))
+              /
+              sum by (job) (rate(http_requests_total{job="genai-service"}[5m]))
+              > 0.05
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High 5xx error rate on GenAI service"
+              description: "GenAI error rate is {{ "{{" }} $value | humanizePercentage {{ "}}" }} over the last 5 minutes."
+
+          # ── Availability ──
+          - alert: ServiceDown
+            expr: up == 0
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "{{ "{{" }} $labels.job {{ "}}" }} is DOWN"
+              description: "Service {{ "{{" }} $labels.job {{ "}}" }} has been unreachable for more than 2 minutes."
+
+          - alert: NoRequests
+            expr: sum by (job) (rate(http_server_requests_seconds_count[5m])) == 0
+            for: 10m
+            labels:
+              severity: warning
+            annotations:
+              summary: "No requests on {{ "{{" }} $labels.job {{ "}}" }}"
+              description: "{{ "{{" }} $labels.job {{ "}}" }} has received zero requests in the last 10 minutes."
 {{- end }}

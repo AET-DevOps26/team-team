@@ -5,6 +5,7 @@ import requests
 from fastapi import FastAPI
 from pydantic import BaseModel
 from prometheus_fastapi_instrumentator import Instrumentator
+from prometheus_client import Gauge
 
 
 class AccountSummary(BaseModel):
@@ -45,6 +46,12 @@ class ChatResponse(BaseModel):
 
 app = FastAPI(title="Bank GenAI Service", version="0.1.0")
 Instrumentator().instrument(app).expose(app)
+
+# Expose application version as a Prometheus metric
+app_version = Gauge(
+    "app_version", "Application version info", labelnames=["version", "service"]
+)
+app_version.labels(version="0.1.0", service="genai-service").set(1)
 
 
 def local_summary(req: SummaryRequest) -> str:
