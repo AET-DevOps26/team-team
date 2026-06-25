@@ -16,6 +16,10 @@ namespace:
 # Git commit SHA – passed from CI to trigger rollouts on every code change
 gitCommitSha: "local"
 
+# Deploy timestamp – ensures every deploy triggers a rolling update,
+# even when the gitCommitSha hasn't changed (e.g. image rebuild).
+deployTimestamp: "0"
+
 # Global image pull policy
 imagePullPolicy: Always
 

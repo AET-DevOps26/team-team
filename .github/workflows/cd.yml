@@ -159,6 +159,7 @@ jobs:
             --set postgres.database.password="$db_pass" \
             --set imagePullPolicy=Always \
             --set gitCommitSha="${{ steps.sha.outputs.sha }}" \
+            --set deployTimestamp="$(date +%s)" \
             --set accountService.image.tag="${{ steps.sha.outputs.sha }}" \
             --set transactionService.image.tag="${{ steps.sha.outputs.sha }}" \
             --set orchestratorService.image.tag="${{ steps.sha.outputs.sha }}" \
