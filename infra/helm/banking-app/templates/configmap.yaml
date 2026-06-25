@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: app-config
-  namespace: { { .Release.Namespace | quote } }
+  namespace: {{ .Release.Namespace | quote }}
 data:
   api_url: /api
   account_service_url: http://account-service:{{ .Values.accountService.service.port }}

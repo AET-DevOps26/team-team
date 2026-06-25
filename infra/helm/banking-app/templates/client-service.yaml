@@ -2,12 +2,12 @@ apiVersion: v1
 kind: Service
 metadata:
   name: client-service
-  namespace: { { .Release.Namespace | quote } }
+  namespace: {{ .Release.Namespace | quote }}
 spec:
   selector:
     app: banking-client-selector
   ports:
-    - port: { { .Values.client.service.port } }
-      targetPort: { { .Values.client.service.targetPort } }
+    - port: {{ .Values.client.service.port }}
+      targetPort: {{ .Values.client.service.targetPort }}
       protocol: TCP
-  type: { { .Values.client.service.type } }
+  type: {{ .Values.client.service.type }}

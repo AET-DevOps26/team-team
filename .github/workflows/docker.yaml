@@ -2,7 +2,7 @@ name: Build and Push All Services to GHCR
 
 on:
   push:
-    branches: ["main"]
+    branches: ["**"]
   workflow_dispatch:
 
 permissions:
@@ -60,7 +60,15 @@ jobs:
         run: |
           docker build \
             -t $REGISTRY/$OWNER/${{ matrix.service }}:latest \
+            -t $REGISTRY/$OWNER/${{ matrix.service }}:${{ github.sha }} \
             -f ${{ matrix.dockerfile }} \
             ${{ matrix.context }}
 
-          docker push $REGISTRY/$OWNER/${{ matrix.service }}:latest
+          # Push only on manual dispatch or merge to main
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" || "${{ github.ref_name }}" == "main" ]]; then
+            echo "Pushing images to GHCR"
+            docker push $REGISTRY/$OWNER/${{ matrix.service }}:latest
+            docker push $REGISTRY/$OWNER/${{ matrix.service }}:${{ github.sha }}
+          else
+            echo "Skipping push (branch: ${{ github.ref_name }}, event: ${{ github.event_name }})"
+          fi
