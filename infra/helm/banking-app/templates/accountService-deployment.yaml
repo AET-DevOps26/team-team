@@ -10,6 +10,8 @@ spec:
       app: account-service-selector
   template:
     metadata:
+      annotations:
+        checksum/config: {{ include "banking-app.rolloutChecksum" . }}
       labels:
         app: account-service-selector
     spec:

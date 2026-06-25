@@ -13,6 +13,9 @@ tumid: ge42cer
 namespace:
   create: true
 
+# Git commit SHA – passed from CI to trigger rollouts on every code change
+gitCommitSha: "local"
+
 # Global image pull policy
 imagePullPolicy: Always
 

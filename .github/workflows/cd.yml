@@ -37,6 +37,7 @@ jobs:
             --set tumid="test" \
             --set postgres.database.password="test-password" \
             --set imagePullPolicy=Always \
+            --set gitCommitSha="${{ github.sha }}" \
             --debug
 
   # ── Real deploy: after Docker build succeeds on main, or manual dispatch ──
@@ -72,5 +73,6 @@ jobs:
             --set tumid="${{ secrets.TUMID }}" \
             --set postgres.database.password="${{ secrets.POSTGRES_PASSWORD }}" \
             --set imagePullPolicy=Always \
+            --set gitCommitSha="${{ github.sha }}" \
             --timeout 5m \
             --wait

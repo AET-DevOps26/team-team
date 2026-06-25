@@ -10,6 +10,8 @@ spec:
       app: postgres-selector
   template:
     metadata:
+      annotations:
+        checksum/config: {{ include "banking-app.rolloutChecksum" . }}
       labels:
         app: postgres-selector
     spec:

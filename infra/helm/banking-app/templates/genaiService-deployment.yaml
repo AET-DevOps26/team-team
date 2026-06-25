@@ -10,6 +10,8 @@ spec:
       app: genai-service-selector
   template:
     metadata:
+      annotations:
+        checksum/config: {{ include "banking-app.rolloutChecksum" . }}
       labels:
         app: genai-service-selector
     spec:
