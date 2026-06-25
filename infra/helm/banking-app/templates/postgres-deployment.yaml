@@ -5,6 +5,10 @@ metadata:
   namespace: {{ .Release.Namespace | quote }}
 spec:
   replicas: {{ .Values.postgres.replicaCount }}
+  # Recreate: kill old pod before creating new one so the
+  # ReadWriteOnce PVC can be re-mounted without Multi-Attach errors.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: postgres-selector

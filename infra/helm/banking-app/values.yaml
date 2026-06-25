@@ -19,6 +19,16 @@ gitCommitSha: "local"
 # Global image pull policy
 imagePullPolicy: Always
 
+# Image pull secrets for private registries (e.g. GHCR).
+# Create the secret with:
+#   kubectl create secret docker-registry ghcr-secret \
+#     --docker-server=ghcr.io \
+#     --docker-username=<user> \
+#     --docker-password=<token> \
+#     -n <namespace>
+imagePullSecrets:
+  - name: ghcr-secret
+
 # ---------- Account Service ----------
 accountService:
   image:
