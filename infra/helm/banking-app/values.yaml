@@ -73,6 +73,30 @@ orchestratorService:
       cpu: "250m"
       memory: "256Mi"
 
+# ---------- Banking Service ----------
+bankingService:
+  image:
+    repository: ghcr.io/aet-devops26/banking-service
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 8084
+    targetPort: 8084
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+  # Enable Banking integration (PSD2 / Open Banking)
+  enableBanking:
+    appId: ""
+    privateKeyPath: /etc/banking-secrets/eb_private_key.pem
+    redirectUrl: ""
+    baseUrl: https://api.enablebanking.com
+
 # ---------- GenAI Service ----------
 genaiService:
   image:

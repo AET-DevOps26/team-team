@@ -48,6 +48,12 @@ jobs:
             --set postgres.database.password="test-password" \
             --set imagePullPolicy=Always \
             --set gitCommitSha="${{ steps.sha.outputs.sha }}" \
+            --set accountService.image.tag="${{ steps.sha.outputs.sha }}" \
+            --set transactionService.image.tag="${{ steps.sha.outputs.sha }}" \
+            --set orchestratorService.image.tag="${{ steps.sha.outputs.sha }}" \
+            --set genaiService.image.tag="${{ steps.sha.outputs.sha }}" \
+            --set client.image.tag="${{ steps.sha.outputs.sha }}" \
+            --set bankingService.image.tag="${{ steps.sha.outputs.sha }}" \
             --debug
 
   # ── Real deploy: after Docker build succeeds on main, or manual dispatch ──
@@ -110,5 +116,11 @@ jobs:
             --set postgres.database.password="${{ secrets.POSTGRES_PASSWORD }}" \
             --set imagePullPolicy=Always \
             --set gitCommitSha="${{ steps.sha.outputs.sha }}" \
+            --set accountService.image.tag="${{ steps.sha.outputs.sha }}" \
+            --set transactionService.image.tag="${{ steps.sha.outputs.sha }}" \
+            --set orchestratorService.image.tag="${{ steps.sha.outputs.sha }}" \
+            --set genaiService.image.tag="${{ steps.sha.outputs.sha }}" \
+            --set client.image.tag="${{ steps.sha.outputs.sha }}" \
+            --set bankingService.image.tag="${{ steps.sha.outputs.sha }}" \
             --timeout 5m \
             --wait

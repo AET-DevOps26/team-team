@@ -2,26 +2,26 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: orchestrator-service
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: { { .Release.Namespace | quote } }
 spec:
-  replicas: {{ .Values.orchestratorService.replicaCount }}
+  replicas: { { .Values.orchestratorService.replicaCount } }
   selector:
     matchLabels:
       app: orchestrator-service-selector
   template:
     metadata:
       annotations:
-        checksum/config: {{ include "banking-app.rolloutChecksum" . }}
+        checksum/config: { { include "banking-app.rolloutChecksum" . } }
       labels:
         app: orchestrator-service-selector
     spec:
       containers:
         - name: orchestrator-service
           image: "{{ .Values.orchestratorService.image.repository }}:{{ .Values.orchestratorService.image.tag }}"
-          imagePullPolicy: {{ $.Values.imagePullPolicy }}
+          imagePullPolicy: { { $.Values.imagePullPolicy } }
           ports:
             - containerPort:
-                {{ .Values.orchestratorService.service.targetPort }}
+                { { .Values.orchestratorService.service.targetPort } }
           env:
             - name: ACCOUNT_SERVICE_URL
               value: "http://account-service:{{ .Values.accountService.service.port }}"
@@ -29,5 +29,7 @@ spec:
               value: "http://transaction-service:{{ .Values.transactionService.service.port }}"
             - name: GENAI_SERVICE_URL
               value: "http://genai-service:{{ .Values.genaiService.service.port }}"
+            - name: BANKING_SERVICE_URL
+              value: "http://banking-service:{{ .Values.bankingService.service.port }}"
           resources:
-            {{- toYaml .Values.orchestratorService.resources | nindent 12 }}
+            { { - toYaml .Values.orchestratorService.resources | nindent 12 } }
