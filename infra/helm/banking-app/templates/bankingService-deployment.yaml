@@ -2,25 +2,25 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: banking-service
-  namespace: { { .Release.Namespace | quote } }
+  namespace: {{ .Release.Namespace | quote }}
 spec:
-  replicas: { { .Values.bankingService.replicaCount } }
+  replicas: {{ .Values.bankingService.replicaCount }}
   selector:
     matchLabels:
       app: banking-service-selector
   template:
     metadata:
       annotations:
-        checksum/config: { { include "banking-app.rolloutChecksum" . } }
+        checksum/config: {{ include "banking-app.rolloutChecksum" . }}
       labels:
         app: banking-service-selector
     spec:
       containers:
         - name: banking-service
           image: "{{ .Values.bankingService.image.repository }}:{{ .Values.bankingService.image.tag }}"
-          imagePullPolicy: { { $.Values.imagePullPolicy } }
+          imagePullPolicy: {{ $.Values.imagePullPolicy }}
           ports:
-            - containerPort: { { .Values.bankingService.service.targetPort } }
+            - containerPort: {{ .Values.bankingService.service.targetPort }}
           env:
             - name: SPRING_DATASOURCE_URL
               value: "jdbc:postgresql://postgres:{{ .Values.postgres.service.port }}/{{ .Values.postgres.database.name }}"
@@ -40,4 +40,4 @@ spec:
             - name: ENABLE_BANKING_BASE_URL
               value: "{{ .Values.bankingService.enableBanking.baseUrl }}"
           resources:
-            { { - toYaml .Values.bankingService.resources | nindent 12 } }
+            {{- toYaml .Values.bankingService.resources | nindent 12 }}
