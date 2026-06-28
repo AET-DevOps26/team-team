@@ -146,7 +146,7 @@ jobs:
               --dry-run=client -o yaml | kubectl apply -f -
             echo "Enable Banking private key secret created/updated"
           else
-            echo "EB_PRIVATE_KEY secret is empty — banking-service will use demo fallback"
+            echo "EB_PRIVATE_KEY secret is empty"
           fi
 
       - name: Deploy with Helm
