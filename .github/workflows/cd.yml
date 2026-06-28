@@ -136,6 +136,19 @@ jobs:
             -l "owner=helm,name=banking-app,status=pending-rollback" \
             --ignore-not-found
 
+      - name: Create Enable Banking private key secret
+        run: |
+          ns="${{ secrets.TUMID }}-devops26"
+          if [ -n "${{ secrets.EB_PRIVATE_KEY }}" ]; then
+            kubectl create secret generic eb-private-key \
+              --namespace "$ns" \
+              --from-literal=eb_private_key.pem="${{ secrets.EB_PRIVATE_KEY }}" \
+              --dry-run=client -o yaml | kubectl apply -f -
+            echo "Enable Banking private key secret created/updated"
+          else
+            echo "EB_PRIVATE_KEY secret is empty — banking-service will use demo fallback"
+          fi
+
       - name: Deploy with Helm
         run: |
           ns="${{ secrets.TUMID }}-devops26"
@@ -166,6 +179,8 @@ jobs:
             --set genaiService.image.tag="${{ steps.sha.outputs.sha }}" \
             --set client.image.tag="${{ steps.sha.outputs.sha }}" \
             --set bankingService.image.tag="${{ steps.sha.outputs.sha }}" \
+            --set bankingService.enableBanking.appId="${{ secrets.EB_APP_ID }}" \
+            --set bankingService.enableBanking.redirectUrl="${{ secrets.EB_REDIRECT_URL }}" \
             --timeout 5m \
             --wait \
             --debug

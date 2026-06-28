@@ -43,5 +43,14 @@ spec:
               value: "{{ .Values.bankingService.enableBanking.redirectUrl }}"
             - name: ENABLE_BANKING_BASE_URL
               value: "{{ .Values.bankingService.enableBanking.baseUrl }}"
+          volumeMounts:
+            - name: eb-private-key
+              mountPath: /etc/banking-secrets
+              readOnly: true
           resources:
             {{- toYaml .Values.bankingService.resources | nindent 12 }}
+      volumes:
+        - name: eb-private-key
+          secret:
+            secretName: eb-private-key
+            optional: true
