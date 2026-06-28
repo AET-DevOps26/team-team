@@ -40,7 +40,11 @@ spec:
             - name: ENABLE_BANKING_PRIVATE_KEY_PATH
               value: "{{ .Values.bankingService.enableBanking.privateKeyPath }}"
             - name: ENABLE_BANKING_REDIRECT_URL
-              value: "{{ .Values.bankingService.enableBanking.redirectUrl }}"
+              {{- $redirectUrl := .Values.bankingService.enableBanking.redirectUrl }}
+              {{- if empty $redirectUrl }}
+              {{- $redirectUrl = printf "https://%s-devops-ss26.stud.k8s.aet.cit.tum.de" $.Values.tumid }}
+              {{- end }}
+              value: {{ $redirectUrl | quote }}
             - name: ENABLE_BANKING_BASE_URL
               value: "{{ .Values.bankingService.enableBanking.baseUrl }}"
           volumeMounts:
