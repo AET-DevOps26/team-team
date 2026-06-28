@@ -137,12 +137,14 @@ jobs:
             --ignore-not-found
 
       - name: Create Enable Banking private key secret
+        env:
+          EB_PRIVATE_KEY: ${{ secrets.EB_PRIVATE_KEY }}
         run: |
           ns="${{ secrets.TUMID }}-devops26"
-          if [ -n "${{ secrets.EB_PRIVATE_KEY }}" ]; then
+          if [ -n "$EB_PRIVATE_KEY" ]; then
             kubectl create secret generic eb-private-key \
               --namespace "$ns" \
-              --from-literal=eb_private_key.pem="${{ secrets.EB_PRIVATE_KEY }}" \
+              --from-file=eb_private_key.pem=<(printf '%s' "$EB_PRIVATE_KEY") \
               --dry-run=client -o yaml | kubectl apply -f -
             echo "Enable Banking private key secret created/updated"
           else
