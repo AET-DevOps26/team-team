@@ -181,8 +181,8 @@ jobs:
             --set genaiService.image.tag="${{ steps.sha.outputs.sha }}" \
             --set client.image.tag="${{ steps.sha.outputs.sha }}" \
             --set bankingService.image.tag="${{ steps.sha.outputs.sha }}" \
-            --set bankingService.enableBanking.appId="${{ secrets.EB_APP_ID }}" \
-            --set bankingService.enableBanking.redirectUrl="${{ secrets.EB_REDIRECT_URL }}" \
+            --set-string bankingService.enableBanking.appId="${{ secrets.EB_APP_ID }}" \
+            --set-string bankingService.enableBanking.redirectUrl="${{ secrets.EB_REDIRECT_URL }}" \
             --timeout 5m \
             --wait \
             --debug
