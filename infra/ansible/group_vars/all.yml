@@ -26,4 +26,4 @@ app_env:
   # docker compose still starts; banking-service just can't reach the API.
   ENABLE_BANKING_APP_ID: "{{ eb_app_id | default('') }}"
   ENABLE_BANKING_PRIVATE_KEY_PATH: "{{ (app_dir ~ '/secrets/eb_private_key.pem') if (eb_private_key_pem | default('') | length > 0) else '/dev/null' }}"
-  ENABLE_BANKING_REDIRECT_URL: "{{ eb_redirect_url | default('http://localhost:3000/callback') }}"
+  ENABLE_BANKING_REDIRECT_URL: "{{ eb_redirect_url | default('https://localhost/callback') }}"
