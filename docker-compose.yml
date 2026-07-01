@@ -120,7 +120,7 @@ services:
       SERVER_PORT: 8084
       ENABLE_BANKING_APP_ID: ${ENABLE_BANKING_APP_ID:-}
       ENABLE_BANKING_PRIVATE_KEY_PATH: /run/secrets/eb_private_key
-      ENABLE_BANKING_REDIRECT_URL: ${ENABLE_BANKING_REDIRECT_URL:-https://localhost/callback}
+      ENABLE_BANKING_REDIRECT_URL: ${ENABLE_BANKING_REDIRECT_URL:-http://localhost:3000/callback}
 
     depends_on:
       database:

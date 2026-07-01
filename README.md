@@ -227,7 +227,7 @@ Tracked metrics include:
 ## 7. API Documentation
 
 - OpenAPI definition: `server/openapi.yaml`
-- Swagger UI (runtime): `https://localhost/swagger-ui/index.html`
+- Swagger UI (runtime): `http://localhost:8083/swagger-ui/index.html`
 
 ## 8. Testing
 
