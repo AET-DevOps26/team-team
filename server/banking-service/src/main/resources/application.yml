@@ -16,7 +16,7 @@ spring:
 enablebanking:
   app-id: ${ENABLE_BANKING_APP_ID:}
   private-key-path: ${ENABLE_BANKING_PRIVATE_KEY_PATH:}
-  redirect-url: ${ENABLE_BANKING_REDIRECT_URL:http://localhost:3000/callback}
+  redirect-url: ${ENABLE_BANKING_REDIRECT_URL:https://localhost/callback}
   base-url: ${ENABLE_BANKING_BASE_URL:https://api.enablebanking.com}
 
 management:
