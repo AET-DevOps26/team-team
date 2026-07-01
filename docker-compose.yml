@@ -2,6 +2,9 @@ networks:
   backend:
     internal: true
   edge: {}
+  # Outbound-only internet for banking-service (Enable Banking API). Keeps the rest of
+  # `backend` internal; not exposed inbound (no published ports, no Traefik router).
+  egress: {}
 
 volumes:
   postgres-data:
@@ -126,8 +129,14 @@ services:
     volumes:
       - ${ENABLE_BANKING_PRIVATE_KEY_PATH:-/dev/null}:/run/secrets/eb_private_key:ro
 
+    # backend for internal traffic (DB, orchestrator); egress for the external
+    # Enable Banking API. Higher-priority egress provides the default route so
+    # outbound calls don't dead-end on the internal backend network.
     networks:
-      - backend
+      backend:
+        priority: 100
+      egress:
+        priority: 200
 
   # -------------------------
   # GENAI SERVICE
