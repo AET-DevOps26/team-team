@@ -67,10 +67,6 @@ resource "azurerm_public_ip" "pip" {
   tags                = local.tags
 
   lifecycle {
-    # Azure auto-populates these post-create (`ip_tags.FirstPartyUsage`,
-    # availability `zones`). They're ForceNew, so without ignoring them
-    # every subsequent apply would destroy+recreate the PIP — and the
-    # destroy fails because the NIC is still attached.
     ignore_changes = [ip_tags, zones]
   }
 }
@@ -167,6 +163,10 @@ resource "azurerm_linux_virtual_machine" "vm" {
     offer     = "ubuntu-24_04-lts"
     sku       = "server"
     version   = "latest"
+  }
+
+  lifecycle {
+    ignore_changes = [admin_ssh_key]
   }
 }
 
