@@ -170,6 +170,7 @@ services:
       TRANSACTION_SERVICE_URL: http://transaction-service:8082
       GENAI_SERVICE_URL: http://genai-service:8000
       BANKING_SERVICE_URL: http://banking-service:8084
+      APP_CORS_ALLOWED_ORIGINS: https://${APP_HOSTNAME},http://localhost:3000,http://localhost:5173
 
     depends_on:
       account-service:
