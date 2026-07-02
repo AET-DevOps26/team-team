@@ -2,12 +2,12 @@ apiVersion: v1
 kind: Service
 metadata:
   name: orchestrator-service
-  namespace: { { .Release.Namespace | quote } }
+  namespace: {{ .Release.Namespace | quote }}
 spec:
   selector:
     app: orchestrator-service-selector
   ports:
-    - port: { { .Values.orchestratorService.service.port } }
-      targetPort: { { .Values.orchestratorService.service.targetPort } }
+    - port: {{ .Values.orchestratorService.service.port }}
+      targetPort: {{ .Values.orchestratorService.service.targetPort }}
       protocol: TCP
-  type: { { .Values.orchestratorService.service.type } }
+  type: {{ .Values.orchestratorService.service.type }}

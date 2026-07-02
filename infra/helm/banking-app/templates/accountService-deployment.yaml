@@ -2,23 +2,29 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: account-service
-  namespace: { { .Release.Namespace | quote } }
+  namespace: {{ .Release.Namespace | quote }}
 spec:
-  replicas: { { .Values.accountService.replicaCount } }
+  replicas: {{ .Values.accountService.replicaCount }}
   selector:
     matchLabels:
       app: account-service-selector
   template:
     metadata:
+      annotations:
+        checksum/config: {{ include "banking-app.rolloutChecksum" . }}
       labels:
         app: account-service-selector
     spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: account-service
           image: "{{ .Values.accountService.image.repository }}:{{ .Values.accountService.image.tag }}"
-          imagePullPolicy: { { $.Values.imagePullPolicy } }
+          imagePullPolicy: {{ $.Values.imagePullPolicy }}
           ports:
-            - containerPort: { { .Values.accountService.service.targetPort } }
+            - containerPort: {{ .Values.accountService.service.targetPort }}
           env:
             - name: SPRING_DATASOURCE_URL
               value: "jdbc:postgresql://postgres:{{ .Values.postgres.service.port }}/{{ .Values.postgres.database.name }}"
@@ -30,4 +36,4 @@ spec:
                   name: postgres-credentials
                   key: password
           resources:
-            { { - toYaml .Values.accountService.resources | nindent 12 } }
+            {{- toYaml .Values.accountService.resources | nindent 12 }}

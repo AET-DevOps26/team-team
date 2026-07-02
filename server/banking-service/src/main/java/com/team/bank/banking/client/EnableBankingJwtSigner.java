@@ -88,7 +88,7 @@ public class EnableBankingJwtSigner {
       signedJWT.sign(new RSASSASigner(privateKey));
       return signedJWT.serialize();
     } catch (JOSEException e) {
-      throw new RuntimeException("Failed to sign JWT", e);
+      throw new IllegalStateException("Failed to sign JWT", e);
     }
   }
 }

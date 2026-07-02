@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: banking-service
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  replicas: {{ .Values.bankingService.replicaCount }}
+  selector:
+    matchLabels:
+      app: banking-service-selector
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include "banking-app.rolloutChecksum" . }}
+      labels:
+        app: banking-service-selector
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: banking-service
+          image: "{{ .Values.bankingService.image.repository }}:{{ .Values.bankingService.image.tag }}"
+          imagePullPolicy: {{ $.Values.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.bankingService.service.targetPort }}
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres:{{ .Values.postgres.service.port }}/{{ .Values.postgres.database.name }}"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "{{ .Values.postgres.database.user }}"
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: password
+            - name: ENABLE_BANKING_APP_ID
+              value: "{{ .Values.bankingService.enableBanking.appId }}"
+            - name: ENABLE_BANKING_PRIVATE_KEY_PATH
+              value: "{{ .Values.bankingService.enableBanking.privateKeyPath }}"
+            - name: ENABLE_BANKING_REDIRECT_URL
+              {{- $redirectUrl := .Values.bankingService.enableBanking.redirectUrl }}
+              {{- if empty $redirectUrl }}
+              {{- $redirectUrl = printf "https://%s-devops-ss26.stud.k8s.aet.cit.tum.de/callback" $.Values.tumid }}
+              {{- end }}
+              value: {{ $redirectUrl | quote }}
+            - name: ENABLE_BANKING_BASE_URL
+              value: "{{ .Values.bankingService.enableBanking.baseUrl }}"
+          volumeMounts:
+            - name: eb-private-key
+              mountPath: /etc/banking-secrets
+              readOnly: true
+          resources:
+            {{- toYaml .Values.bankingService.resources | nindent 12 }}
+      volumes:
+        - name: eb-private-key
+          secret:
+            secretName: eb-private-key
+            optional: true
