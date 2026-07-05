@@ -146,8 +146,9 @@ public class BankingController {
     // Prefer an ACTIVE connection over stale PENDING rows from earlier, abandoned
     // OAuth attempts; otherwise surface the most recently updated one.
     BankingConnection connection =
-        connectionRepository
-            .findByAccountIdAndStatus(accountId, "ACTIVE")
+        connections.stream()
+            .filter(c -> "ACTIVE".equals(c.getStatus()))
+            .max(java.util.Comparator.comparing(BankingConnection::getUpdatedAt))
             .orElseGet(
                 () ->
                     connections.stream()
