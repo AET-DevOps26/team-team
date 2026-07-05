@@ -1,7 +1,13 @@
 import type { FormEvent } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-import type { DashboardPayload, BankListItem, BalancePoint } from "./api";
+import type {
+  DashboardPayload,
+  BankListItem,
+  BalancePoint,
+  ChatContext,
+  ChatMessage,
+} from "./api";
 import {
   fetchDashboard,
   sendChat,
@@ -162,6 +168,532 @@ function TrendChart({ trend }: { trend: BalancePoint[] }) {
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* Chat panel — sessions in localStorage, per-message reasoning drawer, */
+/* auto-injected dashboard context so the model can answer WorkIQ-style */
+/* questions about the user's balances, expenses and linked banks.     */
+/* ------------------------------------------------------------------ */
+
+interface ChatSession {
+  id: string;
+  title: string;
+  createdAt: number;
+  messages: ChatTurn[];
+}
+
+interface ChatTurn extends ChatMessage {
+  id: string;
+  reasoning?: string | null;
+  pending?: boolean;
+}
+
+const CHAT_STORAGE_KEY = "chat.sessions.v1";
+const MAX_HISTORY = 20;
+
+// Starter prompts shown in the empty chat state — clicking one sends it
+// straight to the assistant, so users can explore without typing.
+const SUGGESTED_PROMPTS = [
+  "What's driving my utilization above 100%?",
+  "Summarize my spending this month.",
+  "How has my balance moved over the last 6 months?",
+];
+
+function sessionsStorageKey(accountId: string): string {
+  return `${CHAT_STORAGE_KEY}:${accountId}`;
+}
+
+function loadSessions(accountId: string): ChatSession[] {
+  try {
+    const raw = localStorage.getItem(sessionsStorageKey(accountId));
+    if (!raw) {
+      return [];
+    }
+    const parsed = JSON.parse(raw) as ChatSession[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveSessions(accountId: string, sessions: ChatSession[]): void {
+  try {
+    localStorage.setItem(sessionsStorageKey(accountId), JSON.stringify(sessions));
+  } catch {
+    // storage quota / disabled — chat still works, just no persistence.
+  }
+}
+
+function newSession(): ChatSession {
+  return {
+    id: (crypto.randomUUID?.() ?? String(Date.now())),
+    title: "New chat",
+    createdAt: Date.now(),
+    messages: [],
+  };
+}
+
+function deriveTitle(text: string): string {
+  const clean = text.trim().replace(/\s+/g, " ");
+  return clean.length > 40 ? `${clean.slice(0, 40)}…` : clean || "New chat";
+}
+
+function buildContext(data: DashboardPayload): ChatContext {
+  return {
+    account: data.account,
+    trend: data.trend,
+    expenses: data.expenses,
+    connection: data.connectionStatus,
+  };
+}
+
+type ChatView = "overview" | "chat";
+
+function ChatPanel({
+  data,
+  accountId,
+  onClose,
+}: {
+  data: DashboardPayload;
+  accountId: string;
+  onClose?: () => void;
+}) {
+  // On mount: if the user has prior chats, show the overview (like VS Code's
+  // chat history view). Otherwise drop straight into a fresh chat so the
+  // input is immediately usable.
+  const initialSessions = useMemo(() => loadSessions(accountId), [accountId]);
+  const [sessions, setSessions] = useState<ChatSession[]>(() =>
+    initialSessions.length > 0 ? initialSessions : [newSession()],
+  );
+  const [activeId, setActiveId] = useState<string>(() =>
+    initialSessions.length > 0 ? initialSessions[0].id : sessions[0].id,
+  );
+  const [view, setView] = useState<ChatView>(() =>
+    initialSessions.length > 0 ? "overview" : "chat",
+  );
+  const [input, setInput] = useState("");
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const listRef = useRef<HTMLDivElement | null>(null);
+
+  const active = sessions.find((s) => s.id === activeId);
+
+  useEffect(() => {
+    saveSessions(accountId, sessions);
+  }, [accountId, sessions]);
+
+  useEffect(() => {
+    if (view === "chat" && listRef.current) {
+      listRef.current.scrollTop = listRef.current.scrollHeight;
+    }
+  }, [view, active?.messages.length]);
+
+  const patchSession = (id: string, update: (s: ChatSession) => ChatSession) => {
+    setSessions((prev) => prev.map((s) => (s.id === id ? update(s) : s)));
+  };
+
+  const openChat = (id: string) => {
+    setActiveId(id);
+    setView("chat");
+    setInput("");
+  };
+
+  const showOverview = () => {
+    setView("overview");
+  };
+
+  const onNewChat = () => {
+    const fresh = newSession();
+    setSessions((prev) => [fresh, ...prev]);
+    setActiveId(fresh.id);
+    setView("chat");
+    setInput("");
+  };
+
+  // Deletes any chat. When it's the one currently open, drop back to the
+  // overview so the user can pick another or start fresh.
+  const onDeleteChat = (id: string) => {
+    setSessions((prev) => prev.filter((s) => s.id !== id));
+    if (id === activeId) {
+      setActiveId("");
+      setView("overview");
+    }
+  };
+
+  const sendMessage = async (raw: string) => {
+    const text = raw.trim();
+    if (!text || !active) {
+      return;
+    }
+
+    const userTurn: ChatTurn = {
+      id: crypto.randomUUID?.() ?? `u-${Date.now()}`,
+      role: "user",
+      content: text,
+    };
+    const pendingId = crypto.randomUUID?.() ?? `a-${Date.now()}`;
+    const pendingTurn: ChatTurn = {
+      id: pendingId,
+      role: "assistant",
+      content: "",
+      pending: true,
+    };
+
+    patchSession(active.id, (s) => ({
+      ...s,
+      title: s.messages.length === 0 ? deriveTitle(text) : s.title,
+      messages: [...s.messages, userTurn, pendingTurn],
+    }));
+    setInput("");
+
+    // Only forward role/content to the backend, capped to the recent window.
+    const history: ChatMessage[] = [...active.messages, userTurn]
+      .slice(-MAX_HISTORY)
+      .map(({ role, content }) => ({ role, content }));
+
+    try {
+      const reply = await sendChat(history, buildContext(data));
+      patchSession(active.id, (s) => ({
+        ...s,
+        messages: s.messages.map((m) =>
+          m.id === pendingId
+            ? { ...m, content: reply.reply, reasoning: reply.reasoning, pending: false }
+            : m,
+        ),
+      }));
+    } catch {
+      patchSession(active.id, (s) => ({
+        ...s,
+        messages: s.messages.map((m) =>
+          m.id === pendingId
+            ? { ...m, content: "Assistant is unavailable right now.", pending: false }
+            : m,
+        ),
+      }));
+    }
+  };
+
+  const onSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    void sendMessage(input);
+  };
+
+  return (
+    <section className="pad chat">
+      <div className="chat-head">
+        <div className="chat-head-left">
+          {view === "chat" && (
+            <button
+              type="button"
+              className="chat-icon-btn"
+              onClick={showOverview}
+              title="Show chats"
+              aria-label="Show chats"
+            >
+              ←
+            </button>
+          )}
+          <p className="seclabel chat-title">
+            {view === "overview" ? (
+              <>
+                Chats <span className="n">{sessions.length}</span>
+              </>
+            ) : (
+              <span className="chat-active-title">{active?.title ?? "New chat"}</span>
+            )}
+          </p>
+        </div>
+        <div className="chat-tools">
+          <button
+            type="button"
+            className="chat-icon-btn"
+            onClick={onNewChat}
+            title="New chat"
+            aria-label="New chat"
+          >
+            +
+          </button>
+          {view === "chat" && (
+            <button
+              type="button"
+              className="chat-icon-btn"
+              onClick={showOverview}
+              title="Show chats"
+              aria-label="Show chats"
+            >
+              ☰
+            </button>
+          )}
+          {view === "chat" && active && (
+            <button
+              type="button"
+              className="chat-icon-btn"
+              onClick={() => onDeleteChat(active.id)}
+              title="Delete chat"
+              aria-label="Delete chat"
+            >
+              🗑
+            </button>
+          )}
+          {onClose && (
+            <>
+              <span className="chat-tool-sep" aria-hidden="true" />
+              <button
+                type="button"
+                className="chat-icon-btn chat-close"
+                onClick={onClose}
+                title="Close chat panel (Esc)"
+                aria-label="Close chat panel"
+              >
+                ×
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {view === "overview" ? (
+        <div className="chat-overview">
+          {sessions.length === 0 ? (
+            <div className="chat-empty">
+              <p>No chats yet. Start a new conversation to begin.</p>
+              <button type="button" className="chat-btn" onClick={onNewChat}>
+                + New chat
+              </button>
+            </div>
+          ) : (
+            <ul className="chat-list">
+              {sessions.map((s) => (
+                <li key={s.id} className="chat-list-item">
+                  <button
+                    type="button"
+                    className="chat-entry"
+                    onClick={() => openChat(s.id)}
+                  >
+                    <span className="chat-entry-title">{s.title}</span>
+                    <span className="chat-entry-meta">
+                      {s.messages.length} msg ·{" "}
+                      {new Date(s.createdAt).toLocaleDateString()}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className="chat-entry-del"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteChat(s.id);
+                    }}
+                    title="Delete chat"
+                    aria-label={`Delete chat ${s.title}`}
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="chat-log" ref={listRef}>
+            {active && active.messages.length === 0 && (
+              <div className="chat-empty">
+                <p>
+                  I can see your linked banks, balances and expenses. Ask me anything about
+                  them — for example:
+                </p>
+                <ul className="chat-suggestions">
+                  {SUGGESTED_PROMPTS.map((prompt) => (
+                    <li key={prompt}>
+                      <button
+                        type="button"
+                        className="chat-suggestion"
+                        onClick={() => void sendMessage(prompt)}
+                      >
+                        “{prompt}”
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {active?.messages.map((m) => (
+              <div key={m.id} className={`bubble ${m.role}`}>
+                <p className="content">
+                  {m.pending ? <span className="typing">thinking…</span> : m.content}
+                </p>
+                {m.role === "assistant" && m.reasoning && !m.pending && (
+                  <details
+                    className="reasoning"
+                    open={!!expanded[m.id]}
+                    onToggle={(e) =>
+                      setExpanded((prev) => ({
+                        ...prev,
+                        [m.id]: (e.currentTarget as HTMLDetailsElement).open,
+                      }))
+                    }
+                  >
+                    <summary>Reasoning</summary>
+                    <pre>{m.reasoning}</pre>
+                  </details>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <form className="prompt" onSubmit={onSubmit}>
+            <span className="chev">›</span>
+            <input
+              aria-label="Ask the banking assistant"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="ask about your spending, limits, or balance"
+            />
+            <button className="run" type="submit">
+              Run
+            </button>
+          </form>
+        </>
+      )}
+    </section>
+  );
+}
+
+/* Floating action button + slide-in right-side dock (Copilot-style).
+   Wraps ChatPanel so all the session / reasoning / grounding logic is reused.
+   The dock is resizable via a left-edge drag handle and pushes the main
+   content aside (via a CSS variable) instead of overlaying it. */
+const DOCK_WIDTH_STORAGE_KEY = "chat.dock.width";
+const DOCK_DEFAULT_WIDTH = 420;
+const DOCK_MIN_WIDTH = 320;
+const DOCK_MAX_RATIO = 0.7; // never take more than 70% of the viewport
+const PUSH_LAYOUT_MIN_VW = 900; // below this, the dock overlays instead of pushing
+
+function clampDockWidth(w: number): number {
+  const vw = typeof window !== "undefined" ? window.innerWidth : 1600;
+  const max = Math.max(DOCK_MIN_WIDTH, Math.floor(vw * DOCK_MAX_RATIO));
+  return Math.min(max, Math.max(DOCK_MIN_WIDTH, Math.round(w)));
+}
+
+function ChatDock({ data, accountId }: { data: DashboardPayload; accountId: string }) {
+  const [open, setOpen] = useState(false);
+  const [width, setWidth] = useState<number>(() => {
+    const raw =
+      typeof window !== "undefined" ? localStorage.getItem(DOCK_WIDTH_STORAGE_KEY) : null;
+    const parsed = raw ? Number(raw) : DOCK_DEFAULT_WIDTH;
+    return clampDockWidth(Number.isFinite(parsed) ? parsed : DOCK_DEFAULT_WIDTH);
+  });
+  const [dragging, setDragging] = useState(false);
+
+  // Push the layout aside on wide viewports; the CSS variable is read by
+  // `body.chat-pushed { padding-right: var(--dock-width) }`.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--dock-width", `${width}px`);
+    const canPush = window.innerWidth >= PUSH_LAYOUT_MIN_VW;
+    document.body.classList.toggle("chat-pushed", open && canPush);
+    return () => {
+      document.body.classList.remove("chat-pushed");
+    };
+  }, [open, width]);
+
+  // Keep width valid across viewport resizes and disable the push layout
+  // if the viewport shrinks below the threshold while the dock is open.
+  useEffect(() => {
+    const onResize = () => {
+      setWidth((w) => clampDockWidth(w));
+      document.body.classList.toggle(
+        "chat-pushed",
+        open && window.innerWidth >= PUSH_LAYOUT_MIN_VW,
+      );
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  // Drag-to-resize from the left edge of the dock.
+  const onResizeStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setDragging(true);
+    const onMove = (ev: MouseEvent) => {
+      setWidth(clampDockWidth(window.innerWidth - ev.clientX));
+    };
+    const onUp = () => {
+      setDragging(false);
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      // Persist the final width.
+      setWidth((w) => {
+        try {
+          localStorage.setItem(DOCK_WIDTH_STORAGE_KEY, String(w));
+        } catch {
+          /* storage disabled — ignore */
+        }
+        return w;
+      });
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        className={`chat-fab ${open ? "hidden" : ""}`}
+        onClick={() => setOpen(true)}
+        aria-label="Open assistant"
+        title="Open assistant"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="22"
+          height="22"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M4 5h16v11H8l-4 4z"
+          />
+        </svg>
+      </button>
+
+      <aside
+        className={`chat-dock ${open ? "open" : ""} ${dragging ? "dragging" : ""}`}
+        aria-label="Assistant"
+      >
+        <div
+          className="chat-resize"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize chat panel"
+          title="Drag to resize"
+          onMouseDown={onResizeStart}
+        />
+        {open && (
+          <ChatPanel data={data} accountId={accountId} onClose={() => setOpen(false)} />
+        )}
+      </aside>
+    </>
+  );
+}
+
 function Dashboard({
   data,
   accountId,
@@ -171,27 +703,12 @@ function Dashboard({
   accountId: string;
   onLogout: () => void;
 }) {
-  const [chatInput, setChatInput] = useState("");
-  const [chatReply, setChatReply] = useState("");
   const [addOpen, setAddOpen] = useState(false);
 
   const trendDelta =
     data.trend.length >= MIN_TREND_POINTS
       ? data.trend[data.trend.length - 1].balance - data.trend[0].balance
       : null;
-
-  const onSubmit = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!chatInput.trim()) {
-      return;
-    }
-    setChatReply("Thinking…");
-    try {
-      setChatReply(await sendChat(chatInput));
-    } catch {
-      setChatReply("Assistant is unavailable right now.");
-    }
-  };
 
   return (
     <main className="term">
@@ -297,24 +814,6 @@ function Dashboard({
           </section>
         </>
       )}
-
-      <hr className="divide" />
-
-      <section className="pad repl">
-        {chatReply && <p className="out">{chatReply}</p>}
-        <form className="prompt" onSubmit={onSubmit}>
-          <span className="chev">›</span>
-          <input
-            aria-label="Ask the banking assistant"
-            value={chatInput}
-            onChange={(e) => setChatInput(e.target.value)}
-            placeholder="ask about your spending, limits, or balance"
-          />
-          <button className="run" type="submit">
-            Run
-          </button>
-        </form>
-      </section>
     </main>
   );
 }
@@ -472,7 +971,12 @@ function App() {
     setAuthed(false);
   };
 
-  return <Dashboard data={data} accountId={accountId} onLogout={onLogout} />;
+  return (
+    <>
+      <Dashboard data={data} accountId={accountId} onLogout={onLogout} />
+      <ChatDock data={data} accountId={accountId} />
+    </>
+  );
 }
 
 export default App;

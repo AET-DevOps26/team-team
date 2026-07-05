@@ -131,8 +131,13 @@ public class DashboardController {
 
   @PostMapping(value = "/chat", produces = MediaType.APPLICATION_JSON_VALUE)
   public ChatResponse chat(@RequestBody ChatRequest request) {
-    if (request == null || !StringUtils.hasText(request.message())) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "message is required");
+    if (request == null) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "request body is required");
+    }
+    boolean hasMessages = request.messages() != null && !request.messages().isEmpty();
+    boolean hasSingle = StringUtils.hasText(request.message());
+    if (!hasMessages && !hasSingle) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "message or messages is required");
     }
     ChatResponse response =
         webClient
@@ -142,7 +147,9 @@ public class DashboardController {
             .retrieve()
             .bodyToMono(ChatResponse.class)
             .block();
-    return response == null ? new ChatResponse("I could not process that request.") : response;
+    return response == null
+        ? new ChatResponse("I could not process that request.", null)
+        : response;
   }
 
   // Thin proxies so the browser reaches banking-service through the orchestrator (single origin /
