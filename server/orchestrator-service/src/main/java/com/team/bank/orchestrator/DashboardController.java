@@ -139,14 +139,20 @@ public class DashboardController {
     if (!hasMessages && !hasSingle) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "message or messages is required");
     }
-    ChatResponse response =
-        webClient
-            .post()
-            .uri(genaiServiceUrl + "/chat")
-            .bodyValue(request)
-            .retrieve()
-            .bodyToMono(ChatResponse.class)
-            .block();
+    ChatResponse response = null;
+    try {
+      response =
+          webClient
+              .post()
+              .uri(genaiServiceUrl + "/chat")
+              .bodyValue(request)
+              .retrieve()
+              .bodyToMono(ChatResponse.class)
+              .block();
+    } catch (RuntimeException e) {
+      // genai-service unavailable or returned an error; fall back to a safe response
+      log.warn("genai-service unavailable, returning fallback chat response", e);
+    }
     return response == null
         ? new ChatResponse("I could not process that request.", null)
         : response;
