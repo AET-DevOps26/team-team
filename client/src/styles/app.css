@@ -774,15 +774,23 @@ body {
 }
 .reasoning pre {
   margin: 0.6rem 0 0;
-  padding: 0.7rem 0.85rem;
-  border: 1px solid var(--line);
-  background: rgba(236, 231, 218, 0.03);
-  font: 400 12px/1.55 var(--mono);
-  color: var(--muted);
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--line-strong);
+  border-left: 2px solid var(--accent);
+  background: rgba(236, 231, 218, 0.06);
+  font: 400 12.5px/1.6 var(--sans);
+  color: var(--text);
+  font-style: italic;
   white-space: pre-wrap;
   word-wrap: break-word;
-  max-height: 260px;
+  max-height: 200px;
   overflow-y: auto;
+}
+.reasoning pre::-webkit-scrollbar {
+  width: 6px;
+}
+.reasoning pre::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
 }
 
 /* chat reuses the .prompt input shell defined in .repl */

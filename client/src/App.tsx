@@ -1,4 +1,4 @@
-import type { FormEvent } from "react";
+import type { FormEvent, MouseEvent as ReactMouseEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type {
@@ -524,12 +524,17 @@ function ChatPanel({
                   <details
                     className="reasoning"
                     open={!!expanded[m.id]}
-                    onToggle={(e) =>
-                      setExpanded((prev) => ({
-                        ...prev,
-                        [m.id]: (e.currentTarget as HTMLDetailsElement).open,
-                      }))
-                    }
+                    onToggle={(e) => {
+                      const el = e.currentTarget as HTMLDetailsElement;
+                      setExpanded((prev) => ({ ...prev, [m.id]: el.open }));
+                      // Keep the newly-revealed reasoning inside the chat-log
+                      // viewport so it doesn't slide off the bottom.
+                      if (el.open) {
+                        requestAnimationFrame(() => {
+                          el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                        });
+                      }
+                    }}
                   >
                     <summary>Reasoning</summary>
                     <pre>{m.reasoning}</pre>
@@ -611,7 +616,7 @@ function ChatDock({ data, accountId }: { data: DashboardPayload; accountId: stri
 
   useEffect(() => {
     if (!open) {
-      return;
+      return undefined;
     }
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -623,7 +628,7 @@ function ChatDock({ data, accountId }: { data: DashboardPayload; accountId: stri
   }, [open]);
 
   // Drag-to-resize from the left edge of the dock.
-  const onResizeStart = (e: React.MouseEvent) => {
+  const onResizeStart = (e: ReactMouseEvent) => {
     e.preventDefault();
     setDragging(true);
     const onMove = (ev: MouseEvent) => {
