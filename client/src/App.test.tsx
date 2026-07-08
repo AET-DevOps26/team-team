@@ -29,7 +29,8 @@ const active = { status: "ACTIVE", bankName: "Nordea", country: "FI" };
 beforeEach(() => {
   window.history.pushState({}, "", "/?accountId=111-222");
   sessionStorage.setItem("authed", "1"); // skip the login gate for dashboard tests
-  vi.spyOn(api, "sendChat").mockResolvedValue("reply");
+  localStorage.clear(); // chat sessions live in localStorage
+  vi.spyOn(api, "sendChat").mockResolvedValue({ reply: "reply", reasoning: null });
 });
 
 afterEach(() => {
@@ -100,6 +101,9 @@ test("sends a chat message and shows the reply", async () => {
   vi.spyOn(api, "fetchDashboard").mockResolvedValue(dashboard({ connectionStatus: active }));
   render(<App />);
   await screen.findByText("Total balance");
+
+  // Chat lives behind a floating action button; open the dock first.
+  fireEvent.click(screen.getByRole("button", { name: /open assistant/i }));
 
   fireEvent.change(screen.getByPlaceholderText(/ask about your spending/i), {
     target: { value: "How do I lower utilization?" },

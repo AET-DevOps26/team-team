@@ -29,6 +29,14 @@ record DashboardResponse(
     String aiSummary,
     ConnectionStatus connectionStatus) {}
 
-record ChatRequest(String message) {}
+record ChatMessage(String role, String content) {}
 
-record ChatResponse(String reply) {}
+record ChatContext(
+    AccountSummary account,
+    List<BalancePoint> trend,
+    List<ExpenseSlice> expenses,
+    ConnectionStatus connection) {}
+
+record ChatRequest(String message, List<ChatMessage> messages, ChatContext context) {}
+
+record ChatResponse(String reply, String reasoning) {}

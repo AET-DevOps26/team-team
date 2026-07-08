@@ -77,16 +77,35 @@ export async function handleBankCallback(code: string, state: string): Promise<C
   return response.json() as Promise<ConnectionStatus>;
 }
 
-export async function sendChat(message: string): Promise<string> {
+export async function sendChat(
+  messages: ChatMessage[],
+  context?: ChatContext,
+): Promise<ChatReply> {
   const response = await fetch(`${API_BASE}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ messages, context }),
   });
   if (!response.ok) {
     throw new Error("Failed to send message");
   }
-  const data = (await response.json()) as { reply: string };
 
-  return data.reply;
+  return response.json() as Promise<ChatReply>;
 }
+
+export interface ChatMessage {
+  role: "user" | "assistant" | "system";
+  content: string;
+}
+
+export interface ChatReply {
+  reply: string;
+  reasoning: string | null;
+}
+
+export type ChatContext = Pick<
+  DashboardPayload,
+  "account" | "trend" | "expenses"
+> & {
+  connection: ConnectionStatus | null;
+};

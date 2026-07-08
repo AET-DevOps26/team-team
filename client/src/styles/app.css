@@ -409,7 +409,7 @@ body {
   max-width: 56ch;
 }
 
-/* repl chat */
+/* repl chat (kept for legacy tests / plain prompt) */
 .repl .out {
   font-family: var(--sans);
   font-size: 14px;
@@ -466,6 +466,528 @@ body {
 .repl .run:hover {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+/* ------------------------------------------------------------------ */
+/* chat panel — sessions header + message log + reasoning drawer      */
+/* ------------------------------------------------------------------ */
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+.chat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+.chat-head-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  flex: 1;
+}
+.chat-title {
+  margin: 0;
+}
+.chat-active-title {
+  font: 500 12px/1.2 var(--sans);
+  color: var(--text);
+  text-transform: none;
+  letter-spacing: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+  display: inline-block;
+}
+.chat-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.chat-icon-btn {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: 500 14px/1 var(--mono);
+  padding: 0.4rem 0.55rem;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: color 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+.chat-icon-btn:hover {
+  color: var(--accent);
+  background: rgba(232, 163, 61, 0.08);
+  border-color: rgba(232, 163, 61, 0.35);
+}
+.chat-icon-btn.chat-close {
+  font-size: 18px;
+  padding: 0.35rem 0.6rem;
+  line-height: 0.9;
+}
+.chat-tool-sep {
+  width: 1px;
+  align-self: stretch;
+  background: var(--line);
+  margin: 0.25rem 0.35rem;
+}
+.chat-select {
+  min-width: 160px;
+  max-width: 240px;
+  border: 1px solid var(--line-strong);
+  background: var(--module);
+  color: var(--text);
+  font: 400 12px var(--mono);
+  padding: 0.45rem 0.6rem;
+  cursor: pointer;
+}
+.chat-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.chat-select option {
+  background: var(--module);
+}
+.chat-btn {
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--muted);
+  font: 500 11px/1 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+}
+.chat-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.chat-btn.ghost {
+  padding: 0.5rem 0.65rem;
+  font-size: 14px;
+  line-height: 0.9;
+  letter-spacing: 0;
+}
+
+/* Overview: list of past chat sessions (like VS Code's chat history view). */
+.chat-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  overflow-y: auto;
+  padding-right: 0.3rem;
+}
+.chat-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.chat-list-item {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--line);
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.chat-list-item:hover {
+  border-color: var(--accent);
+  background: rgba(232, 163, 61, 0.04);
+}
+.chat-entry {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  padding: 0.65rem 0.8rem;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+.chat-entry-title {
+  font: 500 13px/1.35 var(--sans);
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.chat-entry-meta {
+  font: 400 11px/1 var(--mono);
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+.chat-entry-del {
+  border: 0;
+  border-left: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font: 500 14px/1 var(--mono);
+  padding: 0 0.7rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease, color 120ms ease, background 120ms ease;
+}
+.chat-list-item:hover .chat-entry-del,
+.chat-entry-del:focus-visible {
+  opacity: 1;
+}
+.chat-entry-del:hover {
+  color: var(--accent);
+  background: rgba(232, 163, 61, 0.08);
+}
+
+.chat-log {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: 0.3rem;
+}
+.chat-log::-webkit-scrollbar {
+  width: 6px;
+}
+.chat-log::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+}
+
+.chat-empty {
+  font-family: var(--sans);
+  color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1.6;
+  border: 1px dashed var(--line-strong);
+  padding: 1rem 1.1rem;
+}
+.chat-empty p {
+  margin: 0 0 0.5rem;
+}
+.chat-empty ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+.chat-empty li {
+  margin: 0.15rem 0;
+  color: var(--text);
+}
+
+/* Clickable starter prompts shown in the empty chat state. */
+.chat-suggestions {
+  list-style: none;
+  padding: 0;
+  margin: 0.6rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.chat-suggestions li {
+  margin: 0;
+}
+.chat-suggestion {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  font: 400 13.5px/1.45 var(--sans);
+  padding: 0.55rem 0.75rem;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+}
+.chat-suggestion:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(232, 163, 61, 0.06);
+}
+
+.bubble {
+  max-width: 82%;
+  border: 1px solid var(--line);
+  padding: 0.75rem 0.95rem;
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.bubble.user {
+  align-self: flex-end;
+  background: rgba(232, 163, 61, 0.08);
+  border-color: rgba(232, 163, 61, 0.35);
+  color: var(--text);
+}
+.bubble.assistant {
+  align-self: flex-start;
+  background: transparent;
+  color: var(--text);
+}
+.bubble.system {
+  display: none;
+}
+.bubble .content {
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.bubble .typing {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.reasoning {
+  margin-top: 0.65rem;
+  border-top: 1px dashed var(--line);
+  padding-top: 0.55rem;
+}
+.reasoning summary {
+  cursor: pointer;
+  list-style: none;
+  font: 500 10.5px/1 var(--mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.reasoning summary::-webkit-details-marker {
+  display: none;
+}
+.reasoning summary::before {
+  content: "▸";
+  display: inline-block;
+  margin-right: 0.5rem;
+  color: var(--accent);
+  transition: transform 120ms ease;
+}
+.reasoning[open] summary::before {
+  transform: rotate(90deg);
+}
+.reasoning summary:hover {
+  color: var(--accent);
+}
+.reasoning pre {
+  margin: 0.6rem 0 0;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--line-strong);
+  border-left: 2px solid var(--accent);
+  background: rgba(236, 231, 218, 0.06);
+  font: 400 12.5px/1.6 var(--sans);
+  color: var(--text);
+  font-style: italic;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.reasoning pre::-webkit-scrollbar {
+  width: 6px;
+}
+.reasoning pre::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+}
+
+/* chat reuses the .prompt input shell defined in .repl */
+.chat .prompt {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  border: 1px solid var(--line-strong);
+  padding: 0.85rem 1rem;
+}
+.chat .prompt:focus-within {
+  border-color: var(--accent);
+}
+.chat .chev {
+  color: var(--accent);
+  font-size: 15px;
+}
+.chat .prompt input {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: 400 14px var(--mono);
+}
+.chat .prompt input::placeholder {
+  color: var(--faint);
+}
+.chat .prompt input:focus {
+  outline: none;
+}
+.chat .run {
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--muted);
+  font: 500 11px/1 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.55rem 0.85rem;
+  cursor: pointer;
+}
+.chat .run:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Floating assistant button + right-side dock (Copilot-style)         */
+/* Resizable from the left edge; wide viewports get pushed instead of  */
+/* overlaid so the dashboard stays fully interactive.                  */
+/* ------------------------------------------------------------------ */
+:root {
+  --dock-width: 420px;
+}
+
+/* When the dock is open on a wide viewport, shrink the room the app has. */
+body {
+  transition: padding-right 200ms ease;
+}
+body.chat-pushed {
+  padding-right: var(--dock-width);
+}
+
+.chat-fab {
+  position: fixed;
+  right: 1.6rem;
+  bottom: 1.6rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  border: 1px solid var(--accent);
+  background: var(--module);
+  color: var(--accent);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  transition: transform 140ms ease, background 140ms ease, color 140ms ease,
+    opacity 140ms ease;
+  z-index: 40;
+}
+.chat-fab:hover {
+  transform: translateY(-1px);
+  background: var(--accent);
+  color: #1a1407;
+}
+.chat-fab.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px);
+}
+
+.chat-dock {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: var(--dock-width);
+  background: var(--module);
+  border-left: 1px solid var(--line-strong);
+  box-shadow: -12px 0 32px rgba(0, 0, 0, 0.45);
+  transform: translateX(100%);
+  transition: transform 200ms ease;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.chat-dock.open {
+  transform: translateX(0);
+}
+/* Suspend transitions while the user drags so resizing feels instant. */
+.chat-dock.dragging,
+.chat-dock.dragging * {
+  transition: none !important;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Left-edge drag handle. Small hit area but expands on hover so it's easy
+   to grab, mirroring VS Code's sidebar splitter. */
+.chat-resize {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 6px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 120ms ease;
+  z-index: 2;
+}
+.chat-resize:hover,
+.chat-dock.dragging .chat-resize {
+  background: var(--accent);
+  opacity: 0.6;
+}
+
+/* When docked, let ChatPanel fill available space and scroll its log
+   independently of the input row and the header. */
+.chat-dock .chat {
+  flex: 1;
+  min-height: 0;
+  padding: 1.1rem 1.2rem 1.2rem;
+  gap: 0.9rem;
+}
+.chat-dock .chat-log {
+  flex: 1;
+  max-height: none;
+}
+.chat-dock .chat-title {
+  font-size: 11px;
+}
+.chat-dock .chat-overview {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Close (×) button keeps a slightly stronger presence when docked. */
+.chat-dock .chat-icon-btn.chat-close {
+  color: var(--text);
+}
+.chat-dock .chat-icon-btn.chat-close:hover {
+  background: rgba(232, 163, 61, 0.1);
+}
+
+/* On narrow viewports the dock overlays and covers the full screen \u2014
+   there isn't enough room to keep the dashboard usable side-by-side. */
+@media (max-width: 899px) {
+  .chat-dock {
+    width: 100vw;
+    max-width: 100vw;
+  }
+  .chat-resize {
+    display: none;
+  }
+  body.chat-pushed {
+    padding-right: 0;
+  }
+}
+@media (max-width: 520px) {
+  .chat-fab {
+    right: 1rem;
+    bottom: 1rem;
+  }
 }
 
 /* empty state (A's composition, B's skin) */

@@ -1,5 +1,10 @@
 server:
   port: ${SERVER_PORT:8083}
+  # Behind Traefik (TLS terminator). Honor X-Forwarded-Proto/Host so Spring
+  # sees the real request scheme+host and treats browser calls from
+  # https://<APP_HOSTNAME> as same-origin (otherwise CORS rejects them
+  # with `Invalid CORS request`).
+  forward-headers-strategy: framework
 
 services:
   account:
@@ -13,8 +18,10 @@ services:
 
 app:
   cors:
-    # 3000 = client container, 5173 = Vite dev server
-    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+    # 3000 = client container, 5173 = Vite dev server,
+    # https://localhost = Traefik dev deployment (self-signed TLS).
+    # Add the production FQDN here (or via APP_CORS_ALLOWED_ORIGINS) too.
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173,https://localhost}
 
 management:
   endpoints:

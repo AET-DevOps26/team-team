@@ -148,12 +148,22 @@ services:
       dockerfile: Dockerfile
 
     environment:
-      MODEL_PROVIDER: local
+      # `logos` = TUM AET Logos gateway (OpenAI-compatible). Requires LOGOS_KEY.
+      # Falls back to a canned local reply when the upstream is unreachable.
+      MODEL_PROVIDER: ${MODEL_PROVIDER:-logos}
+      LOGOS_KEY: ${LOGOS_KEY:-}
+      LOGOS_BASE_URL: ${LOGOS_BASE_URL:-https://logos.aet.cit.tum.de}
+      LOGOS_MODEL: ${LOGOS_MODEL:-openai/gpt-oss-120b}
       OLLAMA_BASE_URL: http://host.docker.internal:11434
       OLLAMA_MODEL: llama3.1:8b
 
+    # backend for the orchestrator; egress provides the default outbound route
+    # to the external Logos gateway (backend is internal-only).
     networks:
-      - backend
+      backend:
+        priority: 100
+      egress:
+        priority: 200
 
   # -------------------------
   # ORCHESTRATOR (BFF / API LAYER)
@@ -170,7 +180,9 @@ services:
       TRANSACTION_SERVICE_URL: http://transaction-service:8082
       GENAI_SERVICE_URL: http://genai-service:8000
       BANKING_SERVICE_URL: http://banking-service:8084
-      APP_CORS_ALLOWED_ORIGINS: https://${APP_HOSTNAME},http://localhost:3000,http://localhost:5173
+      # Browser hits the app at https://${APP_HOSTNAME} (Traefik TLS).
+      # Include it in the CORS allow-list on top of the localhost defaults.
+      APP_CORS_ALLOWED_ORIGINS: http://localhost:3000,http://localhost:5173,https://localhost,https://${APP_HOSTNAME}
 
     depends_on:
       account-service:
