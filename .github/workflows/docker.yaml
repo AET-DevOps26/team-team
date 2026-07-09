@@ -1,8 +1,9 @@
-name: Build and Push All Services to GHCR
+# NOTE: This workflow is kept as a manual backup.
+# The primary build-and-push logic now lives in cd.yml as a job,
+# ensuring deploy always runs AFTER images are pushed.
+name: Build and Push All Services to GHCR (Manual Backup)
 
 on:
-  push:
-    branches: ["**"]
   workflow_dispatch:
 
 permissions:
