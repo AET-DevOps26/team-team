@@ -45,10 +45,10 @@ accountService:
   replicaCount: 1
   resources:
     limits:
-      cpu: "500m"
+      cpu: "300m"
       memory: "512Mi"
     requests:
-      cpu: "250m"
+      cpu: "150m"
       memory: "256Mi"
 
 # ---------- Transaction Service ----------
@@ -63,10 +63,10 @@ transactionService:
   replicaCount: 1
   resources:
     limits:
-      cpu: "500m"
+      cpu: "300m"
       memory: "512Mi"
     requests:
-      cpu: "250m"
+      cpu: "150m"
       memory: "256Mi"
 
 # ---------- Orchestrator Service ----------
@@ -81,10 +81,10 @@ orchestratorService:
   replicaCount: 1
   resources:
     limits:
-      cpu: "500m"
+      cpu: "300m"
       memory: "512Mi"
     requests:
-      cpu: "250m"
+      cpu: "150m"
       memory: "256Mi"
 
 # ---------- Banking Service ----------
@@ -99,10 +99,10 @@ bankingService:
   replicaCount: 1
   resources:
     limits:
-      cpu: "500m"
+      cpu: "300m"
       memory: "512Mi"
     requests:
-      cpu: "250m"
+      cpu: "150m"
       memory: "256Mi"
   # Enable Banking integration (PSD2 / Open Banking)
   enableBanking:
@@ -123,7 +123,7 @@ genaiService:
   replicaCount: 1
   resources:
     limits:
-      cpu: "500m"
+      cpu: "300m"
       memory: "512Mi"
     requests:
       cpu: "100m"
