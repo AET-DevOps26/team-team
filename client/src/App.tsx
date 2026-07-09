@@ -35,10 +35,15 @@ function formatMoney(value: number): string {
 }
 
 function resolveAccountId(): string {
-  const queryAccountId = new URLSearchParams(window.location.search).get("accountId");
-  const configured = queryAccountId || import.meta.env.VITE_ACCOUNT_ID || FRIENDLY_ACCOUNT_ALIAS;
+  const queryAccountId = new URLSearchParams(window.location.search).get(
+    "accountId",
+  );
+  const configured =
+    queryAccountId || import.meta.env.VITE_ACCOUNT_ID || FRIENDLY_ACCOUNT_ALIAS;
 
-  return configured === FRIENDLY_ACCOUNT_ALIAS ? DEFAULT_ACCOUNT_UUID : configured;
+  return configured === FRIENDLY_ACCOUNT_ALIAS
+    ? DEFAULT_ACCOUNT_UUID
+    : configured;
 }
 
 /* Country picker + bank list -> Enable Banking OAuth redirect.
@@ -66,9 +71,12 @@ function BankConnect({ accountId }: { accountId: string }) {
     setError(null);
     try {
       const { authUrl } = await connectBank(bank.name, bank.country, accountId);
+      // eslint-disable-next-line react-hooks/immutability -- OAuth redirect requires changing window.location
       window.location.href = authUrl;
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to initiate connection");
+      setError(
+        e instanceof Error ? e.message : "Failed to initiate connection",
+      );
       setConnecting(false);
     }
   };
@@ -76,7 +84,11 @@ function BankConnect({ accountId }: { accountId: string }) {
   return (
     <>
       <div className="picker">
-        <select aria-label="Country" value={country} onChange={(e) => setCountry(e.target.value)}>
+        <select
+          aria-label="Country"
+          value={country}
+          onChange={(e) => setCountry(e.target.value)}
+        >
           {COUNTRIES.map((c) => (
             <option key={c.code} value={c.code}>
               {c.name}
@@ -95,7 +107,11 @@ function BankConnect({ accountId }: { accountId: string }) {
           {banks.map((bank) => (
             <li key={`${bank.country}:${bank.name}`}>
               <span className="bn">{bank.name}</span>
-              <button className="link" disabled={connecting} onClick={() => onConnect(bank)}>
+              <button
+                className="link"
+                disabled={connecting}
+                onClick={() => onConnect(bank)}
+              >
                 {connecting ? "Connecting…" : "Connect"}
               </button>
             </li>
@@ -147,10 +163,17 @@ function TrendChart({ trend }: { trend: BalancePoint[] }) {
           Combined balance <span className="n">{chart.months.length}M</span>
         </p>
         <div className="plot">
-          <svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true">
+          <svg
+            viewBox="0 0 100 40"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
             <polyline className="line" points={chart.points} />
           </svg>
-          <i className="enddot" style={{ left: chart.dotLeft, top: chart.dotTop }} />
+          <i
+            className="enddot"
+            style={{ left: chart.dotLeft, top: chart.dotTop }}
+          />
         </div>
         <div className="axis">
           {chart.months.map((m) => (
@@ -234,7 +257,9 @@ function Dashboard({
         </div>
         <div className="cell">
           <p className="k">Utilization</p>
-          <p className="v">{(data.account.utilizationRate * 100).toFixed(1)}%</p>
+          <p className="v">
+            {(data.account.utilizationRate * 100).toFixed(1)}%
+          </p>
         </div>
       </div>
 
@@ -365,17 +390,29 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
 }
 
 function App() {
-  const [authed, setAuthed] = useState(() => sessionStorage.getItem("authed") === "1");
+  const [authed, setAuthed] = useState(
+    () => sessionStorage.getItem("authed") === "1",
+  );
   const [data, setData] = useState<DashboardPayload | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const accountId = useMemo(resolveAccountId, []);
+  const accountId = useMemo(() => resolveAccountId(), []);
+  const hasAccountId = !!accountId;
+
+  // Detect OAuth callback params at mount time (before effects run)
+  const isOAuthCallback = (() => {
+    const p = new URLSearchParams(window.location.search);
+
+    return !!(p.get("code") && p.get("state"));
+  })();
+
+  const [loading, setLoading] = useState(() => hasAccountId || isOAuthCallback);
+  const [error, setError] = useState<string | null>(() =>
+    hasAccountId
+      ? null
+      : "Missing accountId. Set VITE_ACCOUNT_ID or use ?accountId=<uuid> in URL.",
+  );
 
   useEffect(() => {
     if (!accountId) {
-      setError("Missing accountId. Set VITE_ACCOUNT_ID or use ?accountId=<uuid> in URL.");
-      setLoading(false);
-
       return;
     }
 
@@ -416,7 +453,6 @@ function App() {
       query ? `${window.location.pathname}?${query}` : window.location.pathname,
     );
 
-    setLoading(true);
     handleBankCallback(code, state)
       .then(() => fetchDashboard(accountId))
       .then((payload) => {
@@ -458,8 +494,9 @@ function App() {
           <p className="mark">Home banking</p>
           <h2>No banks connected</h2>
           <p>
-            Connect your first bank to start aggregating balances, limits and spending. Add as
-            many as you like — nothing is shown until there’s real data.
+            Connect your first bank to start aggregating balances, limits and
+            spending. Add as many as you like — nothing is shown until there’s
+            real data.
           </p>
           <BankConnect accountId={accountId} />
         </section>
