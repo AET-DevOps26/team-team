@@ -8,7 +8,7 @@ class ChatRequestTest {
 
   @Test
   void shouldStoreMessage() {
-    ChatRequest request = new ChatRequest("hello");
+    ChatRequest request = new ChatRequest("hello", null, null);
     assertEquals("hello", request.message());
   }
 }

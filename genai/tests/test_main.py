@@ -20,4 +20,15 @@ def test_health():
 def test_chat_local():
     response = client.post("/chat", json={"message": "credit advice"})
     assert response.status_code == 200
-    assert "credit" in response.json()["reply"].lower()
+    body = response.json()
+    assert "credit" in body["reply"].lower()
+    assert "reasoning" in body
+
+
+def test_chat_messages_shape():
+    response = client.post(
+        "/chat",
+        json={"messages": [{"role": "user", "content": "budget tips"}]},
+    )
+    assert response.status_code == 200
+    assert "budget" in response.json()["reply"].lower()

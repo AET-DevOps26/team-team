@@ -65,6 +65,10 @@ resource "azurerm_public_ip" "pip" {
   sku                 = "Standard"
   domain_name_label   = "${var.project_name}-${var.environment}-${substr(md5(azurerm_resource_group.rg.id), 0, 6)}"
   tags                = local.tags
+
+  lifecycle {
+    ignore_changes = [ip_tags, zones]
+  }
 }
 
 resource "azurerm_network_security_group" "nsg" {
@@ -159,6 +163,10 @@ resource "azurerm_linux_virtual_machine" "vm" {
     offer     = "ubuntu-24_04-lts"
     sku       = "server"
     version   = "latest"
+  }
+
+  lifecycle {
+    ignore_changes = [admin_ssh_key]
   }
 }
 

@@ -213,7 +213,6 @@ jobs:
             --set client.image.tag="${{ github.sha }}" \
             --set bankingService.image.tag="${{ github.sha }}" \
             --set-string bankingService.enableBanking.appId="${{ secrets.EB_APP_ID }}" \
-            --set-string bankingService.enableBanking.redirectUrl="${{ secrets.EB_REDIRECT_URL }}" \
             --timeout 5m \
             --wait \
             --debug

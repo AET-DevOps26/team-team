@@ -131,18 +131,31 @@ public class DashboardController {
 
   @PostMapping(value = "/chat", produces = MediaType.APPLICATION_JSON_VALUE)
   public ChatResponse chat(@RequestBody ChatRequest request) {
-    if (request == null || !StringUtils.hasText(request.message())) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "message is required");
+    if (request == null) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "request body is required");
     }
-    ChatResponse response =
-        webClient
-            .post()
-            .uri(genaiServiceUrl + "/chat")
-            .bodyValue(request)
-            .retrieve()
-            .bodyToMono(ChatResponse.class)
-            .block();
-    return response == null ? new ChatResponse("I could not process that request.") : response;
+    boolean hasMessages = request.messages() != null && !request.messages().isEmpty();
+    boolean hasSingle = StringUtils.hasText(request.message());
+    if (!hasMessages && !hasSingle) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "message or messages is required");
+    }
+    ChatResponse response = null;
+    try {
+      response =
+          webClient
+              .post()
+              .uri(genaiServiceUrl + "/chat")
+              .bodyValue(request)
+              .retrieve()
+              .bodyToMono(ChatResponse.class)
+              .block();
+    } catch (RuntimeException e) {
+      // genai-service unavailable or returned an error; fall back to a safe response
+      log.warn("genai-service unavailable, returning fallback chat response", e);
+    }
+    return response == null
+        ? new ChatResponse("I could not process that request.", null)
+        : response;
   }
 
   // Thin proxies so the browser reaches banking-service through the orchestrator (single origin /
