@@ -183,13 +183,26 @@ public class DashboardController {
 
   @PostMapping("/banking/callback")
   public Object handleCallback(@RequestBody Map<String, String> body) {
-    return webClient
-        .post()
-        .uri(bankingServiceUrl + "/api/banking/callback")
-        .bodyValue(body)
-        .retrieve()
-        .bodyToMono(Object.class)
-        .block();
+    try {
+      return webClient
+          .post()
+          .uri(bankingServiceUrl + "/api/banking/callback")
+          .bodyValue(body)
+          .retrieve()
+          .onStatus(
+              status -> status.value() == HttpStatus.BAD_GATEWAY.value(),
+              response -> {
+                log.warn("Enable Banking callback failed — code may be expired or API unreachable");
+                return response.createException();
+              })
+          .bodyToMono(Object.class)
+          .block();
+    } catch (Exception e) {
+      log.error("Banking callback forwarding failed: {}", e.getMessage());
+      throw new ResponseStatusException(
+          HttpStatus.BAD_GATEWAY,
+          "Could not complete bank connection. The authorization may have expired. Please try again.");
+    }
   }
 
   @GetMapping("/banking/status/{accountId}")
