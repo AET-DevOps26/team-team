@@ -66,6 +66,15 @@ groups:
           summary: "No requests on {{ $labels.job }}"
           description: "{{ $labels.job }} has received zero requests in the last 10 minutes."
 
+      - alert: GenAINoRequests
+        expr: sum by (job) (rate(http_requests_total{job="genai-service"}[5m])) == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No requests on GenAI service"
+          description: "GenAI service has received zero requests in the last 10 minutes."
+
       # ── GenAI alerts ──
       - alert: GenAIHighLatency
         expr: histogram_quantile(0.95, sum by (le, job) (rate(http_request_duration_seconds_bucket{job="genai-service"}[5m]))) > 5.0

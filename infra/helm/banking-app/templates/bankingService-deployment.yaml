@@ -28,7 +28,7 @@ spec:
             - containerPort: {{ .Values.bankingService.service.targetPort }}
           env:
             - name: SERVER_PORT
-              value: "{{ .Values.bankingService.service.port }}"
+              value: "{{ .Values.bankingService.service.targetPort }}"
             - name: SPRING_DATASOURCE_URL
               value: "jdbc:postgresql://postgres:{{ .Values.postgres.service.port }}/{{ .Values.postgres.database.name }}"
             - name: SPRING_DATASOURCE_USERNAME

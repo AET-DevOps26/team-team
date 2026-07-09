@@ -45,7 +45,8 @@ jobs:
           helm template banking-app ./infra/helm/banking-app \
             --namespace "test" \
             --set tumid="test" \
-            --set postgres.database.password="test-password" \
+            --set postgres.database.password="admin" \
+            --set monitoring.grafana.adminPassword="admin" \
             --set imagePullPolicy=Always \
             --set gitCommitSha="${{ steps.sha.outputs.sha }}" \
             --set accountService.image.tag="${{ steps.sha.outputs.sha }}" \
@@ -172,6 +173,9 @@ jobs:
             --create-namespace \
             --set tumid="${{ secrets.TUMID }}" \
             --set postgres.database.password="$db_pass" \
+            --set monitoring.grafana.adminPassword="${{ secrets.GRAFANA_ADMIN_PASSWORD }}" \
+            --set monitoring.serviceMonitors.enabled=true \
+            --set monitoring.prometheusRules.enabled=true \
             --set imagePullPolicy=Always \
             --set gitCommitSha="${{ steps.sha.outputs.sha }}" \
             --set deployTimestamp="$(date +%s)" \

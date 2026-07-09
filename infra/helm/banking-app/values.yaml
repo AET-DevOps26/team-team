@@ -219,9 +219,8 @@ monitoring:
     replicaCount: 1
     storage:
       size: 2Gi
-    # ⚠️ Override these at deploy time (--set or custom values file)
     adminUser: admin
-    adminPassword: change-me-before-deploy
+    adminPassword: "admin"
     resources:
       limits:
         cpu: "300m"
@@ -230,14 +229,16 @@ monitoring:
         cpu: "100m"
         memory: "128Mi"
 
+  # ── Prometheus Operator CRDs (requires kube-prometheus-stack / Rancher Monitoring) ──
+  # Enable these only if the Prometheus Operator is installed in the cluster.
   serviceMonitors:
-    enabled: true
+    enabled: false
     # Must match the serviceMonitorSelector of your Prometheus Operator.
     # For Rancher Monitoring, this is typically "release: rancher-monitoring".
     labels:
       release: rancher-monitoring
 
   prometheusRules:
-    enabled: true
+    enabled: false
     labels:
       release: rancher-monitoring

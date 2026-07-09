@@ -80,10 +80,13 @@ app = FastAPI(title="Bank GenAI Service", version="0.2.0")
 Instrumentator().instrument(app).expose(app)
 
 # Expose application version as a Prometheus metric
+# Uses APP_VERSION env var if set, otherwise falls back to the FastAPI app version.
 app_version = Gauge(
     "app_version", "Application version info", labelnames=["version", "service"]
 )
-app_version.labels(version="0.1.0", service="genai-service").set(1)
+app_version.labels(
+    version=os.environ.get("APP_VERSION", app.version), service="genai-service"
+).set(1)
 
 
 # ---------------------------------------------------------------------------
