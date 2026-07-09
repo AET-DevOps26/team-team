@@ -16,6 +16,10 @@ spec:
         app: transaction-service-selector
         monitoring: "true"
     spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: transaction-service
           image: "{{ .Values.transactionService.image.repository }}:{{ .Values.transactionService.image.tag }}"

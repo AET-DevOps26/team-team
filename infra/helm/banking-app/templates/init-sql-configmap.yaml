@@ -36,3 +36,17 @@ data:
       ('22222222-2222-2222-2222-222222222224', '11111111-1111-1111-1111-111111111111', 'Other', 200.00, 'DEBIT', NOW() - INTERVAL '2 day'),
       ('22222222-2222-2222-2222-222222222225', '11111111-1111-1111-1111-111111111111', 'Investment', 1500.00, 'CREDIT', NOW() - INTERVAL '1 day')
     ON CONFLICT (id) DO NOTHING;
+
+    CREATE TABLE IF NOT EXISTS banking_connections (
+      id UUID PRIMARY KEY,
+      account_id UUID NOT NULL REFERENCES accounts(id),
+      session_id VARCHAR(255),
+      bank_name VARCHAR(100) NOT NULL,
+      country VARCHAR(10) NOT NULL,
+      state VARCHAR(100) NOT NULL UNIQUE,
+      external_account_uid VARCHAR(255),
+      status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      valid_until TIMESTAMP
+    );

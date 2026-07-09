@@ -19,8 +19,18 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       github.event_name == 'workflow_run'
     steps:
+      - name: Resolve commit SHA
+        id: sha
+        run: |
+          # On workflow_run, github.sha is the default branch HEAD,
+          # not the triggering commit. Use workflow_run.head_sha instead.
+          resolved="${{ github.event.workflow_run.head_sha || github.sha }}"
+          echo "sha=${resolved}" >> "$GITHUB_OUTPUT"
+
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.sha.outputs.sha }}
 
       - name: Set up Helm
         uses: azure/setup-helm@v5
@@ -37,19 +47,38 @@ jobs:
             --set tumid="test" \
             --set postgres.database.password="test-password" \
             --set imagePullPolicy=Always \
-            --set gitCommitSha="${{ github.sha }}" \
+            --set gitCommitSha="${{ steps.sha.outputs.sha }}" \
+            --set accountService.image.tag="${{ steps.sha.outputs.sha }}" \
+            --set transactionService.image.tag="${{ steps.sha.outputs.sha }}" \
+            --set orchestratorService.image.tag="${{ steps.sha.outputs.sha }}" \
+            --set genaiService.image.tag="${{ steps.sha.outputs.sha }}" \
+            --set client.image.tag="${{ steps.sha.outputs.sha }}" \
+            --set bankingService.image.tag="${{ steps.sha.outputs.sha }}" \
             --debug
 
   # ── Real deploy: after Docker build succeeds on main, or manual dispatch ──
   deploy-k8s:
     runs-on: ubuntu-latest
     needs: helm-dry-run
+    permissions:
+      contents: read
+      packages: read # needed for ghcr-secret creation
     if: |
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     steps:
+      - name: Resolve commit SHA
+        id: sha
+        run: |
+          # On workflow_run, github.sha is the default branch HEAD,
+          # not the triggering commit. Use workflow_run.head_sha instead.
+          resolved="${{ github.event.workflow_run.head_sha || github.sha }}"
+          echo "sha=${resolved}" >> "$GITHUB_OUTPUT"
+
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.sha.outputs.sha }}
 
       - name: Set up Helm
         uses: azure/setup-helm@v5
@@ -62,17 +91,107 @@ jobs:
           echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
           chmod 600 ~/.kube/config
 
+      - name: Ensure GHCR image pull secret
+        run: |
+          ns="${{ secrets.TUMID }}-devops26"
+          kubectl create secret docker-registry ghcr-secret \
+            --namespace "$ns" \
+            --docker-server=ghcr.io \
+            --docker-username="${{ github.actor }}" \
+            --docker-password="${{ secrets.GITHUB_TOKEN }}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
       - name: Test cluster access
         run: kubectl get nodes
 
+      - name: Ensure namespace has Helm ownership
+        run: |
+          ns="${{ secrets.TUMID }}-devops26"
+          if kubectl get namespace "$ns" >/dev/null 2>&1; then
+            echo "Namespace '$ns' exists — adding Helm ownership metadata"
+            kubectl label namespace "$ns" \
+              app.kubernetes.io/managed-by=Helm \
+              --overwrite
+            kubectl annotate namespace "$ns" \
+              meta.helm.sh/release-name=banking-app \
+              meta.helm.sh/release-namespace="$ns" \
+              --overwrite
+          else
+            echo "Namespace '$ns' does not exist — Helm will create it"
+          fi
+
+      - name: Clear pending Helm release (if any)
+        run: |
+          ns="${{ secrets.TUMID }}-devops26"
+          # Remove stale pending-upgrade / pending-install locks from
+          # a previous interrupted deploy (timeout, runner killed, etc.)
+          kubectl delete secret -n "$ns" \
+            -l "owner=helm,name=banking-app,status=pending-upgrade" \
+            --ignore-not-found
+          kubectl delete secret -n "$ns" \
+            -l "owner=helm,name=banking-app,status=pending-install" \
+            --ignore-not-found
+          # Also clear any pending-rollback locks
+          kubectl delete secret -n "$ns" \
+            -l "owner=helm,name=banking-app,status=pending-rollback" \
+            --ignore-not-found
+
+      - name: Create Enable Banking private key secret
+        env:
+          EB_PRIVATE_KEY: ${{ secrets.EB_PRIVATE_KEY }}
+        run: |
+          ns="${{ secrets.TUMID }}-devops26"
+          if [ -n "$EB_PRIVATE_KEY" ]; then
+            kubectl create secret generic eb-private-key \
+              --namespace "$ns" \
+              --from-file=eb_private_key.pem=<(printf '%s' "$EB_PRIVATE_KEY") \
+              --dry-run=client -o yaml | kubectl apply -f -
+            echo "Enable Banking private key secret created/updated"
+          else
+            echo "EB_PRIVATE_KEY secret is empty"
+          fi
+
       - name: Deploy with Helm
         run: |
+          ns="${{ secrets.TUMID }}-devops26"
+
+          # Use the existing password from the cluster so it never changes.
+          # The GitHub secret is only a fallback for the very first deploy.
+          if db_pass=$(kubectl get secret -n "$ns" postgres-credentials \
+                       -o jsonpath='{.data.password}' 2>/dev/null | base64 -d); then
+            echo "Using existing postgres password from cluster secret"
+          else
+            db_pass="${{ secrets.POSTGRES_PASSWORD }}"
+            echo "First deploy — using password from GitHub secret"
+          fi
+
+          echo "=== Deploying with image tag: ${{ steps.sha.outputs.sha }} ==="
+
           helm upgrade --install banking-app ./infra/helm/banking-app \
-            --namespace "${{ secrets.TUMID }}-devops26" \
+            --namespace "$ns" \
             --create-namespace \
             --set tumid="${{ secrets.TUMID }}" \
-            --set postgres.database.password="${{ secrets.POSTGRES_PASSWORD }}" \
+            --set postgres.database.password="$db_pass" \
             --set imagePullPolicy=Always \
-            --set gitCommitSha="${{ github.sha }}" \
+            --set gitCommitSha="${{ steps.sha.outputs.sha }}" \
+            --set deployTimestamp="$(date +%s)" \
+            --set accountService.image.tag="${{ steps.sha.outputs.sha }}" \
+            --set transactionService.image.tag="${{ steps.sha.outputs.sha }}" \
+            --set orchestratorService.image.tag="${{ steps.sha.outputs.sha }}" \
+            --set genaiService.image.tag="${{ steps.sha.outputs.sha }}" \
+            --set client.image.tag="${{ steps.sha.outputs.sha }}" \
+            --set bankingService.image.tag="${{ steps.sha.outputs.sha }}" \
+            --set-string bankingService.enableBanking.appId="${{ secrets.EB_APP_ID }}" \
             --timeout 5m \
-            --wait
+            --wait \
+            --debug
+
+      - name: Show rollout status
+        if: always()
+        run: |
+          ns="${{ secrets.TUMID }}-devops26"
+          echo "=== Pods ==="
+          kubectl get pods -n "$ns" -o wide
+          echo ""
+          echo "=== Recent events ==="
+          kubectl get events -n "$ns" --sort-by='.lastTimestamp' | tail -20

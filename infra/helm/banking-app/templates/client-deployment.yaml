@@ -15,6 +15,10 @@ spec:
       labels:
         app: banking-client-selector
     spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: client
           image: "{{ .Values.client.image.repository }}:{{ .Values.client.image.tag }}"

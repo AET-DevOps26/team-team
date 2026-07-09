@@ -143,7 +143,17 @@ public class BankingController {
     if (connections.isEmpty()) {
       return ResponseEntity.ok(new ConnectionStatus("NONE", null, null));
     }
-    BankingConnection connection = connections.get(0);
+    // Prefer an ACTIVE connection over stale PENDING rows from earlier, abandoned
+    // OAuth attempts; otherwise surface the most recently updated one.
+    BankingConnection connection =
+        connections.stream()
+            .filter(c -> "ACTIVE".equals(c.getStatus()))
+            .max(java.util.Comparator.comparing(BankingConnection::getUpdatedAt))
+            .orElseGet(
+                () ->
+                    connections.stream()
+                        .max(java.util.Comparator.comparing(BankingConnection::getUpdatedAt))
+                        .orElse(connections.get(0)));
     return ResponseEntity.ok(
         new ConnectionStatus(
             connection.getStatus(), connection.getBankName(), connection.getCountry()));

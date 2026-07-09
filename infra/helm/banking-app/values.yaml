@@ -16,8 +16,22 @@ namespace:
 # Git commit SHA – passed from CI to trigger rollouts on every code change
 gitCommitSha: "local"
 
+# Deploy timestamp – ensures every deploy triggers a rolling update,
+# even when the gitCommitSha hasn't changed (e.g. image rebuild).
+deployTimestamp: "0"
+
 # Global image pull policy
 imagePullPolicy: Always
+
+# Image pull secrets for private registries (e.g. GHCR).
+# Create the secret with:
+#   kubectl create secret docker-registry ghcr-secret \
+#     --docker-server=ghcr.io \
+#     --docker-username=<user> \
+#     --docker-password=<token> \
+#     -n <namespace>
+imagePullSecrets:
+  - name: ghcr-secret
 
 # ---------- Account Service ----------
 accountService:
@@ -82,7 +96,8 @@ bankingService:
     type: ClusterIP
     port: 8084
     targetPort: 8084
-  replicaCount: 2
+  replicaCount: 1
+
   resources:
     limits:
       cpu: "500m"
@@ -90,6 +105,12 @@ bankingService:
     requests:
       cpu: "250m"
       memory: "256Mi"
+  # Enable Banking integration (PSD2 / Open Banking)
+  enableBanking:
+    appId: ""
+    privateKeyPath: /etc/banking-secrets/eb_private_key.pem
+    redirectUrl: ""
+    baseUrl: https://api.enablebanking.com
 
 # ---------- GenAI Service ----------
 genaiService:

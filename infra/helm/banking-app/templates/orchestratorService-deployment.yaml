@@ -16,6 +16,10 @@ spec:
         app: orchestrator-service-selector
         monitoring: "true"
     spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: orchestrator-service
           image: "{{ .Values.orchestratorService.image.repository }}:{{ .Values.orchestratorService.image.tag }}"
@@ -32,5 +36,7 @@ spec:
               value: "http://genai-service:{{ .Values.genaiService.service.port }}"
             - name: BANKING_SERVICE_URL
               value: "http://banking-service:{{ .Values.bankingService.service.port }}"
+            - name: APP_CORS_ALLOWED_ORIGINS
+              value: "https://{{ .Values.tumid }}-devops-ss26.stud.k8s.aet.cit.tum.de"
           resources:
             {{- toYaml .Values.orchestratorService.resources | nindent 12 }}

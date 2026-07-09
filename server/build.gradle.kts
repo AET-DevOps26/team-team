@@ -9,9 +9,9 @@ plugins {
     id("co.uzzu.dotenv.gradle") version "4.0.0"
 
     // Quality tools
-    id("com.diffplug.spotless") version "8.7.0"
-    id("com.github.spotbugs") version "6.0.20"
-    id("io.gitlab.arturbosch.detekt") version "1.23.6" apply false
+    id("com.diffplug.spotless") version "8.8.0"
+    id("com.github.spotbugs") version "6.5.8"
+    id("io.gitlab.arturbosch.detekt") version "1.23.8" apply false
     id("net.ltgt.errorprone") version "5.1.0" apply false
 }
 
@@ -100,8 +100,8 @@ subprojects {
     // Error Prone (Java compile-time checks)
     // -----------------------------
     dependencies {
-        add("errorprone", "com.google.errorprone:error_prone_core:2.23.0")
-        add("compileOnly", "com.github.spotbugs:spotbugs-annotations:4.8.6")
+        add("errorprone", "com.google.errorprone:error_prone_core:2.50.0")
+        add("compileOnly", "com.github.spotbugs:spotbugs-annotations:4.10.2")
     }
 
     tasks.withType<JavaCompile>().configureEach {

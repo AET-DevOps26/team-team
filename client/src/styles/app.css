@@ -1,14 +1,21 @@
+/* Home Banking — "The Instrument"
+   Dark, amber-phosphor, monospace numerics, hairline modules.
+   System font stacks: ui-monospace -> SF Mono / Menlo, ui-sans-serif -> SF Pro / Segoe. */
+
 :root {
-  color-scheme: light;
-  --bg-1: #f4f7fb;
-  --bg-2: #e7eef8;
-  --ink: #0d1a2b;
-  --muted: #4f6076;
-  --accent: #1368e8;
-  --accent-soft: #6ba3f8;
-  --glass: rgba(255, 255, 255, 0.78);
-  --border: rgba(19, 104, 232, 0.1);
-  --shadow: 0 22px 40px rgba(14, 38, 76, 0.12);
+  color-scheme: dark;
+  --ground: #0f0e0c;
+  --module: #16140f;
+  --text: #ece7da;
+  --muted: #847f71;
+  --faint: #57534a;
+  --line: rgba(236, 231, 218, 0.1);
+  --line-strong: rgba(236, 231, 218, 0.22);
+  --accent: #e8a33d;
+  --pos: #74bba0;
+  --neg: #d2735a;
+  --mono: ui-monospace, "SF Mono", "Menlo", "Monaco", "Cascadia Code", monospace;
+  --sans: ui-sans-serif, -apple-system, system-ui, "Segoe UI", "Helvetica Neue", sans-serif;
 }
 
 * {
@@ -17,291 +24,1053 @@
 
 body {
   margin: 0;
-  font-family: "Plus Jakarta Sans", sans-serif;
-  color: var(--ink);
-  background:
-    radial-gradient(
-      circle at 90% 5%,
-      rgba(19, 104, 232, 0.18),
-      transparent 40%
-    ),
-    radial-gradient(
-      circle at 15% 85%,
-      rgba(107, 163, 248, 0.25),
-      transparent 35%
-    ),
-    linear-gradient(150deg, var(--bg-1), var(--bg-2));
-  min-height: 100vh;
+  background: var(--ground);
+  color: var(--text);
+  font-family: var(--mono);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
 }
 
-.shell {
-  width: min(1100px, 100% - 2rem);
-  margin: 2rem auto;
-  display: grid;
-  gap: 1rem;
-  animation: rise 500ms ease;
+.term {
+  width: min(880px, 100% - 3rem);
+  margin: 2rem auto 6rem;
+  border: 1px solid var(--line);
+  background: var(--module);
+  animation: fade 600ms ease backwards;
 }
 
-.glass {
-  background: var(--glass);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
-  border-radius: 22px;
+@keyframes fade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-.topbar {
-  padding: 1.3rem 1.6rem;
+/* loading / error notice */
+.notice {
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+.notice.error {
+  color: var(--neg);
+}
+
+/* status bar */
+.statusbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 0.95rem 1.5rem;
+  border-bottom: 1px solid var(--line);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
-
-.brand {
-  margin: 0;
+.statusbar .live {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--text);
+}
+.statusbar .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+.statusbar .right {
+  color: var(--faint);
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+.signout {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: 500 10px/1 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 0;
+}
+.signout:hover {
   color: var(--accent);
-  font-size: 0.9rem;
-  letter-spacing: 0.03em;
 }
 
-h1 {
-  margin: 0.2rem 0 0;
-  font-size: clamp(1.4rem, 3vw, 2rem);
-}
-
-.muted {
-  color: var(--muted);
-}
-
-.cards {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
-}
-
-.card {
-  padding: 1.2rem 1.3rem;
-}
-
-.card p {
+.divide {
+  border: 0;
+  border-top: 1px solid var(--line);
   margin: 0;
+}
+.pad {
+  padding: 2rem 1.5rem;
+}
+
+/* hero balance */
+.hero {
+  padding: 2.4rem 1.5rem 2rem;
+}
+.hero .k {
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
   color: var(--muted);
+  margin: 0 0 0.9rem;
 }
-
-.card h2 {
-  margin: 0.45rem 0 0;
+.hero .v {
+  font-size: clamp(3rem, 11vw, 4.4rem);
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+  color: var(--accent);
+  margin: 0;
 }
-
-.split {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 1rem;
-}
-
-.panel {
-  padding: 1.2rem 1.3rem;
-}
-
-.panel h3 {
-  margin-top: 0;
-}
-
-.chart {
-  width: 100%;
-  height: 220px;
-  background: linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.9),
-    rgba(220, 235, 255, 0.7)
-  );
-  border-radius: 12px;
-  border: 1px solid rgba(19, 104, 232, 0.12);
-}
-
-.chart polyline {
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 1.7;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.months {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  margin-top: 0.5rem;
-  font-size: 0.85rem;
+.hero .sub {
+  font-size: 12px;
   color: var(--muted);
+  margin: 1rem 0 0;
+}
+.hero .sub .up {
+  color: var(--pos);
+  font-weight: 600;
+}
+.hero .sub .down {
+  color: var(--neg);
+  font-weight: 600;
 }
 
-.expense-list {
+/* secondary stat pair */
+.pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.pair .cell {
+  padding: 1.3rem 1.5rem;
+}
+.pair .cell + .cell {
+  border-left: 1px solid var(--line);
+}
+.pair .k {
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 0.5rem;
+}
+.pair .v {
+  font-size: 1.4rem;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+/* section label */
+.seclabel {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 1.3rem;
+}
+.seclabel .n {
+  color: var(--faint);
+}
+
+/* linked banks roster */
+.roster {
   list-style: none;
   margin: 0;
   padding: 0;
+}
+.roster li {
   display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
   gap: 0.8rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--line);
 }
-
-.expense-list li {
-  display: flex;
-  justify-content: space-between;
-  border-bottom: 1px dashed rgba(79, 96, 118, 0.25);
-  padding-bottom: 0.35rem;
+.roster li:last-child {
+  border-bottom: 0;
 }
-
-.chat-form {
-  display: flex;
-  gap: 0.7rem;
+.roster .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--accent);
 }
-
-.chat-form input {
-  flex: 1;
-  border: 1px solid rgba(19, 104, 232, 0.2);
-  border-radius: 12px;
-  padding: 0.8rem 0.9rem;
-  font: inherit;
+.roster .dot.stale {
+  background: var(--faint);
 }
-
-.chat-form button {
-  border: 0;
-  border-radius: 12px;
-  background: linear-gradient(140deg, var(--accent), var(--accent-soft));
-  color: white;
-  padding: 0.8rem 1rem;
-  font: inherit;
-  cursor: pointer;
+.roster .bn {
+  font-size: 13.5px;
 }
-
-.chat-reply {
-  margin: 0.9rem 0 0;
+.roster .cc {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.roster .st {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pos);
+}
+.roster .st.stale {
   color: var(--muted);
 }
 
-@keyframes rise {
-  from {
-    transform: translateY(10px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+.add {
+  margin-top: 1.2rem;
 }
-
-@media (max-width: 900px) {
-  .cards,
-  .split {
-    grid-template-columns: 1fr;
-  }
-}
-
-.demo-banner {
-  padding: 0.8rem 1.3rem;
-  text-align: center;
-  font-size: 0.9rem;
-  color: #92400e;
-  background: rgba(251, 191, 36, 0.15);
-  border-color: rgba(251, 191, 36, 0.3);
-}
-
-.demo-badge {
-  display: inline-block;
-  font-size: 0.7rem;
-  font-weight: 600;
+.add-btn {
+  border: 1px dashed var(--line-strong);
+  background: transparent;
+  color: var(--muted);
+  font: 500 11px/1 var(--mono);
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #92400e;
-  background: rgba(251, 191, 36, 0.2);
-  border: 1px solid rgba(251, 191, 36, 0.35);
-  border-radius: 6px;
-  padding: 0.2rem 0.5rem;
+  padding: 0.7rem 1rem;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+}
+.add-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.add-btn .plus {
+  color: var(--accent);
+  margin-right: 0.5rem;
+}
+
+/* connect picker (shared by add-a-bank + empty state) */
+.picker {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+.picker select {
+  border: 1px solid var(--line-strong);
+  background: var(--module);
+  color: var(--text);
+  font: 400 13px var(--mono);
+  padding: 0.75rem 0.9rem;
+}
+.picker select option {
+  background: var(--module);
+}
+.picker .find {
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  font: 500 12px/1 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.75rem 1.3rem;
+  cursor: pointer;
+}
+.picker .find:hover {
+  background: var(--accent);
+  color: #1a1407;
+}
+
+.banklist {
+  list-style: none;
+  margin: 1.2rem 0 0;
+  padding: 0;
+}
+.banklist li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0.2rem;
+  border-bottom: 1px solid var(--line);
+}
+.banklist .bn {
+  font-size: 13.5px;
+}
+.banklist .link {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: 500 11px/1 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.banklist .link:hover {
+  text-decoration: underline;
+}
+.banklist .link:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+.conn-msg {
+  font-family: var(--sans);
+  font-size: 12.5px;
+  color: var(--muted);
+  margin: 0.9rem 0 0;
+}
+.conn-msg.error {
+  color: var(--neg);
+}
+
+/* trend */
+.plot {
+  position: relative;
+  height: 130px;
+  margin-top: 0.2rem;
+}
+.plot svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+.plot svg .line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.enddot {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--accent);
+  transform: translate(-50%, -50%);
+}
+.axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.8rem;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+/* expenses */
+.erow {
+  display: grid;
+  grid-template-columns: 110px 1fr 44px;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 0;
+}
+.erow .cat {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.erow .track {
+  height: 3px;
+  background: rgba(236, 231, 218, 0.08);
+  position: relative;
+}
+.erow .track i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--accent);
+  display: block;
+}
+.erow .pct {
+  text-align: right;
+  font-size: 12.5px;
+}
+
+/* summary */
+.summary .seclabel {
+  color: var(--accent);
+}
+.summary p {
+  font-family: var(--sans);
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--text);
+  margin: 0;
+  max-width: 56ch;
+}
+
+/* repl chat (kept for legacy tests / plain prompt) */
+.repl .out {
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 0 0 1.1rem;
+  padding-left: 1.3rem;
+  position: relative;
+}
+.repl .out::before {
+  content: "\2039";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-family: var(--mono);
+}
+.repl .prompt {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  border: 1px solid var(--line-strong);
+  padding: 0.85rem 1rem;
+}
+.repl .prompt:focus-within {
+  border-color: var(--accent);
+}
+.repl .chev {
+  color: var(--accent);
+  font-size: 15px;
+}
+.repl input {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: 400 14px var(--mono);
+}
+.repl input::placeholder {
+  color: var(--faint);
+}
+.repl input:focus {
+  outline: none;
+}
+.repl .run {
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--muted);
+  font: 500 11px/1 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.55rem 0.85rem;
+  cursor: pointer;
+}
+.repl .run:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ------------------------------------------------------------------ */
+/* chat panel — sessions header + message log + reasoning drawer      */
+/* ------------------------------------------------------------------ */
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+.chat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+.chat-head-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  flex: 1;
+}
+.chat-title {
+  margin: 0;
+}
+.chat-active-title {
+  font: 500 12px/1.2 var(--sans);
+  color: var(--text);
+  text-transform: none;
+  letter-spacing: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+  display: inline-block;
+}
+.chat-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.chat-icon-btn {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: 500 14px/1 var(--mono);
+  padding: 0.4rem 0.55rem;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: color 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+.chat-icon-btn:hover {
+  color: var(--accent);
+  background: rgba(232, 163, 61, 0.08);
+  border-color: rgba(232, 163, 61, 0.35);
+}
+.chat-icon-btn.chat-close {
+  font-size: 18px;
+  padding: 0.35rem 0.6rem;
+  line-height: 0.9;
+}
+.chat-tool-sep {
+  width: 1px;
+  align-self: stretch;
+  background: var(--line);
+  margin: 0.25rem 0.35rem;
+}
+.chat-select {
+  min-width: 160px;
+  max-width: 240px;
+  border: 1px solid var(--line-strong);
+  background: var(--module);
+  color: var(--text);
+  font: 400 12px var(--mono);
+  padding: 0.45rem 0.6rem;
+  cursor: pointer;
+}
+.chat-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.chat-select option {
+  background: var(--module);
+}
+.chat-btn {
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--muted);
+  font: 500 11px/1 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+}
+.chat-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.chat-btn.ghost {
+  padding: 0.5rem 0.65rem;
+  font-size: 14px;
+  line-height: 0.9;
+  letter-spacing: 0;
+}
+
+/* Overview: list of past chat sessions (like VS Code's chat history view). */
+.chat-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  overflow-y: auto;
+  padding-right: 0.3rem;
+}
+.chat-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.chat-list-item {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--line);
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.chat-list-item:hover {
+  border-color: var(--accent);
+  background: rgba(232, 163, 61, 0.04);
+}
+.chat-entry {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  padding: 0.65rem 0.8rem;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+.chat-entry-title {
+  font: 500 13px/1.35 var(--sans);
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.chat-entry-meta {
+  font: 400 11px/1 var(--mono);
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+.chat-entry-del {
+  border: 0;
+  border-left: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font: 500 14px/1 var(--mono);
+  padding: 0 0.7rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease, color 120ms ease, background 120ms ease;
+}
+.chat-list-item:hover .chat-entry-del,
+.chat-entry-del:focus-visible {
+  opacity: 1;
+}
+.chat-entry-del:hover {
+  color: var(--accent);
+  background: rgba(232, 163, 61, 0.08);
+}
+
+.chat-log {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: 0.3rem;
+}
+.chat-log::-webkit-scrollbar {
+  width: 6px;
+}
+.chat-log::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+}
+
+.chat-empty {
+  font-family: var(--sans);
+  color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1.6;
+  border: 1px dashed var(--line-strong);
+  padding: 1rem 1.1rem;
+}
+.chat-empty p {
+  margin: 0 0 0.5rem;
+}
+.chat-empty ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+.chat-empty li {
+  margin: 0.15rem 0;
+  color: var(--text);
+}
+
+/* Clickable starter prompts shown in the empty chat state. */
+.chat-suggestions {
+  list-style: none;
+  padding: 0;
+  margin: 0.6rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.chat-suggestions li {
+  margin: 0;
+}
+.chat-suggestion {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  font: 400 13.5px/1.45 var(--sans);
+  padding: 0.55rem 0.75rem;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+}
+.chat-suggestion:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(232, 163, 61, 0.06);
+}
+
+.bubble {
+  max-width: 82%;
+  border: 1px solid var(--line);
+  padding: 0.75rem 0.95rem;
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.bubble.user {
+  align-self: flex-end;
+  background: rgba(232, 163, 61, 0.08);
+  border-color: rgba(232, 163, 61, 0.35);
+  color: var(--text);
+}
+.bubble.assistant {
+  align-self: flex-start;
+  background: transparent;
+  color: var(--text);
+}
+.bubble.system {
+  display: none;
+}
+.bubble .content {
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.bubble .typing {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.reasoning {
+  margin-top: 0.65rem;
+  border-top: 1px dashed var(--line);
+  padding-top: 0.55rem;
+}
+.reasoning summary {
+  cursor: pointer;
+  list-style: none;
+  font: 500 10.5px/1 var(--mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.reasoning summary::-webkit-details-marker {
+  display: none;
+}
+.reasoning summary::before {
+  content: "▸";
+  display: inline-block;
+  margin-right: 0.5rem;
+  color: var(--accent);
+  transition: transform 120ms ease;
+}
+.reasoning[open] summary::before {
+  transform: rotate(90deg);
+}
+.reasoning summary:hover {
+  color: var(--accent);
+}
+.reasoning pre {
+  margin: 0.6rem 0 0;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--line-strong);
+  border-left: 2px solid var(--accent);
+  background: rgba(236, 231, 218, 0.06);
+  font: 400 12.5px/1.6 var(--sans);
+  color: var(--text);
+  font-style: italic;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.reasoning pre::-webkit-scrollbar {
+  width: 6px;
+}
+.reasoning pre::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+}
+
+/* chat reuses the .prompt input shell defined in .repl */
+.chat .prompt {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  border: 1px solid var(--line-strong);
+  padding: 0.85rem 1rem;
+}
+.chat .prompt:focus-within {
+  border-color: var(--accent);
+}
+.chat .chev {
+  color: var(--accent);
+  font-size: 15px;
+}
+.chat .prompt input {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: 400 14px var(--mono);
+}
+.chat .prompt input::placeholder {
+  color: var(--faint);
+}
+.chat .prompt input:focus {
+  outline: none;
+}
+.chat .run {
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--muted);
+  font: 500 11px/1 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.55rem 0.85rem;
+  cursor: pointer;
+}
+.chat .run:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Floating assistant button + right-side dock (Copilot-style)         */
+/* Resizable from the left edge; wide viewports get pushed instead of  */
+/* overlaid so the dashboard stays fully interactive.                  */
+/* ------------------------------------------------------------------ */
+:root {
+  --dock-width: 420px;
+}
+
+/* When the dock is open on a wide viewport, shrink the room the app has. */
+body {
+  transition: padding-right 200ms ease;
+}
+body.chat-pushed {
+  padding-right: var(--dock-width);
+}
+
+.chat-fab {
+  position: fixed;
+  right: 1.6rem;
+  bottom: 1.6rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  border: 1px solid var(--accent);
+  background: var(--module);
+  color: var(--accent);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  transition: transform 140ms ease, background 140ms ease, color 140ms ease,
+    opacity 140ms ease;
+  z-index: 40;
+}
+.chat-fab:hover {
+  transform: translateY(-1px);
+  background: var(--accent);
+  color: #1a1407;
+}
+.chat-fab.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px);
+}
+
+.chat-dock {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: var(--dock-width);
+  background: var(--module);
+  border-left: 1px solid var(--line-strong);
+  box-shadow: -12px 0 32px rgba(0, 0, 0, 0.45);
+  transform: translateX(100%);
+  transition: transform 200ms ease;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.chat-dock.open {
+  transform: translateX(0);
+}
+/* Suspend transitions while the user drags so resizing feels instant. */
+.chat-dock.dragging,
+.chat-dock.dragging * {
+  transition: none !important;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Left-edge drag handle. Small hit area but expands on hover so it's easy
+   to grab, mirroring VS Code's sidebar splitter. */
+.chat-resize {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 6px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 120ms ease;
+  z-index: 2;
+}
+.chat-resize:hover,
+.chat-dock.dragging .chat-resize {
+  background: var(--accent);
+  opacity: 0.6;
+}
+
+/* When docked, let ChatPanel fill available space and scroll its log
+   independently of the input row and the header. */
+.chat-dock .chat {
+  flex: 1;
+  min-height: 0;
+  padding: 1.1rem 1.2rem 1.2rem;
+  gap: 0.9rem;
+}
+.chat-dock .chat-log {
+  flex: 1;
+  max-height: none;
+}
+.chat-dock .chat-title {
+  font-size: 11px;
+}
+.chat-dock .chat-overview {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Close (×) button keeps a slightly stronger presence when docked. */
+.chat-dock .chat-icon-btn.chat-close {
+  color: var(--text);
+}
+.chat-dock .chat-icon-btn.chat-close:hover {
+  background: rgba(232, 163, 61, 0.1);
+}
+
+/* On narrow viewports the dock overlays and covers the full screen \u2014
+   there isn't enough room to keep the dashboard usable side-by-side. */
+@media (max-width: 899px) {
+  .chat-dock {
+    width: 100vw;
+    max-width: 100vw;
+  }
+  .chat-resize {
+    display: none;
+  }
+  body.chat-pushed {
+    padding-right: 0;
+  }
+}
+@media (max-width: 520px) {
+  .chat-fab {
+    right: 1rem;
+    bottom: 1rem;
+  }
+}
+
+/* empty state (A's composition, B's skin) */
+.empty {
+  padding: 4.5rem 1.5rem;
+  text-align: center;
+}
+.empty .mark {
+  font-size: 10.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0;
+}
+.empty h2 {
+  font-size: clamp(1.7rem, 5.5vw, 2.4rem);
+  letter-spacing: 0.01em;
+  margin: 1.4rem 0 0.8rem;
+  font-weight: 500;
+}
+.empty p {
+  font-family: var(--sans);
+  color: var(--muted);
+  max-width: 40ch;
+  margin: 0 auto 2.2rem;
+  font-size: 14.5px;
+  line-height: 1.65;
+}
+.empty .picker {
+  justify-content: center;
+  margin-top: 0;
+}
+.empty .banklist {
+  max-width: 420px;
+  margin: 1.8rem auto 0;
+  text-align: left;
+}
+
+/* sign-in — reuses the empty-state composition */
+.login {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  max-width: 300px;
+  margin: 0 auto;
+}
+.login input {
+  border: 1px solid var(--line-strong);
+  background: var(--module);
+  color: var(--text);
+  font: 400 13px var(--mono);
+  padding: 0.78rem 0.9rem;
+}
+.login input::placeholder {
+  color: var(--faint);
+}
+.login input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.login .find {
+  width: 100%;
+  text-align: center;
   margin-top: 0.3rem;
 }
 
-.demo-tag {
-  font-size: 0.65rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #92400e;
-  background: rgba(251, 191, 36, 0.18);
-  border-radius: 4px;
-  padding: 0.1rem 0.35rem;
-  vertical-align: middle;
-  margin-left: 0.3rem;
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
-.card--demo,
-.panel--demo {
-  opacity: 0.75;
+@media (prefers-reduced-motion: reduce) {
+  .term {
+    animation: none !important;
+  }
 }
 
-.connection-active {
-  color: #16a34a;
-  font-weight: 500;
-}
-
-.bank-picker {
-  display: flex;
-  gap: 0.7rem;
-  margin: 0.8rem 0;
-}
-
-.bank-picker select {
-  flex: 1;
-  border: 1px solid rgba(19, 104, 232, 0.2);
-  border-radius: 12px;
-  padding: 0.8rem 0.9rem;
-  font: inherit;
-  background: white;
-  color: inherit;
-}
-
-.bank-picker button,
-.bank-list li button {
-  border: 0;
-  border-radius: 12px;
-  background: var(--accent);
-  color: white;
-  padding: 0.8rem 1.2rem;
-  font: inherit;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.bank-picker button:hover,
-.bank-list li button:hover {
-  opacity: 0.9;
-}
-
-.bank-list {
-  list-style: none;
-  margin: 0.8rem 0 0;
-  padding: 0;
-  display: grid;
-  gap: 0.5rem;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.bank-list li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.6rem 0.8rem;
-  border: 1px solid var(--border, rgba(19, 104, 232, 0.1));
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.5);
-}
-
-.bank-list li button {
-  font-size: 0.85rem;
-  padding: 0.4rem 0.8rem;
-  border-radius: 8px;
-}
-
-.bank-list li button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+@media (max-width: 520px) {
+  .pair {
+    grid-template-columns: 1fr;
+  }
+  .pair .cell + .cell {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
 }
