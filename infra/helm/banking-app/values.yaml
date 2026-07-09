@@ -42,7 +42,7 @@ accountService:
     type: ClusterIP
     port: 8081
     targetPort: 8081
-  replicaCount: 2
+  replicaCount: 1
   resources:
     limits:
       cpu: "500m"
@@ -60,7 +60,7 @@ transactionService:
     type: ClusterIP
     port: 8082
     targetPort: 8082
-  replicaCount: 2
+  replicaCount: 1
   resources:
     limits:
       cpu: "500m"
@@ -78,7 +78,7 @@ orchestratorService:
     type: ClusterIP
     port: 8083
     targetPort: 8083
-  replicaCount: 2
+  replicaCount: 1
   resources:
     limits:
       cpu: "500m"
@@ -139,7 +139,7 @@ client:
     type: ClusterIP
     port: 80
     targetPort: 80
-  replicaCount: 2
+  replicaCount: 1
   resources:
     limits:
       cpu: "200m"
@@ -160,7 +160,7 @@ postgres:
   replicaCount: 1
   resources:
     limits:
-      cpu: "500m"
+      cpu: "300m"
       memory: "512Mi"
     requests:
       cpu: "100m"
@@ -197,7 +197,7 @@ monitoring:
     scrapeInterval: 15s
     resources:
       limits:
-        cpu: "500m"
+        cpu: "300m"
         memory: "512Mi"
       requests:
         cpu: "100m"
