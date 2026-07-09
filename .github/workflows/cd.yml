@@ -193,6 +193,20 @@ jobs:
             echo "EB_PRIVATE_KEY secret is empty"
           fi
 
+      - name: Clean up conflicting ingresses from old namespaces
+        run: |
+          echo "=== Checking for conflicting ingresses outside devops26 ==="
+          kubectl get ingress --all-namespaces -o name 2>/dev/null \
+            | grep banking-ingress \
+            | while read ing; do
+                ing_ns=$(echo "$ing" | cut -d/ -f1)
+                if [ "$ing_ns" != "devops26" ]; then
+                  echo "Deleting conflicting ingress: $ing"
+                  kubectl delete "$ing" --ignore-not-found
+                fi
+              done
+          echo "=== Done ==="
+
       - name: Deploy with Helm
         run: |
           ns="devops26"
