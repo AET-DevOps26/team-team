@@ -125,7 +125,7 @@ jobs:
 
       - name: Ensure GHCR image pull secret
         run: |
-          ns="${{ secrets.TUMID }}-devops26"
+          ns="devops26"
           kubectl create secret docker-registry ghcr-secret \
             --namespace "$ns" \
             --docker-server=ghcr.io \
@@ -133,12 +133,23 @@ jobs:
             --docker-password="${{ secrets.GITHUB_TOKEN }}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
-      - name: Test cluster access
-        run: kubectl get nodes
+      - name: Verify cluster & project target
+        run: |
+          echo "=== Cluster info ==="
+          kubectl cluster-info | head -3
+          echo ""
+          echo "=== Namespace 'devops26' details ==="
+          kubectl get namespace devops26 -o yaml | grep -E '^\s+(name:|field.cattle.io/projectId:|management.cattle.io/)' || true
+          echo ""
+          echo "=== Full namespace labels ==="
+          kubectl get namespace devops26 -o jsonpath='{.metadata.labels}' | python3 -m json.tool || true
+          echo ""
+          echo "=== Full namespace annotations ==="
+          kubectl get namespace devops26 -o jsonpath='{.metadata.annotations}' | python3 -m json.tool || true
 
       - name: Ensure namespace has Helm ownership
         run: |
-          ns="${{ secrets.TUMID }}-devops26"
+          ns="devops26"
           if kubectl get namespace "$ns" >/dev/null 2>&1; then
             echo "Namespace '$ns' exists — adding Helm ownership metadata"
             kubectl label namespace "$ns" \
@@ -154,7 +165,7 @@ jobs:
 
       - name: Clear pending Helm release (if any)
         run: |
-          ns="${{ secrets.TUMID }}-devops26"
+          ns="devops26"
           # Remove stale pending-upgrade / pending-install locks from
           # a previous interrupted deploy (timeout, runner killed, etc.)
           kubectl delete secret -n "$ns" \
@@ -172,7 +183,7 @@ jobs:
         env:
           EB_PRIVATE_KEY: ${{ secrets.EB_PRIVATE_KEY }}
         run: |
-          ns="${{ secrets.TUMID }}-devops26"
+          ns="devops26"
           if [ -n "$EB_PRIVATE_KEY" ]; then
             kubectl create secret generic eb-private-key \
               --namespace "$ns" \
@@ -198,10 +209,23 @@ jobs:
           else
             echo "LOGOS_KEY secret is empty — genai will use local fallback"
           fi
+      - name: Clean up conflicting ingresses from old namespaces
+        run: |
+          echo "=== Checking for conflicting ingresses outside devops26 ==="
+          kubectl get ingress --all-namespaces -o name 2>/dev/null \
+            | grep banking-ingress \
+            | while read ing; do
+                ing_ns=$(echo "$ing" | cut -d/ -f1)
+                if [ "$ing_ns" != "devops26" ]; then
+                  echo "Deleting conflicting ingress: $ing"
+                  kubectl delete "$ing" --ignore-not-found
+                fi
+              done
+          echo "=== Done ==="
 
       - name: Deploy with Helm
         run: |
-          ns="${{ secrets.TUMID }}-devops26"
+          ns="devops26"
 
           # Use the existing password from the cluster so it never changes.
           # The GitHub secret is only a fallback for the very first deploy.
@@ -241,7 +265,7 @@ jobs:
       - name: Show rollout status
         if: always()
         run: |
-          ns="${{ secrets.TUMID }}-devops26"
+          ns="devops26"
           echo "=== Pods ==="
           kubectl get pods -n "$ns" -o wide
           echo ""

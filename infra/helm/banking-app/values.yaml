@@ -42,13 +42,13 @@ accountService:
     type: ClusterIP
     port: 8081
     targetPort: 8081
-  replicaCount: 2
+  replicaCount: 1
   resources:
     limits:
-      cpu: "500m"
+      cpu: "300m"
       memory: "512Mi"
     requests:
-      cpu: "250m"
+      cpu: "150m"
       memory: "256Mi"
 
 # ---------- Transaction Service ----------
@@ -60,13 +60,13 @@ transactionService:
     type: ClusterIP
     port: 8082
     targetPort: 8082
-  replicaCount: 2
+  replicaCount: 1
   resources:
     limits:
-      cpu: "500m"
+      cpu: "300m"
       memory: "512Mi"
     requests:
-      cpu: "250m"
+      cpu: "150m"
       memory: "256Mi"
 
 # ---------- Orchestrator Service ----------
@@ -78,13 +78,13 @@ orchestratorService:
     type: ClusterIP
     port: 8083
     targetPort: 8083
-  replicaCount: 2
+  replicaCount: 1
   resources:
     limits:
-      cpu: "500m"
+      cpu: "300m"
       memory: "512Mi"
     requests:
-      cpu: "250m"
+      cpu: "150m"
       memory: "256Mi"
 
 # ---------- Banking Service ----------
@@ -100,10 +100,10 @@ bankingService:
 
   resources:
     limits:
-      cpu: "500m"
+      cpu: "300m"
       memory: "512Mi"
     requests:
-      cpu: "250m"
+      cpu: "150m"
       memory: "256Mi"
   # Enable Banking integration (PSD2 / Open Banking)
   enableBanking:
@@ -124,7 +124,7 @@ genaiService:
   replicaCount: 1
   resources:
     limits:
-      cpu: "500m"
+      cpu: "300m"
       memory: "512Mi"
     requests:
       cpu: "100m"
@@ -147,7 +147,7 @@ client:
     type: ClusterIP
     port: 80
     targetPort: 80
-  replicaCount: 2
+  replicaCount: 1
   resources:
     limits:
       cpu: "200m"
@@ -168,7 +168,7 @@ postgres:
   replicaCount: 1
   resources:
     limits:
-      cpu: "500m"
+      cpu: "300m"
       memory: "512Mi"
     requests:
       cpu: "100m"
@@ -207,7 +207,7 @@ monitoring:
       size: 8Gi
     resources:
       limits:
-        cpu: "500m"
+        cpu: "300m"
         memory: "512Mi"
       requests:
         cpu: "100m"
