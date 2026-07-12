@@ -129,6 +129,13 @@ genaiService:
     requests:
       cpu: "100m"
       memory: "128Mi"
+  # Model provider config. Set modelProvider=logos and pass logosKey (via
+  # --set-string from a CI secret) to enable real LLM responses on Rancher.
+  # Leave modelProvider=local to keep the canned offline fallback.
+  modelProvider: local
+  logosKey: ""
+  logosBaseUrl: https://logos.aet.cit.tum.de
+  logosModel: openai/gpt-oss-120b
 
 # ---------- Client (Frontend) ----------
 client:

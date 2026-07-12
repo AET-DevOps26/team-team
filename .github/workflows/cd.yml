@@ -183,6 +183,22 @@ jobs:
             echo "EB_PRIVATE_KEY secret is empty"
           fi
 
+      - name: Create GenAI Logos key secret
+        env:
+          LOGOS_KEY: ${{ secrets.LOGOS_KEY }}
+        run: |
+          ns="${{ secrets.TUMID }}-devops26"
+          kubectl create namespace "$ns" --dry-run=client -o yaml | kubectl apply -f -
+          if [ -n "$LOGOS_KEY" ]; then
+            kubectl create secret generic genai-logos-key \
+              --namespace "$ns" \
+              --from-literal=LOGOS_KEY="$LOGOS_KEY" \
+              --dry-run=client -o yaml | kubectl apply -f -
+            echo "Logos key secret created/updated"
+          else
+            echo "LOGOS_KEY secret is empty — genai will use local fallback"
+          fi
+
       - name: Deploy with Helm
         run: |
           ns="${{ secrets.TUMID }}-devops26"
@@ -217,6 +233,7 @@ jobs:
             --set client.image.tag="${{ github.sha }}" \
             --set bankingService.image.tag="${{ github.sha }}" \
             --set-string bankingService.enableBanking.appId="${{ secrets.EB_APP_ID }}" \
+            --set genaiService.modelProvider="${{ vars.GENAI_MODEL_PROVIDER || 'logos' }}" \
             --timeout 5m \
             --wait \
             --debug
