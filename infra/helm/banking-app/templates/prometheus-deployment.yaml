@@ -14,6 +14,9 @@ spec:
       labels:
         app: prometheus-selector
     spec:
+      serviceAccountName: prometheus
+      securityContext:
+        fsGroup: 65534
       containers:
         - name: prometheus
           image: "{{ .Values.monitoring.prometheus.image.repository }}:{{ .Values.monitoring.prometheus.image.tag }}"
@@ -29,10 +32,15 @@ spec:
             - name: prometheus-config
               mountPath: /etc/prometheus
               readOnly: true
+            - name: prometheus-storage
+              mountPath: /prometheus
           resources:
             {{- toYaml .Values.monitoring.prometheus.resources | nindent 12 }}
       volumes:
         - name: prometheus-config
           configMap:
             name: prometheus-config
+        - name: prometheus-storage
+          persistentVolumeClaim:
+            claimName: prometheus-pvc
 {{- end }}

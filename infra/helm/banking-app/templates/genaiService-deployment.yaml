@@ -14,6 +14,7 @@ spec:
         checksum/config: {{ include "banking-app.rolloutChecksum" . }}
       labels:
         app: genai-service-selector
+        monitoring: "true"
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -27,6 +28,17 @@ spec:
             - containerPort: {{ .Values.genaiService.service.targetPort }}
           env:
             - name: MODEL_PROVIDER
-              value: "local"
+              value: {{ .Values.genaiService.modelProvider | quote }}
+            {{- if eq (.Values.genaiService.modelProvider | lower) "logos" }}
+            - name: LOGOS_BASE_URL
+              value: {{ .Values.genaiService.logosBaseUrl | quote }}
+            - name: LOGOS_MODEL
+              value: {{ .Values.genaiService.logosModel | quote }}
+            - name: LOGOS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: genai-logos-key
+                  key: LOGOS_KEY
+            {{- end }}
           resources:
             {{- toYaml .Values.genaiService.resources | nindent 12 }}

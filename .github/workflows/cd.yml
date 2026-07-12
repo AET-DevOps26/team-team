@@ -37,7 +37,8 @@ jobs:
           helm template banking-app ./infra/helm/banking-app \
             --namespace "test" \
             --set tumid="test" \
-            --set postgres.database.password="test-password" \
+            --set postgres.database.password="admin" \
+            --set monitoring.grafana.adminPassword="admin" \
             --set imagePullPolicy=Always \
             --set gitCommitSha="${{ github.sha }}" \
             --set accountService.image.tag="${{ github.sha }}" \
@@ -193,6 +194,21 @@ jobs:
             echo "EB_PRIVATE_KEY secret is empty"
           fi
 
+      - name: Create GenAI Logos key secret
+        env:
+          LOGOS_KEY: ${{ secrets.LOGOS_KEY }}
+        run: |
+          ns="${{ secrets.TUMID }}-devops26"
+          kubectl create namespace "$ns" --dry-run=client -o yaml | kubectl apply -f -
+          if [ -n "$LOGOS_KEY" ]; then
+            kubectl create secret generic genai-logos-key \
+              --namespace "$ns" \
+              --from-literal=LOGOS_KEY="$LOGOS_KEY" \
+              --dry-run=client -o yaml | kubectl apply -f -
+            echo "Logos key secret created/updated"
+          else
+            echo "LOGOS_KEY secret is empty — genai will use local fallback"
+          fi
       - name: Clean up conflicting ingresses from old namespaces
         run: |
           echo "=== Checking for conflicting ingresses outside devops26 ==="
@@ -228,6 +244,9 @@ jobs:
             --create-namespace \
             --set tumid="${{ secrets.TUMID }}" \
             --set postgres.database.password="$db_pass" \
+            --set monitoring.grafana.adminPassword="${{ secrets.GRAFANA_ADMIN_PASSWORD }}" \
+            --set monitoring.serviceMonitors.enabled=true \
+            --set monitoring.prometheusRules.enabled=true \
             --set imagePullPolicy=Always \
             --set gitCommitSha="${{ github.sha }}" \
             --set deployTimestamp="$(date +%s)" \
@@ -238,6 +257,7 @@ jobs:
             --set client.image.tag="${{ github.sha }}" \
             --set bankingService.image.tag="${{ github.sha }}" \
             --set-string bankingService.enableBanking.appId="${{ secrets.EB_APP_ID }}" \
+            --set genaiService.modelProvider="${{ vars.GENAI_MODEL_PROVIDER || 'logos' }}" \
             --timeout 5m \
             --wait \
             --debug

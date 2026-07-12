@@ -14,6 +14,8 @@ spec:
       labels:
         app: grafana-selector
     spec:
+      securityContext:
+        fsGroup: 472
       containers:
         - name: grafana
           image: "{{ .Values.monitoring.grafana.image.repository }}:{{ .Values.monitoring.grafana.image.tag }}"
@@ -23,32 +25,41 @@ spec:
               value: "%(protocol)s://%(domain)s:%(http_port)s/grafana"
             - name: GF_SERVER_SERVE_FROM_SUB_PATH
               value: "true"
-            - name: GF_AUTH_ANONYMOUS_ENABLED
+            - name: GF_AUTH_BASIC_ENABLED
               value: "true"
-            - name: GF_AUTH_ANONYMOUS_ORG_ROLE
-              value: "Admin"
+            - name: GF_AUTH_ANONYMOUS_ENABLED
+              value: "false"
+            - name: GF_SECURITY_ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-credentials
+                  key: admin-user
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-credentials
+                  key: admin-password
           ports:
             - containerPort: {{ .Values.monitoring.grafana.service.targetPort }}
           volumeMounts:
             - name: grafana-datasources
               mountPath: /etc/grafana/provisioning/datasources
               readOnly: true
-            - name: grafana-dashboards-provider
+            - name: grafana-dashboards
               mountPath: /etc/grafana/provisioning/dashboards
               readOnly: true
-            - name: grafana-dashboard-banking
-              mountPath: /var/lib/grafana/dashboards
-              readOnly: true
+            - name: grafana-storage
+              mountPath: /var/lib/grafana
           resources:
             {{- toYaml .Values.monitoring.grafana.resources | nindent 12 }}
       volumes:
         - name: grafana-datasources
           configMap:
             name: grafana-datasources
-        - name: grafana-dashboards-provider
+        - name: grafana-dashboards
           configMap:
-            name: grafana-dashboards-provider
-        - name: grafana-dashboard-banking
-          configMap:
-            name: grafana-dashboard-banking
+            name: grafana-dashboards
+        - name: grafana-storage
+          persistentVolumeClaim:
+            claimName: grafana-pvc
 {{- end }}

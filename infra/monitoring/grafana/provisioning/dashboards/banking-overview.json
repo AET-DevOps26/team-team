@@ -9,12 +9,7 @@
       "id": 1,
       "type": "timeseries",
       "title": "Request Rate (by service)",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 0
-      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
       "targets": [
         {
           "expr": "sum by (job) (rate(http_server_requests_seconds_count[1m]))",
@@ -24,9 +19,7 @@
       "fieldConfig": {
         "defaults": {
           "unit": "reqps",
-          "custom": {
-            "fillOpacity": 15
-          }
+          "custom": { "fillOpacity": 15 }
         }
       }
     },
@@ -34,12 +27,7 @@
       "id": 2,
       "type": "timeseries",
       "title": "P95 Latency (by service)",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 0
-      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
       "targets": [
         {
           "expr": "histogram_quantile(0.95, sum by (le, job) (rate(http_server_requests_seconds_bucket[5m])))",
@@ -49,9 +37,7 @@
       "fieldConfig": {
         "defaults": {
           "unit": "s",
-          "custom": {
-            "fillOpacity": 15
-          }
+          "custom": { "fillOpacity": 15 }
         }
       }
     },
@@ -59,12 +45,7 @@
       "id": 3,
       "type": "timeseries",
       "title": "Error Rate – 5xx (by service)",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 8
-      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
       "targets": [
         {
           "expr": "sum by (job) (rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])) / sum by (job) (rate(http_server_requests_seconds_count[5m]))",
@@ -75,9 +56,7 @@
         "defaults": {
           "unit": "percentunit",
           "min": 0,
-          "custom": {
-            "fillOpacity": 15
-          }
+          "custom": { "fillOpacity": 15 }
         }
       }
     },
@@ -85,12 +64,7 @@
       "id": 4,
       "type": "timeseries",
       "title": "P50 / P99 Latency (aggregate)",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 8
-      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
       "targets": [
         {
           "expr": "histogram_quantile(0.50, sum by (le) (rate(http_server_requests_seconds_bucket[5m])))",
@@ -104,9 +78,7 @@
       "fieldConfig": {
         "defaults": {
           "unit": "s",
-          "custom": {
-            "fillOpacity": 15
-          }
+          "custom": { "fillOpacity": 15 }
         }
       }
     },
@@ -114,12 +86,7 @@
       "id": 5,
       "type": "timeseries",
       "title": "4xx Errors (by service)",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 16
-      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
       "targets": [
         {
           "expr": "sum by (job) (rate(http_server_requests_seconds_count{status=~\"4..\"}[5m]))",
@@ -129,9 +96,7 @@
       "fieldConfig": {
         "defaults": {
           "unit": "reqps",
-          "custom": {
-            "fillOpacity": 15
-          }
+          "custom": { "fillOpacity": 15 }
         }
       }
     },
@@ -139,12 +104,7 @@
       "id": 6,
       "type": "stat",
       "title": "Services UP",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 16
-      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
       "targets": [
         {
           "expr": "count(up == 1)",
@@ -160,14 +120,8 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 1
-              }
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
             ]
           }
         }
@@ -177,12 +131,7 @@
       "id": 7,
       "type": "timeseries",
       "title": "GenAI – Request Rate",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 24
-      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
       "targets": [
         {
           "expr": "sum by (job) (rate(http_requests_total{job=\"genai-service\"}[1m]))",
@@ -192,9 +141,7 @@
       "fieldConfig": {
         "defaults": {
           "unit": "reqps",
-          "custom": {
-            "fillOpacity": 15
-          }
+          "custom": { "fillOpacity": 15 }
         }
       }
     },
@@ -202,12 +149,7 @@
       "id": 8,
       "type": "timeseries",
       "title": "GenAI – P95 Latency",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 24
-      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
       "targets": [
         {
           "expr": "histogram_quantile(0.95, sum by (le, job) (rate(http_request_duration_seconds_bucket{job=\"genai-service\"}[5m])))",
@@ -217,9 +159,7 @@
       "fieldConfig": {
         "defaults": {
           "unit": "s",
-          "custom": {
-            "fillOpacity": 15
-          }
+          "custom": { "fillOpacity": 15 }
         }
       }
     },
@@ -227,12 +167,7 @@
       "id": 9,
       "type": "timeseries",
       "title": "GenAI – Error Rate (5xx)",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 32
-      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
       "targets": [
         {
           "expr": "sum by (job) (rate(http_requests_total{job=\"genai-service\",status=~\"5..\"}[5m])) / sum by (job) (rate(http_requests_total{job=\"genai-service\"}[5m]))",
@@ -243,9 +178,7 @@
         "defaults": {
           "unit": "percentunit",
           "min": 0,
-          "custom": {
-            "fillOpacity": 15
-          }
+          "custom": { "fillOpacity": 15 }
         }
       }
     },
@@ -253,12 +186,7 @@
       "id": 10,
       "type": "table",
       "title": "Deployed Versions",
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 32
-      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
       "targets": [
         {
           "expr": "app_version",
@@ -275,27 +203,14 @@
         },
         "overrides": [
           {
-            "matcher": {
-              "id": "byName",
-              "options": "Value"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Version"
-              }
-            ]
+            "matcher": { "id": "byName", "options": "Value" },
+            "properties": [{ "id": "displayName", "value": "Version" }]
           }
         ]
       }
     }
   ],
-  "templating": {
-    "list": []
-  },
-  "time": {
-    "from": "now-1h",
-    "to": "now"
-  },
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
   "timezone": "browser"
 }

@@ -7,7 +7,8 @@ spec:
   selector:
     app: genai-service-selector
   ports:
-    - port: {{ .Values.genaiService.service.port }}
+    - name: http
+      port: {{ .Values.genaiService.service.port }}
       targetPort: {{ .Values.genaiService.service.targetPort }}
       protocol: TCP
   type: {{ .Values.genaiService.service.type }}

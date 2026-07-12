@@ -97,6 +97,7 @@ bankingService:
     port: 8084
     targetPort: 8084
   replicaCount: 1
+
   resources:
     limits:
       cpu: "300m"
@@ -128,6 +129,13 @@ genaiService:
     requests:
       cpu: "100m"
       memory: "128Mi"
+  # Model provider config. Set modelProvider=logos and pass logosKey (via
+  # --set-string from a CI secret) to enable real LLM responses on Rancher.
+  # Leave modelProvider=local to keep the canned offline fallback.
+  modelProvider: local
+  logosKey: ""
+  logosBaseUrl: https://logos.aet.cit.tum.de
+  logosModel: openai/gpt-oss-120b
 
 # ---------- Client (Frontend) ----------
 client:
@@ -195,6 +203,8 @@ monitoring:
       targetPort: 9090
     replicaCount: 1
     scrapeInterval: 15s
+    storage:
+      size: 8Gi
     resources:
       limits:
         cpu: "300m"
@@ -214,6 +224,10 @@ monitoring:
       port: 3000
       targetPort: 3000
     replicaCount: 1
+    storage:
+      size: 2Gi
+    adminUser: admin
+    adminPassword: "admin"
     resources:
       limits:
         cpu: "300m"
@@ -221,3 +235,17 @@ monitoring:
       requests:
         cpu: "100m"
         memory: "128Mi"
+
+  # ── Prometheus Operator CRDs (requires kube-prometheus-stack / Rancher Monitoring) ──
+  # Enable these only if the Prometheus Operator is installed in the cluster.
+  serviceMonitors:
+    enabled: false
+    # Must match the serviceMonitorSelector of your Prometheus Operator.
+    # For Rancher Monitoring, this is typically "release: rancher-monitoring".
+    labels:
+      release: rancher-monitoring
+
+  prometheusRules:
+    enabled: false
+    labels:
+      release: rancher-monitoring

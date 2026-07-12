@@ -1,11 +1,99 @@
 groups:
   - name: banking-alerts
     rules:
+      # ── Latency ──
       - alert: HighP95Latency
-        expr: histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket[5m]))) > 1.5
+        expr: histogram_quantile(0.95, sum by (le, job) (rate(http_server_requests_seconds_bucket[5m]))) > 1.5
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "High API latency"
-          description: "P95 latency has been above 1.5 seconds for 5 minutes."
+          summary: "High P95 latency on {{ $labels.job }}"
+          description: "P95 latency has been above 1.5 s for 5 minutes (current: {{ $value | humanizeDuration }})."
+
+      - alert: HighP99Latency
+        expr: histogram_quantile(0.99, sum by (le, job) (rate(http_server_requests_seconds_bucket[5m]))) > 3.0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High P99 latency on {{ $labels.job }}"
+          description: "P99 latency has been above 3 s for 3 minutes (current: {{ $value | humanizeDuration }})."
+
+      # ── Error rate ──
+      - alert: HighErrorRate
+        expr: |
+          sum by (job) (rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+          /
+          sum by (job) (rate(http_server_requests_seconds_count[5m]))
+          > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High 5xx error rate on {{ $labels.job }}"
+          description: "Error rate is {{ $value | humanizePercentage }} over the last 5 minutes."
+
+      - alert: CriticalErrorRate
+        expr: |
+          sum by (job) (rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+          /
+          sum by (job) (rate(http_server_requests_seconds_count[5m]))
+          > 0.10
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical 5xx error rate on {{ $labels.job }}"
+          description: "Error rate is {{ $value | humanizePercentage }} over the last 5 minutes."
+
+      # ── Request count / availability ──
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.job }} is DOWN"
+          description: "Service {{ $labels.job }} has been unreachable for more than 2 minutes."
+
+      - alert: NoRequests
+        expr: sum by (job) (rate(http_server_requests_seconds_count[5m])) == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No requests on {{ $labels.job }}"
+          description: "{{ $labels.job }} has received zero requests in the last 10 minutes."
+
+      - alert: GenAINoRequests
+        expr: sum by (job) (rate(http_requests_total{job="genai-service"}[5m])) == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No requests on GenAI service"
+          description: "GenAI service has received zero requests in the last 10 minutes."
+
+      # ── GenAI alerts ──
+      - alert: GenAIHighLatency
+        expr: histogram_quantile(0.95, sum by (le, job) (rate(http_request_duration_seconds_bucket{job="genai-service"}[5m]))) > 5.0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High P95 latency on GenAI service"
+          description: "GenAI P95 latency has been above 5 s for 5 minutes (current: {{ $value | humanizeDuration }})."
+
+      - alert: GenAIHighErrorRate
+        expr: |
+          sum by (job) (rate(http_requests_total{job="genai-service",status=~"5.."}[5m]))
+          /
+          sum by (job) (rate(http_requests_total{job="genai-service"}[5m]))
+          > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High 5xx error rate on GenAI service"
+          description: "GenAI error rate is {{ $value | humanizePercentage }} over the last 5 minutes."

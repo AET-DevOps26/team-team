@@ -6,6 +6,7 @@ import requests
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 from prometheus_fastapi_instrumentator import Instrumentator
+from prometheus_client import Gauge
 
 
 # ---------------------------------------------------------------------------
@@ -78,6 +79,15 @@ class ChatResponse(BaseModel):
 app = FastAPI(title="Bank GenAI Service", version="0.2.0")
 Instrumentator().instrument(app).expose(app)
 
+# Expose application version as a Prometheus metric
+# Uses APP_VERSION env var if set, otherwise falls back to the FastAPI app version.
+app_version = Gauge(
+    "app_version", "Application version info", labelnames=["version", "service"]
+)
+app_version.labels(
+    version=os.environ.get("APP_VERSION", app.version), service="genai-service"
+).set(1)
+
 
 # ---------------------------------------------------------------------------
 # Prompt / context building
@@ -102,7 +112,8 @@ def _context_message(context: Optional[DashboardContext]) -> Optional[ChatMessag
         return None
     return ChatMessage(
         role="system",
-        content="CONTEXT (current dashboard snapshot):\n" + json.dumps(payload, default=str),
+        content="CONTEXT (current dashboard snapshot):\n"
+        + json.dumps(payload, default=str),
     )
 
 
@@ -185,7 +196,9 @@ def ollama_chat(messages: List[ChatMessage]) -> ChatResponse:
     )
     response.raise_for_status()
     payload = response.json()
-    reply = (payload.get("message") or {}).get("content") or payload.get("response") or ""
+    reply = (
+        (payload.get("message") or {}).get("content") or payload.get("response") or ""
+    )
     return ChatResponse(reply=reply.strip() or "No response generated.", reasoning=None)
 
 
