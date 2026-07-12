@@ -258,4 +258,6 @@ services:
       - grafana-data:/var/lib/grafana
 
     networks:
+      # edge = reachable via Traefik; backend = can reach Prometheus/Alertmanager.
       - edge
+      - backend

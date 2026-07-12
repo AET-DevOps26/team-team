@@ -134,6 +134,7 @@ jobs:
           EB_PRIVATE_KEY: ${{ secrets.EB_PRIVATE_KEY }}
           EB_APP_ID: ${{ secrets.EB_APP_ID }}
           EB_REDIRECT_URL: ${{ secrets.EB_REDIRECT_URL }}
+          LOGOS_KEY: ${{ secrets.LOGOS_KEY }}
         run: |
           python3 - <<'PY'
           import json, os
@@ -141,6 +142,7 @@ jobs:
               "eb_private_key_pem": os.environ.get("EB_PRIVATE_KEY", ""),
               "eb_app_id":          os.environ.get("EB_APP_ID", ""),
               "eb_redirect_url":    os.environ.get("EB_REDIRECT_URL", ""),
+              "logos_key":          os.environ.get("LOGOS_KEY", ""),
           }
           with open("/tmp/eb-vars.json", "w") as f:
               json.dump(data, f)
