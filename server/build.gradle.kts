@@ -10,7 +10,7 @@ plugins {
 
     // Quality tools
     id("com.diffplug.spotless") version "8.8.0"
-    id("com.github.spotbugs") version "6.5.8"
+    id("com.github.spotbugs") version "6.5.9"
     id("io.gitlab.arturbosch.detekt") version "1.23.8" apply false
     id("net.ltgt.errorprone") version "5.1.0" apply false
 }
@@ -101,7 +101,7 @@ subprojects {
     // -----------------------------
     dependencies {
         add("errorprone", "com.google.errorprone:error_prone_core:2.50.0")
-        add("compileOnly", "com.github.spotbugs:spotbugs-annotations:4.10.2")
+        add("compileOnly", "com.github.spotbugs:spotbugs-annotations:4.10.3")
     }
 
     tasks.withType<JavaCompile>().configureEach {
