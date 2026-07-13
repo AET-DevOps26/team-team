@@ -215,14 +215,13 @@ Images are pulled from GitHub Container Registry (`ghcr.io/aet-devops26/...`).
 ## 6. Monitoring and Alerting
 
 - Prometheus config: `infra/monitoring/prometheus.yml`
-- Alert rules: `infra/monitoring/alerts.yml`
-- Grafana dashboard JSON: `infra/helm/banking-app/files/dashboards/banking-overview.json`
-  - Single source of truth — docker-compose mounts it directly, Helm uses `.Files.Get`
+- Grafana dashboard JSON: `infra/monitoring/grafana/dashboards/banking-overview.json`
+- Alert rule file: `infra/monitoring/alerts.yml`
 
 Tracked metrics include:
 
 - Request count
-- Request latency (avg)
+- Request latency (P95)
 - Error rate (5xx)
 
 ## 7. API Documentation
