@@ -255,6 +255,7 @@ services:
 
     volumes:
       - ./infra/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/helm/banking-app/files/dashboards/banking-overview.json:/etc/grafana/provisioning/dashboards/banking-overview.json:ro
       - grafana-data:/var/lib/grafana
 
     networks:
