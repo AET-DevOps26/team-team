@@ -33,7 +33,7 @@
     {
       "id": 2,
       "type": "timeseries",
-      "title": "P95 Latency (by service)",
+      "title": "Avg Latency (by service)",
       "gridPos": {
         "h": 8,
         "w": 12,
@@ -42,7 +42,7 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum by (le, job) (rate(http_server_requests_seconds_bucket[5m])))",
+          "expr": "rate(http_server_requests_seconds_sum[5m]) / rate(http_server_requests_seconds_count[5m])",
           "legendFormat": "{{job}}"
         }
       ],
@@ -84,7 +84,7 @@
     {
       "id": 4,
       "type": "timeseries",
-      "title": "P50 / P99 Latency (aggregate)",
+      "title": "Avg / Max Latency (aggregate)",
       "gridPos": {
         "h": 8,
         "w": 12,
@@ -93,12 +93,8 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.50, sum by (le) (rate(http_server_requests_seconds_bucket[5m])))",
-          "legendFormat": "p50"
-        },
-        {
-          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket[5m])))",
-          "legendFormat": "p99"
+          "expr": "rate(http_server_requests_seconds_sum[5m]) / rate(http_server_requests_seconds_count[5m])",
+          "legendFormat": "avg"
         }
       ],
       "fieldConfig": {
@@ -201,7 +197,7 @@
     {
       "id": 8,
       "type": "timeseries",
-      "title": "GenAI – P95 Latency",
+      "title": "GenAI – Avg Latency",
       "gridPos": {
         "h": 8,
         "w": 12,
@@ -210,8 +206,8 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum by (le, job) (rate(http_request_duration_seconds_bucket{job=\"genai-service\"}[5m])))",
-          "legendFormat": "GenAI P95"
+          "expr": "rate(http_request_duration_seconds_sum{job=\"genai-service\"}[5m]) / rate(http_request_duration_seconds_count{job=\"genai-service\"}[5m])",
+          "legendFormat": "GenAI avg"
         }
       ],
       "fieldConfig": {
