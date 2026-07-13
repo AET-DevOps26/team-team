@@ -198,8 +198,7 @@ jobs:
         env:
           LOGOS_KEY: ${{ secrets.LOGOS_KEY }}
         run: |
-          ns="${{ secrets.TUMID }}-devops26"
-          kubectl create namespace "$ns" --dry-run=client -o yaml | kubectl apply -f -
+          ns="devops26"
           if [ -n "$LOGOS_KEY" ]; then
             kubectl create secret generic genai-logos-key \
               --namespace "$ns" \
