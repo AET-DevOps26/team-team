@@ -180,7 +180,7 @@ GitHub Actions workflows:
 - **CD** (`.github/workflows/cd.yml`):
   - Runs `helm upgrade --install` on merge to `main` (triggers after GHCR image build)
   - Can also be triggered manually via `workflow_dispatch`
-  - Requires secrets: `KUBECONFIG`, `TUMID`, `POSTGRES_PASSWORD`
+  - Requires secrets: `KUBECONFIG`, `POSTGRES_PASSWORD`
 
 ## 5. Kubernetes Deployment (Helm)
 
