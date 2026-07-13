@@ -241,7 +241,6 @@ jobs:
           helm upgrade --install banking-app ./infra/helm/banking-app \
             --namespace "$ns" \
             --create-namespace \
-            --set tumid="${{ secrets.TUMID }}" \
             --set postgres.database.password="$db_pass" \
             --set monitoring.grafana.adminPassword="${{ secrets.GRAFANA_ADMIN_PASSWORD }}" \
             --set monitoring.serviceMonitors.enabled=true \
