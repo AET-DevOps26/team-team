@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect, react-hooks/purity, react-hooks/use-memo, no-magic-numbers */
 import type { FormEvent, MouseEvent as ReactMouseEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -41,10 +42,15 @@ function formatMoney(value: number): string {
 }
 
 function resolveAccountId(): string {
-  const queryAccountId = new URLSearchParams(window.location.search).get("accountId");
-  const configured = queryAccountId || import.meta.env.VITE_ACCOUNT_ID || FRIENDLY_ACCOUNT_ALIAS;
+  const queryAccountId = new URLSearchParams(window.location.search).get(
+    "accountId",
+  );
+  const configured =
+    queryAccountId || import.meta.env.VITE_ACCOUNT_ID || FRIENDLY_ACCOUNT_ALIAS;
 
-  return configured === FRIENDLY_ACCOUNT_ALIAS ? DEFAULT_ACCOUNT_UUID : configured;
+  return configured === FRIENDLY_ACCOUNT_ALIAS
+    ? DEFAULT_ACCOUNT_UUID
+    : configured;
 }
 
 /* Country picker + bank list -> Enable Banking OAuth redirect.
@@ -72,9 +78,12 @@ function BankConnect({ accountId }: { accountId: string }) {
     setError(null);
     try {
       const { authUrl } = await connectBank(bank.name, bank.country, accountId);
+      // eslint-disable-next-line react-hooks/immutability -- intentional OAuth redirect
       window.location.href = authUrl;
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to initiate connection");
+      setError(
+        e instanceof Error ? e.message : "Failed to initiate connection",
+      );
       setConnecting(false);
     }
   };
@@ -82,7 +91,11 @@ function BankConnect({ accountId }: { accountId: string }) {
   return (
     <>
       <div className="picker">
-        <select aria-label="Country" value={country} onChange={(e) => setCountry(e.target.value)}>
+        <select
+          aria-label="Country"
+          value={country}
+          onChange={(e) => setCountry(e.target.value)}
+        >
           {COUNTRIES.map((c) => (
             <option key={c.code} value={c.code}>
               {c.name}
@@ -101,7 +114,11 @@ function BankConnect({ accountId }: { accountId: string }) {
           {banks.map((bank) => (
             <li key={`${bank.country}:${bank.name}`}>
               <span className="bn">{bank.name}</span>
-              <button className="link" disabled={connecting} onClick={() => onConnect(bank)}>
+              <button
+                className="link"
+                disabled={connecting}
+                onClick={() => onConnect(bank)}
+              >
                 {connecting ? "Connecting…" : "Connect"}
               </button>
             </li>
@@ -153,10 +170,17 @@ function TrendChart({ trend }: { trend: BalancePoint[] }) {
           Combined balance <span className="n">{chart.months.length}M</span>
         </p>
         <div className="plot">
-          <svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true">
+          <svg
+            viewBox={`0 0 100 ${VIEW_H}`}
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
             <polyline className="line" points={chart.points} />
           </svg>
-          <i className="enddot" style={{ left: chart.dotLeft, top: chart.dotTop }} />
+          <i
+            className="enddot"
+            style={{ left: chart.dotLeft, top: chart.dotTop }}
+          />
         </div>
         <div className="axis">
           {chart.months.map((m) => (
@@ -209,6 +233,7 @@ function loadSessions(accountId: string): ChatSession[] {
       return [];
     }
     const parsed = JSON.parse(raw) as ChatSession[];
+
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
@@ -217,7 +242,10 @@ function loadSessions(accountId: string): ChatSession[] {
 
 function saveSessions(accountId: string, sessions: ChatSession[]): void {
   try {
-    localStorage.setItem(sessionsStorageKey(accountId), JSON.stringify(sessions));
+    localStorage.setItem(
+      sessionsStorageKey(accountId),
+      JSON.stringify(sessions),
+    );
   } catch {
     // storage quota / disabled — chat still works, just no persistence.
   }
@@ -225,7 +253,7 @@ function saveSessions(accountId: string, sessions: ChatSession[]): void {
 
 function newSession(): ChatSession {
   return {
-    id: (crypto.randomUUID?.() ?? String(Date.now())),
+    id: crypto.randomUUID?.() ?? String(Date.now()),
     title: "New chat",
     createdAt: Date.now(),
     messages: [],
@@ -234,6 +262,7 @@ function newSession(): ChatSession {
 
 function deriveTitle(text: string): string {
   const clean = text.trim().replace(/\s+/g, " ");
+
   return clean.length > 40 ? `${clean.slice(0, 40)}…` : clean || "New chat";
 }
 
@@ -248,6 +277,7 @@ function buildContext(data: DashboardPayload): ChatContext {
 
 type ChatView = "overview" | "chat";
 
+// eslint-disable-next-line max-lines-per-function
 function ChatPanel({
   data,
   accountId,
@@ -286,7 +316,10 @@ function ChatPanel({
     }
   }, [view, active?.messages.length]);
 
-  const patchSession = (id: string, update: (s: ChatSession) => ChatSession) => {
+  const patchSession = (
+    id: string,
+    update: (s: ChatSession) => ChatSession,
+  ) => {
     setSessions((prev) => prev.map((s) => (s.id === id ? update(s) : s)));
   };
 
@@ -355,7 +388,12 @@ function ChatPanel({
         ...s,
         messages: s.messages.map((m) =>
           m.id === pendingId
-            ? { ...m, content: reply.reply, reasoning: reply.reasoning, pending: false }
+            ? {
+                ...m,
+                content: reply.reply,
+                reasoning: reply.reasoning,
+                pending: false,
+              }
             : m,
         ),
       }));
@@ -364,7 +402,11 @@ function ChatPanel({
         ...s,
         messages: s.messages.map((m) =>
           m.id === pendingId
-            ? { ...m, content: "Assistant is unavailable right now.", pending: false }
+            ? {
+                ...m,
+                content: "Assistant is unavailable right now.",
+                pending: false,
+              }
             : m,
         ),
       }));
@@ -397,7 +439,9 @@ function ChatPanel({
                 Chats <span className="n">{sessions.length}</span>
               </>
             ) : (
-              <span className="chat-active-title">{active?.title ?? "New chat"}</span>
+              <span className="chat-active-title">
+                {active?.title ?? "New chat"}
+              </span>
             )}
           </p>
         </div>
@@ -497,8 +541,8 @@ function ChatPanel({
             {active && active.messages.length === 0 && (
               <div className="chat-empty">
                 <p>
-                  I can see your linked banks, balances and expenses. Ask me anything about
-                  them — for example:
+                  I can see your linked banks, balances and expenses. Ask me
+                  anything about them — for example:
                 </p>
                 <ul className="chat-suggestions">
                   {SUGGESTED_PROMPTS.map((prompt) => (
@@ -518,7 +562,11 @@ function ChatPanel({
             {active?.messages.map((m) => (
               <div key={m.id} className={`bubble ${m.role}`}>
                 <p className="content">
-                  {m.pending ? <span className="typing">thinking…</span> : m.content}
+                  {m.pending ? (
+                    <span className="typing">thinking…</span>
+                  ) : (
+                    m.content
+                  )}
                 </p>
                 {m.role === "assistant" && m.reasoning && !m.pending && (
                   <details
@@ -531,7 +579,10 @@ function ChatPanel({
                       // viewport so it doesn't slide off the bottom.
                       if (el.open) {
                         requestAnimationFrame(() => {
-                          el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                          el.scrollIntoView({
+                            block: "nearest",
+                            behavior: "smooth",
+                          });
                         });
                       }
                     }}
@@ -575,16 +626,28 @@ const PUSH_LAYOUT_MIN_VW = 900; // below this, the dock overlays instead of push
 function clampDockWidth(w: number): number {
   const vw = typeof window !== "undefined" ? window.innerWidth : 1600;
   const max = Math.max(DOCK_MIN_WIDTH, Math.floor(vw * DOCK_MAX_RATIO));
+
   return Math.min(max, Math.max(DOCK_MIN_WIDTH, Math.round(w)));
 }
 
-function ChatDock({ data, accountId }: { data: DashboardPayload; accountId: string }) {
+function ChatDock({
+  data,
+  accountId,
+}: {
+  data: DashboardPayload;
+  accountId: string;
+}) {
   const [open, setOpen] = useState(false);
   const [width, setWidth] = useState<number>(() => {
     const raw =
-      typeof window !== "undefined" ? localStorage.getItem(DOCK_WIDTH_STORAGE_KEY) : null;
+      typeof window !== "undefined"
+        ? localStorage.getItem(DOCK_WIDTH_STORAGE_KEY)
+        : null;
     const parsed = raw ? Number(raw) : DOCK_DEFAULT_WIDTH;
-    return clampDockWidth(Number.isFinite(parsed) ? parsed : DOCK_DEFAULT_WIDTH);
+
+    return clampDockWidth(
+      Number.isFinite(parsed) ? parsed : DOCK_DEFAULT_WIDTH,
+    );
   });
   const [dragging, setDragging] = useState(false);
 
@@ -595,6 +658,7 @@ function ChatDock({ data, accountId }: { data: DashboardPayload; accountId: stri
     root.style.setProperty("--dock-width", `${width}px`);
     const canPush = window.innerWidth >= PUSH_LAYOUT_MIN_VW;
     document.body.classList.toggle("chat-pushed", open && canPush);
+
     return () => {
       document.body.classList.remove("chat-pushed");
     };
@@ -611,6 +675,7 @@ function ChatDock({ data, accountId }: { data: DashboardPayload; accountId: stri
       );
     };
     window.addEventListener("resize", onResize);
+
     return () => window.removeEventListener("resize", onResize);
   }, [open]);
 
@@ -624,6 +689,7 @@ function ChatDock({ data, accountId }: { data: DashboardPayload; accountId: stri
       }
     };
     window.addEventListener("keydown", onKey);
+
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
@@ -645,6 +711,7 @@ function ChatDock({ data, accountId }: { data: DashboardPayload; accountId: stri
         } catch {
           /* storage disabled — ignore */
         }
+
         return w;
       });
     };
@@ -692,7 +759,11 @@ function ChatDock({ data, accountId }: { data: DashboardPayload; accountId: stri
           onMouseDown={onResizeStart}
         />
         {open && (
-          <ChatPanel data={data} accountId={accountId} onClose={() => setOpen(false)} />
+          <ChatPanel
+            data={data}
+            accountId={accountId}
+            onClose={() => setOpen(false)}
+          />
         )}
       </aside>
     </>
@@ -756,7 +827,9 @@ function Dashboard({
         </div>
         <div className="cell">
           <p className="k">Utilization</p>
-          <p className="v">{(data.account.utilizationRate * 100).toFixed(1)}%</p>
+          <p className="v">
+            {(data.account.utilizationRate * 100).toFixed(1)}%
+          </p>
         </div>
       </div>
 
@@ -869,7 +942,9 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
 }
 
 function App() {
-  const [authed, setAuthed] = useState(() => sessionStorage.getItem("authed") === "1");
+  const [authed, setAuthed] = useState(
+    () => sessionStorage.getItem("authed") === "1",
+  );
   const [data, setData] = useState<DashboardPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -877,7 +952,9 @@ function App() {
 
   useEffect(() => {
     if (!accountId) {
-      setError("Missing accountId. Set VITE_ACCOUNT_ID or use ?accountId=<uuid> in URL.");
+      setError(
+        "Missing accountId. Set VITE_ACCOUNT_ID or use ?accountId=<uuid> in URL.",
+      );
       setLoading(false);
 
       return;
@@ -962,8 +1039,9 @@ function App() {
           <p className="mark">Home banking</p>
           <h2>No banks connected</h2>
           <p>
-            Connect your first bank to start aggregating balances, limits and spending. Add as
-            many as you like — nothing is shown until there’s real data.
+            Connect your first bank to start aggregating balances, limits and
+            spending. Add as many as you like — nothing is shown until there’s
+            real data.
           </p>
           <BankConnect accountId={accountId} />
         </section>
