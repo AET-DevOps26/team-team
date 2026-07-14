@@ -12,8 +12,6 @@ export interface AccountSummary {
   accountId: string;
   customerName: string;
   totalBalance: number;
-  totalCreditLimit: number;
-  utilizationRate: number;
 }
 
 export interface BankListItem {
@@ -27,12 +25,47 @@ export interface ConnectionStatus {
   country: string | null;
 }
 
+export interface Connection {
+  status: string;
+  bankName: string | null;
+  country: string | null;
+  accountName: string | null;
+  balance: number | null;
+  currency: string | null;
+}
+
+export interface Transaction {
+  id: string;
+  category: string;
+  amount: number;
+  direction: string;
+  bankName: string | null;
+  counterparty: string | null;
+  createdAt: string;
+}
+
+export interface MonthlyFlow {
+  month: string;
+  income: number;
+  spending: number;
+  net: number;
+}
+
+export interface BankSpend {
+  bankName: string;
+  spending: number;
+}
+
 export interface DashboardPayload {
   account: AccountSummary;
   trend: BalancePoint[];
   expenses: ExpenseSlice[];
   aiSummary: string;
   connectionStatus: ConnectionStatus | null;
+  connections: Connection[];
+  transactions: Transaction[];
+  monthlyFlow: MonthlyFlow | null;
+  spendByBank: BankSpend[];
 }
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
@@ -45,7 +78,17 @@ export async function fetchDashboard(
     throw new Error("Failed to load dashboard");
   }
 
-  return response.json() as Promise<DashboardPayload>;
+  const payload = (await response.json()) as DashboardPayload;
+
+  // Tolerate a backend that predates the multi-bank fields (e.g. during a
+  // rolling deploy) so the dashboard renders instead of crashing on `.length`.
+  return {
+    ...payload,
+    connections: payload.connections ?? [],
+    transactions: payload.transactions ?? [],
+    spendByBank: payload.spendByBank ?? [],
+    monthlyFlow: payload.monthlyFlow ?? null,
+  };
 }
 
 export async function fetchBanks(country: string): Promise<BankListItem[]> {
@@ -105,7 +148,5 @@ export interface ChatReply {
 
 export type ChatContext = Pick<
   DashboardPayload,
-  "account" | "trend" | "expenses"
-> & {
-  connection: ConnectionStatus | null;
-};
+  "account" | "trend" | "expenses" | "connections" | "transactions" | "monthlyFlow"
+>;

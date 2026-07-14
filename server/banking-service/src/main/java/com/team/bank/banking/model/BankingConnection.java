@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -30,6 +31,14 @@ public class BankingConnection {
 
   @Column(name = "external_account_uid")
   private String externalAccountUid;
+
+  @Column(name = "account_name", length = 100)
+  private String accountName;
+
+  @Column private BigDecimal balance;
+
+  @Column(length = 10)
+  private String currency;
 
   @Column(nullable = false, length = 20)
   private String status;
@@ -97,6 +106,30 @@ public class BankingConnection {
 
   public void setExternalAccountUid(String externalAccountUid) {
     this.externalAccountUid = externalAccountUid;
+  }
+
+  public String getAccountName() {
+    return accountName;
+  }
+
+  public void setAccountName(String accountName) {
+    this.accountName = accountName;
+  }
+
+  public BigDecimal getBalance() {
+    return balance;
+  }
+
+  public void setBalance(BigDecimal balance) {
+    this.balance = balance;
+  }
+
+  public String getCurrency() {
+    return currency;
+  }
+
+  public void setCurrency(String currency) {
+    this.currency = currency;
   }
 
   public String getStatus() {

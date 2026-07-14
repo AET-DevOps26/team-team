@@ -31,6 +31,8 @@ public class TransactionController {
                     tx.getCategory(),
                     tx.getAmount(),
                     tx.getDirection(),
+                    tx.getBankName(),
+                    tx.getCounterparty(),
                     tx.getCreatedAt()))
         .toList();
   }
