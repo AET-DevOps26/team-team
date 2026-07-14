@@ -85,21 +85,27 @@ public class DashboardController {
             .bodyToMono(BalancePoint[].class)
             .block();
 
-    ExpenseSlice[] expenses =
-        webClient
-            .get()
-            .uri(transactionServiceUrl + "/api/transactions/{accountId}/expenses", accountId)
-            .retrieve()
-            .bodyToMono(ExpenseSlice[].class)
-            .block();
-
-    TransactionItem[] allTx =
-        webClient
-            .get()
-            .uri(transactionServiceUrl + "/api/transactions/{accountId}", accountId)
-            .retrieve()
-            .bodyToMono(TransactionItem[].class)
-            .block();
+    ExpenseSlice[] expenses = null;
+    TransactionItem[] allTx = null;
+    try {
+      expenses =
+          webClient
+              .get()
+              .uri(transactionServiceUrl + "/api/transactions/{accountId}/expenses", accountId)
+              .retrieve()
+              .bodyToMono(ExpenseSlice[].class)
+              .block();
+      allTx =
+          webClient
+              .get()
+              .uri(transactionServiceUrl + "/api/transactions/{accountId}", accountId)
+              .retrieve()
+              .bodyToMono(TransactionItem[].class)
+              .block();
+    } catch (RuntimeException e) {
+      // transaction-service unavailable, continue with empty transactions
+      log.warn("transaction-service unavailable, continuing without transactions", e);
+    }
     List<TransactionItem> transactions =
         allTx == null ? List.of() : List.of(allTx).stream().limit(RECENT_TX_LIMIT).toList();
     MonthlyFlow monthlyFlow = monthlyFlow(allTx);
