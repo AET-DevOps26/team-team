@@ -1,0 +1,136 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bank-postgres
+    environment:
+      POSTGRES_DB: bankdb
+      POSTGRES_USER: ${POSTGRES_USER:-bank}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bank}
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d bankdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  account-service:
+    image: ghcr.io/aet-devops26/account-service:latest
+    build:
+      context: ./server
+      dockerfile: account-service/Dockerfile
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bankdb
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-bank}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-bank}
+      SERVER_PORT: 8081
+      TRANSACTION_SERVICE_URL: http://transaction-service:8082
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+
+  transaction-service:
+    image: ghcr.io/aet-devops26/transaction-service:latest
+    build:
+      context: ./server
+      dockerfile: transaction-service/Dockerfile
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bankdb
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-bank}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-bank}
+      SERVER_PORT: 8082
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8082:8082"
+
+  banking-service:
+    image: ghcr.io/aet-devops26/banking-service:latest
+    build:
+      context: ./server
+      dockerfile: banking-service/Dockerfile
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bankdb
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-bank}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-bank}
+      SERVER_PORT: 8084
+      ENABLE_BANKING_APP_ID: ${ENABLE_BANKING_APP_ID:-}
+      ENABLE_BANKING_PRIVATE_KEY_PATH: /run/secrets/eb_private_key
+      ENABLE_BANKING_REDIRECT_URL: ${ENABLE_BANKING_REDIRECT_URL:-http://localhost:3000/callback}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8084:8084"
+    volumes:
+      - ${ENABLE_BANKING_PRIVATE_KEY_PATH:-./secrets/private.pem}:/run/secrets/eb_private_key:ro
+
+  genai-service:
+    image: ghcr.io/aet-devops26/genai-service:latest
+    build:
+      context: ./genai
+      dockerfile: Dockerfile
+    environment:
+      MODEL_PROVIDER: local
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: llama3.1:8b
+    ports:
+      - "8000:8000"
+
+  orchestrator-service:
+    image: ghcr.io/aet-devops26/orchestrator-service:latest
+    build:
+      context: ./server
+      dockerfile: orchestrator-service/Dockerfile
+    environment:
+      SERVER_PORT: 8083
+      ACCOUNT_SERVICE_URL: http://account-service:8081
+      TRANSACTION_SERVICE_URL: http://transaction-service:8082
+      GENAI_SERVICE_URL: http://genai-service:8000
+      BANKING_SERVICE_URL: http://banking-service:8084
+    depends_on:
+      - account-service
+      - transaction-service
+      - genai-service
+      - banking-service
+    ports:
+      - "8083:8083"
+
+  client:
+    image: ghcr.io/aet-devops26/client:latest
+    environment:
+      VITE_API_BASE_URL: http://localhost:8083
+      VITE_ACCOUNT_ID: 111-222
+    depends_on:
+      - orchestrator-service
+    ports:
+      - "3000:80"
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    volumes:
+      - ./infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:11.1.4
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./infra/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    ports:
+      - "3001:3000"
+
+volumes:
+  postgres-data:
