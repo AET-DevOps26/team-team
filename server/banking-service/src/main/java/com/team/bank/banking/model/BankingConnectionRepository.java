@@ -9,7 +9,7 @@ public interface BankingConnectionRepository extends JpaRepository<BankingConnec
 
   Optional<BankingConnection> findByState(String state);
 
-  Optional<BankingConnection> findByAccountIdAndStatus(UUID accountId, String status);
+  List<BankingConnection> findByAccountIdAndStatus(UUID accountId, String status);
 
   List<BankingConnection> findByAccountId(UUID accountId);
 }

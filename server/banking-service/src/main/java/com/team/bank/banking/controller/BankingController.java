@@ -3,16 +3,22 @@ package com.team.bank.banking.controller;
 import com.team.bank.banking.client.EnableBankingClient;
 import com.team.bank.banking.config.EnableBankingConfig;
 import com.team.bank.banking.dto.ConnectBankRequest;
+import com.team.bank.banking.dto.ConnectionInfo;
 import com.team.bank.banking.dto.ConnectionStatus;
+import com.team.bank.banking.model.Account;
+import com.team.bank.banking.model.AccountRepository;
 import com.team.bank.banking.model.BankingConnection;
 import com.team.bank.banking.model.BankingConnectionRepository;
 import com.team.bank.banking.service.BankingSyncService;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,16 +45,19 @@ public class BankingController {
   private final EnableBankingClient ebClient;
   private final EnableBankingConfig ebConfig;
   private final BankingConnectionRepository connectionRepository;
+  private final AccountRepository accountRepository;
   private final BankingSyncService syncService;
 
   public BankingController(
       EnableBankingClient ebClient,
       EnableBankingConfig ebConfig,
       BankingConnectionRepository connectionRepository,
+      AccountRepository accountRepository,
       BankingSyncService syncService) {
     this.ebClient = ebClient;
     this.ebConfig = ebConfig;
     this.connectionRepository = connectionRepository;
+    this.accountRepository = accountRepository;
     this.syncService = syncService;
   }
 
@@ -72,6 +81,11 @@ public class BankingController {
   public ResponseEntity<Map<String, String>> connect(@RequestBody ConnectBankRequest request) {
     String state = UUID.randomUUID().toString();
     LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
+
+    // The profile account is the aggregate the dashboard loads; it must exist before we can link a
+    // bank (banking_connections.account_id FKs to accounts.id). Materialize a zeroed anchor if this
+    // is the first connect for the account; sync later overwrites its balance/name with real data.
+    ensureAnchorAccount(request.accountId(), now);
 
     BankingConnection connection = new BankingConnection();
     connection.setId(UUID.randomUUID());
@@ -116,8 +130,9 @@ public class BankingController {
 
     String sessionId = (String) session.get("session_id");
     List<Map<String, Object>> accounts = (List<Map<String, Object>>) session.get("accounts");
-    String externalUid =
-        accounts != null && !accounts.isEmpty() ? (String) accounts.get(0).get("uid") : null;
+    Map<String, Object> firstAccount =
+        accounts != null && !accounts.isEmpty() ? accounts.get(0) : null;
+    String externalUid = firstAccount != null ? (String) firstAccount.get("uid") : null;
 
     // Without an external account UID we can't sync, so don't mark the connection ACTIVE.
     if (externalUid == null || externalUid.isBlank()) {
@@ -126,6 +141,11 @@ public class BankingController {
 
     connection.setSessionId(sessionId);
     connection.setExternalAccountUid(externalUid);
+    connection.setAccountName(resolveAccountName(firstAccount, connection.getBankName()));
+    Object currency = firstAccount.get("currency");
+    if (currency != null) {
+      connection.setCurrency(currency.toString());
+    }
     connection.setStatus("ACTIVE");
     connection.setUpdatedAt(LocalDateTime.now(ZoneId.systemDefault()));
     connectionRepository.save(connection);
@@ -161,20 +181,71 @@ public class BankingController {
 
   @PostMapping("/sync/{accountId}")
   public ResponseEntity<ConnectionStatus> sync(@PathVariable UUID accountId) {
-    Optional<BankingConnection> optConnection =
+    List<BankingConnection> active =
         connectionRepository.findByAccountIdAndStatus(accountId, "ACTIVE");
-    if (optConnection.isEmpty()) {
+    if (active.isEmpty()) {
       return ResponseEntity.badRequest().build();
     }
-    BankingConnection connection = optConnection.get();
-    syncService.syncAccount(connection);
+    // Re-sync every linked bank; each syncAccount recomputes the shared aggregate.
+    active.forEach(syncService::syncAccount);
+    BankingConnection primary =
+        active.stream()
+            .max(Comparator.comparing(BankingConnection::getUpdatedAt))
+            .orElse(active.get(0));
     return ResponseEntity.ok(
-        new ConnectionStatus(
-            connection.getStatus(), connection.getBankName(), connection.getCountry()));
+        new ConnectionStatus(primary.getStatus(), primary.getBankName(), primary.getCountry()));
+  }
+
+  /** All linked banks for the account (the multi-bank roster the dashboard renders). */
+  @GetMapping("/connections/{accountId}")
+  public ResponseEntity<List<ConnectionInfo>> connections(@PathVariable UUID accountId) {
+    List<ConnectionInfo> active =
+        connectionRepository.findByAccountIdAndStatus(accountId, "ACTIVE").stream()
+            .sorted(Comparator.comparing(BankingConnection::getUpdatedAt).reversed())
+            .map(
+                c ->
+                    new ConnectionInfo(
+                        c.getStatus(),
+                        c.getBankName(),
+                        c.getCountry(),
+                        c.getAccountName(),
+                        c.getBalance(),
+                        c.getCurrency()))
+            .collect(Collectors.toList());
+    return ResponseEntity.ok(active);
   }
 
   @GetMapping("/health")
   public ResponseEntity<Map<String, String>> health() {
     return ResponseEntity.ok(Map.of("status", "UP", "service", "banking-service"));
+  }
+
+  /** Creates the zeroed profile/anchor account row if it does not already exist. */
+  private void ensureAnchorAccount(UUID accountId, LocalDateTime now) {
+    if (accountRepository.existsById(accountId)) {
+      return;
+    }
+    Account account = new Account();
+    account.setId(accountId);
+    account.setCustomerName("My accounts");
+    account.setAccountType("AGGREGATE");
+    account.setBalance(BigDecimal.ZERO);
+    account.setCreditLimit(BigDecimal.ZERO);
+    account.setUpdatedAt(now);
+    accountRepository.save(account);
+  }
+
+  /** Enable Banking account display name (name/product), falling back to the bank name. */
+  private static String resolveAccountName(Map<String, Object> account, String bankName) {
+    if (account != null) {
+      Object name = account.get("name");
+      if (name == null) {
+        name = account.get("product");
+      }
+      if (name != null && !name.toString().isBlank()) {
+        return name.toString();
+      }
+    }
+    return bankName;
   }
 }
