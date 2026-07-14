@@ -190,7 +190,7 @@ Deploy manually:
 
 ```bash
 helm upgrade --install banking-app ./infra/helm/banking-app \
-  --namespace team-devops26 --create-namespace \
+  --namespace devops26 --create-namespace \
   --set tumid=team \
   --set postgres.database.password=<secure-password> \
   --timeout 5m --wait
@@ -200,7 +200,7 @@ Disable monitoring if not needed:
 
 ```bash
 helm upgrade --install banking-app ./infra/helm/banking-app \
-  --namespace team-devops26 --create-namespace \
+  --namespace devops26 --create-namespace \
   --set tumid=team \
   --set postgres.database.password=<secure-password> \
   --set monitoring.prometheus.enabled=false \
