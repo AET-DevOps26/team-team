@@ -12,7 +12,11 @@ record BalancePoint(String month, BigDecimal balance) {}
 record ExpenseSlice(String category, BigDecimal percentage) {}
 
 record SummaryRequest(
-    AccountSummary account, List<BalancePoint> trend, List<ExpenseSlice> expenses) {}
+    AccountSummary account,
+    List<BalancePoint> trend,
+    List<ExpenseSlice> expenses,
+    List<BankConnection> connections,
+    MonthlyFlow monthlyFlow) {}
 
 record SummaryResponse(String summary) {}
 
@@ -62,7 +66,8 @@ record ChatContext(
     List<ExpenseSlice> expenses,
     List<BankConnection> connections,
     List<TransactionItem> transactions,
-    MonthlyFlow monthlyFlow) {}
+    MonthlyFlow monthlyFlow,
+    List<BankSpend> spendByBank) {}
 
 record ChatRequest(String message, List<ChatMessage> messages, ChatContext context) {}
 

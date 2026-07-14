@@ -4,8 +4,9 @@ from typing import List, Optional
 
 import requests
 from fastapi import FastAPI
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from prometheus_fastapi_instrumentator import Instrumentator
+from prometheus_client import Gauge
 
 
 # ---------------------------------------------------------------------------
@@ -54,6 +55,11 @@ class MonthlyFlow(BaseModel):
     net: Optional[float] = None
 
 
+class BankSpendItem(BaseModel):
+    bankName: Optional[str] = None
+    spending: Optional[float] = None
+
+
 class DashboardContext(BaseModel):
     """Snapshot of the user's dashboard we pass to the model so it can answer
     grounded questions ("what's my balance?", "what did I spend at X?" ...)."""
@@ -64,12 +70,30 @@ class DashboardContext(BaseModel):
     connections: List[ConnectionInfo] = Field(default_factory=list)
     transactions: List[TransactionItem] = Field(default_factory=list)
     monthlyFlow: Optional[MonthlyFlow] = None
+    spendByBank: List[BankSpendItem] = Field(default_factory=list)
+
+    # The orchestrator serializes absent lists as explicit nulls — treat them
+    # as empty instead of rejecting the whole request with a 422.
+    @field_validator(
+        "trend", "expenses", "connections", "transactions", "spendByBank", mode="before"
+    )
+    @classmethod
+    def _none_as_empty(cls, value):
+        return [] if value is None else value
 
 
 class SummaryRequest(BaseModel):
     account: AccountSummary
     trend: List[BalancePoint]
     expenses: List[ExpenseSlice]
+    # Optional multibank enrichment — older orchestrators simply omit these.
+    connections: List[ConnectionInfo] = Field(default_factory=list)
+    monthlyFlow: Optional[MonthlyFlow] = None
+
+    @field_validator("trend", "expenses", "connections", mode="before")
+    @classmethod
+    def _none_as_empty(cls, value):
+        return [] if value is None else value
 
 
 class SummaryResponse(BaseModel):
@@ -97,6 +121,15 @@ class ChatResponse(BaseModel):
 app = FastAPI(title="Bank GenAI Service", version="0.2.0")
 Instrumentator().instrument(app).expose(app)
 
+# Expose application version as a Prometheus metric
+# Uses APP_VERSION env var if set, otherwise falls back to the FastAPI app version.
+app_version = Gauge(
+    "app_version", "Application version info", labelnames=["version", "service"]
+)
+app_version.labels(
+    version=os.environ.get("APP_VERSION", app.version), service="genai-service"
+).set(1)
+
 
 # ---------------------------------------------------------------------------
 # Prompt / context building
@@ -107,7 +140,8 @@ SYSTEM_PROMPT = (
     "You are the in-app assistant for Home Banking, a personal finance dashboard that "
     "aggregates the user's linked bank accounts. Answer questions about the user's total "
     "balance, per-bank balances, linked banks, monthly trend, expense breakdown, recent "
-    "transactions (with counterparty and source bank) and this month's income vs spending "
+    "transactions (with counterparty and source bank), this month's income vs spending and "
+    "the per-bank spending breakdown "
     "using the CONTEXT JSON provided in the system message. Be concise (usually 1-4 "
     "sentences). Format money as euros. When the user asks about data that is missing from "
     "the context, say so honestly. Never invent transactions, account numbers, or personal "
@@ -123,7 +157,8 @@ def _context_message(context: Optional[DashboardContext]) -> Optional[ChatMessag
         return None
     return ChatMessage(
         role="system",
-        content="CONTEXT (current dashboard snapshot):\n" + json.dumps(payload, default=str),
+        content="CONTEXT (current dashboard snapshot):\n"
+                + json.dumps(payload, default=str),
     )
 
 
@@ -155,11 +190,28 @@ def local_summary(req: SummaryRequest) -> str:
     elif len(balance_values) > 1 and balance_values[-1] < balance_values[0]:
         trend_hint = "downward"
 
-    return (
-        f"{req.account.customerName}, your total balance across linked banks is "
-        f"€{req.account.totalBalance:,.0f}. "
+    bank_count = len(req.connections)
+    across = (
+        f"{bank_count} linked bank{'s' if bank_count != 1 else ''}"
+        if bank_count
+        else "your linked banks"
+    )
+    parts = [
+        f"{req.account.customerName}, your total balance across {across} is "
+        f"€{req.account.totalBalance:,.0f}."
+    ]
+    flow = req.monthlyFlow
+    if flow is not None and flow.income is not None and flow.spending is not None:
+        net = flow.net if flow.net is not None else flow.income - flow.spending
+        sign = "+" if net >= 0 else "−"
+        parts.append(
+            f"This month ({flow.month}): €{flow.income:,.0f} in, €{flow.spending:,.0f} out "
+            f"({sign}€{abs(net):,.0f} net)."
+        )
+    parts.append(
         f"Your balance trend is {trend_hint}, and the largest expense category is {top_expense}."
     )
+    return " ".join(parts)
 
 
 def logos_chat(messages: List[ChatMessage]) -> ChatResponse:
@@ -206,13 +258,18 @@ def ollama_chat(messages: List[ChatMessage]) -> ChatResponse:
     )
     response.raise_for_status()
     payload = response.json()
-    reply = (payload.get("message") or {}).get("content") or payload.get("response") or ""
+    reply = (
+            (payload.get("message") or {}).get("content") or payload.get("response") or ""
+    )
     return ChatResponse(reply=reply.strip() or "No response generated.", reasoning=None)
 
 
-def local_chat(messages: List[ChatMessage]) -> ChatResponse:
+def local_chat(
+    messages: List[ChatMessage], context: Optional[DashboardContext] = None
+) -> ChatResponse:
     """Deterministic fallback used when no provider is reachable — keeps tests
-    green and lets the app work offline without Logos."""
+    green and lets the app work offline without Logos. Grounds balance/bank
+    answers in the dashboard context when the caller provided one."""
     last_user = next(
         (m.content for m in reversed(messages) if m.role == "user"),
         "",
@@ -223,10 +280,23 @@ def local_chat(messages: List[ChatMessage]) -> ChatResponse:
             "categories and reviewing subscriptions weekly."
         )
     elif "bank" in last_user or "balance" in last_user:
-        reply = (
-            "Your dashboard aggregates the balances of all your linked banks. Check the linked "
-            "banks list for each account's individual balance."
-        )
+        if context is not None and context.account is not None:
+            reply = (
+                f"Your total balance across your linked banks is "
+                f"€{context.account.totalBalance:,.0f}."
+            )
+            per_bank = ", ".join(
+                f"{c.bankName} €{c.balance:,.0f}"
+                for c in context.connections
+                if c.bankName and c.balance is not None
+            )
+            if per_bank:
+                reply += f" Per bank: {per_bank}."
+        else:
+            reply = (
+                "Your dashboard aggregates the balances of all your linked banks. Check the "
+                "linked banks list for each account's individual balance."
+            )
     else:
         reply = (
             "I can help summarize your account trends, explain spending categories, and "
@@ -262,7 +332,7 @@ def chat(req: ChatRequest) -> ChatResponse:
             return ollama_chat(messages)
     except Exception:
         # Never surface an upstream failure to the user — fall back to the
-        # local canned assistant so the chat panel stays usable.
-        return local_chat(messages)
+        # local context-grounded assistant so the chat panel stays usable.
+        return local_chat(messages, req.context)
 
-    return local_chat(messages)
+    return local_chat(messages, req.context)

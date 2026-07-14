@@ -148,5 +148,11 @@ export interface ChatReply {
 
 export type ChatContext = Pick<
   DashboardPayload,
-  "account" | "trend" | "expenses" | "connections" | "transactions" | "monthlyFlow"
+  | "account"
+  | "trend"
+  | "expenses"
+  | "connections"
+  | "transactions"
+  | "monthlyFlow"
+  | "spendByBank"
 >;

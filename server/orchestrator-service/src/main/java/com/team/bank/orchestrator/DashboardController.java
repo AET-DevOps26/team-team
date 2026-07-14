@@ -105,27 +105,6 @@ public class DashboardController {
     MonthlyFlow monthlyFlow = monthlyFlow(allTx);
     List<BankSpend> spendByBank = spendByBank(allTx);
 
-    SummaryRequest summaryRequest =
-        new SummaryRequest(
-            account,
-            trend == null ? List.of() : List.of(trend),
-            expenses == null ? List.of() : List.of(expenses));
-
-    SummaryResponse summary = null;
-    try {
-      summary =
-          webClient
-              .post()
-              .uri(genaiServiceUrl + "/summarize")
-              .bodyValue(summaryRequest)
-              .retrieve()
-              .bodyToMono(SummaryResponse.class)
-              .block();
-    } catch (RuntimeException e) {
-      // genai-service unavailable, continue without summary
-      log.warn("genai-service unavailable, continuing without summary", e);
-    }
-
     ConnectionStatus connectionStatus = null;
     BankConnection[] connections = null;
     try {
@@ -146,6 +125,29 @@ public class DashboardController {
     } catch (RuntimeException e) {
       // banking-service unavailable, continue without it
       log.warn("banking-service unavailable, continuing without connection status", e);
+    }
+
+    SummaryRequest summaryRequest =
+        new SummaryRequest(
+            account,
+            trend == null ? List.of() : List.of(trend),
+            expenses == null ? List.of() : List.of(expenses),
+            connections == null ? List.of() : List.of(connections),
+            monthlyFlow);
+
+    SummaryResponse summary = null;
+    try {
+      summary =
+          webClient
+              .post()
+              .uri(genaiServiceUrl + "/summarize")
+              .bodyValue(summaryRequest)
+              .retrieve()
+              .bodyToMono(SummaryResponse.class)
+              .block();
+    } catch (RuntimeException e) {
+      // genai-service unavailable, continue without summary
+      log.warn("genai-service unavailable, continuing without summary", e);
     }
 
     return new DashboardResponse(
