@@ -31,6 +31,7 @@ public class Transaction {
 
   @Column(length = 100)
   private String counterparty;
+
   @Column(name = "created_at", nullable = false)
   private LocalDateTime createdAt;
 
