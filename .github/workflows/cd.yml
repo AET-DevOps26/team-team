@@ -198,8 +198,7 @@ jobs:
         env:
           LOGOS_KEY: ${{ secrets.LOGOS_KEY }}
         run: |
-          ns="${{ secrets.TUMID }}-devops26"
-          kubectl create namespace "$ns" --dry-run=client -o yaml | kubectl apply -f -
+          ns="devops26"
           if [ -n "$LOGOS_KEY" ]; then
             kubectl create secret generic genai-logos-key \
               --namespace "$ns" \
@@ -242,7 +241,6 @@ jobs:
           helm upgrade --install banking-app ./infra/helm/banking-app \
             --namespace "$ns" \
             --create-namespace \
-            --set tumid="${{ secrets.TUMID }}" \
             --set postgres.database.password="$db_pass" \
             --set monitoring.grafana.adminPassword="${{ secrets.GRAFANA_ADMIN_PASSWORD }}" \
             --set monitoring.serviceMonitors.enabled=true \
