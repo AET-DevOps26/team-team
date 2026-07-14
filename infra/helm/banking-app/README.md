@@ -73,7 +73,7 @@ banking-app/
 
 | Parameter           | Description                          | Default |
 |---------------------|--------------------------------------|---------|
-| `tumid`             | Your TUM ID (used in namespace)      | `ge42cer` |
+| `tumid`             | Your TUM ID (used in namespace)      | `team` |
 | `imagePullPolicy`   | Global image pull policy             | `Always` |
 
 ### Service parameters

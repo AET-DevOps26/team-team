@@ -11,7 +11,7 @@ data:
       - name: Prometheus
         type: prometheus
         access: proxy
-        url: http://prometheus:{{ .Values.monitoring.prometheus.service.port }}
+        url: http://prometheus:{{ .Values.monitoring.prometheus.service.port }}/prometheus
         isDefault: true
 ---
 apiVersion: v1
