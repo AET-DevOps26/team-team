@@ -91,7 +91,7 @@ subprojects {
     // -----------------------------
     dependencies {
         add("errorprone", "com.google.errorprone:error_prone_core:2.50.0")
-        add("compileOnly", "com.github.spotbugs:spotbugs-annotations:4.10.2")
+        add("compileOnly", "com.github.spotbugs:spotbugs-annotations:4.10.3")
     }
 
     tasks.withType<JavaCompile>().configureEach {
