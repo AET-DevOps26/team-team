@@ -83,8 +83,8 @@ subprojects {
     // SpotBugs (static analysis)
     // -----------------------------
     extensions.configure<com.github.spotbugs.snom.SpotBugsExtension> {
-        effort.set(com.github.spotbugs.snom.Effort.MAX)
-        reportLevel.set(com.github.spotbugs.snom.Confidence.LOW)
+        effort.set(com.github.spotbugs.snom.Effort.DEFAULT)
+        reportLevel.set(com.github.spotbugs.snom.Confidence.MEDIUM)
     }
 
     // -----------------------------
