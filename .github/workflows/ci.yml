@@ -35,9 +35,9 @@ jobs:
           python-version: "3.12"
 
       # ---------------- Backend quality gate ----------------
-      - name: Backend quality gate (compile + check + test)
+      - name: Backend quality gate (compile + test + lint)
         working-directory: server
-        run: ./gradlew check --parallel --build-cache
+        run: ./gradlew test spotlessCheck --parallel --build-cache
 
       # ---------------- Python tests ----------------
       - name: Test genai
