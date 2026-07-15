@@ -9,6 +9,10 @@ jobs:
   build-test:
     runs-on: ubuntu-latest
 
+    env:
+      GRADLE_OPTS: -Xmx512m -Dfile.encoding=UTF-8
+      JAVA_TOOL_OPTIONS: -Xmx4g -XX:MaxMetaspaceSize=512m
+
     steps:
       # ---------------- Checkout ----------------
       - name: Checkout
@@ -37,7 +41,7 @@ jobs:
       # ---------------- Backend quality gate ----------------
       - name: Backend quality gate (compile + test + lint)
         working-directory: server
-        run: ./gradlew test spotlessCheck --no-configuration-cache --build-cache
+        run: ./gradlew test spotlessCheck --parallel --build-cache
 
       # ---------------- Python tests ----------------
       - name: Test genai
