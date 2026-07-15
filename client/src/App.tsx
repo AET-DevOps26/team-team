@@ -490,12 +490,12 @@ function ChatPanel({
     }
 
     const userTurn: ChatTurn = {
-      // eslint-disable-next-line react-hooks/purity
+      // eslint-disable-next-line react-hooks/purity -- fallback ID in render
       id: crypto.randomUUID?.() ?? `u-${Date.now()}`,
       role: "user",
       content: text,
     };
-    // eslint-disable-next-line react-hooks/purity
+    // eslint-disable-next-line react-hooks/purity -- fallback ID in render
     const pendingId = crypto.randomUUID?.() ?? `a-${Date.now()}`;
     const pendingTurn: ChatTurn = {
       id: pendingId,
@@ -1211,7 +1211,7 @@ function App() {
 
   useEffect(() => {
     if (!activeAccountId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- error banner before bail
       setError(
         "Missing accountId. Set VITE_ACCOUNT_ID or use ?accountId=<uuid> in URL.",
       );
@@ -1260,7 +1260,7 @@ function App() {
       query ? `${window.location.pathname}?${query}` : window.location.pathname,
     );
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loading spinner before async work
     setLoading(true);
     handleBankCallback(code, state)
       .then(() => fetchDashboard(activeAccountId))
