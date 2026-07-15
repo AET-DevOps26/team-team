@@ -37,7 +37,7 @@ jobs:
       # ---------------- Backend quality gate ----------------
       - name: Backend quality gate (compile + check + test)
         working-directory: server
-        run: ./gradlew clean check
+        run: ./gradlew check --parallel --build-cache
 
       # ---------------- Python tests ----------------
       - name: Test genai
