@@ -11,7 +11,7 @@ jobs:
 
     env:
       GRADLE_OPTS: -Xmx512m -Dfile.encoding=UTF-8
-      JAVA_TOOL_OPTIONS: -Xmx4g -XX:MaxMetaspaceSize=512m
+      JAVA_TOOL_OPTIONS: -Xmx6g -XX:MaxMetaspaceSize=512m
 
     steps:
       # ---------------- Checkout ----------------
