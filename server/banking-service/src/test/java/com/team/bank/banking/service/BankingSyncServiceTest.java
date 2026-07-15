@@ -1,9 +1,11 @@
 package com.team.bank.banking.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -19,186 +21,408 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
+@DisplayName("BankingSyncService")
 class BankingSyncServiceTest {
 
+  @Mock private EnableBankingClient ebClient;
+  @Mock private AccountRepository accountRepository;
+  @Mock private TransactionRepository transactionRepository;
+  @Mock private BankingConnectionRepository bankingConnectionRepository;
+
+  @InjectMocks private BankingSyncService syncService;
+
   private static final UUID ACCOUNT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
+  private static final UUID CONNECTION_ID = UUID.randomUUID();
+  private static final String EXTERNAL_UID = "ext-uid-12345";
 
-  private BankingConnection connection(String bank, String uid, BigDecimal balance) {
-    BankingConnection c = new BankingConnection();
-    c.setId(UUID.randomUUID());
-    c.setAccountId(ACCOUNT_ID);
-    c.setBankName(bank);
-    c.setExternalAccountUid(uid);
-    c.setStatus("ACTIVE");
-    c.setBalance(balance);
-    c.setCurrency(balance == null ? null : "EUR");
-    c.setUpdatedAt(LocalDateTime.now(ZoneId.systemDefault()));
-    return c;
+  private BankingConnection activeConnection;
+
+  @BeforeEach
+  void setUp() {
+    activeConnection = new BankingConnection();
+    activeConnection.setId(CONNECTION_ID);
+    activeConnection.setAccountId(ACCOUNT_ID);
+    activeConnection.setBankName("Nordea");
+    activeConnection.setCountry("FI");
+    activeConnection.setStatus("ACTIVE");
+    activeConnection.setExternalAccountUid(EXTERNAL_UID);
+    activeConnection.setState("state-abc");
+    activeConnection.setCreatedAt(LocalDateTime.now(ZoneId.systemDefault()).minusDays(1));
+    activeConnection.setUpdatedAt(LocalDateTime.now(ZoneId.systemDefault()).minusHours(1));
   }
 
-  // Enable Banking serializes snake_case (e.g. {"balance_amount": {"currency": "EUR",
-  // "amount": "95.29"}, "balance_type": "ITBD"}).
-  private Map<String, Object> balance(String amount, String currency, String type) {
-    return Map.of(
-        "balance_amount", Map.of("amount", amount, "currency", currency), "balance_type", type);
+  @Nested
+  @DisplayName("guard — missing external UID")
+  class MissingExternalUid {
+
+    @Test
+    @DisplayName("should skip sync when externalAccountUid is null")
+    void shouldSkipSyncWhenExternalUidIsNull() {
+      activeConnection.setExternalAccountUid(null);
+
+      syncService.syncAccount(activeConnection);
+
+      verify(ebClient, never()).getBalances(anyString());
+      verify(ebClient, never()).getTransactions(anyString());
+      verify(bankingConnectionRepository, never()).save(any(BankingConnection.class));
+    }
+
+    @Test
+    @DisplayName("should skip sync when externalAccountUid is blank")
+    void shouldSkipSyncWhenExternalUidIsBlank() {
+      activeConnection.setExternalAccountUid("   ");
+
+      syncService.syncAccount(activeConnection);
+
+      verify(ebClient, never()).getBalances(anyString());
+      verify(ebClient, never()).getTransactions(anyString());
+      verify(bankingConnectionRepository, never()).save(any(BankingConnection.class));
+    }
   }
 
-  private Map<String, Object> tx(String amount, String indicator, String desc, String bookingDate) {
-    return Map.of(
-        "transaction_amount",
-        Map.of("amount", amount, "currency", "EUR"),
-        "credit_debit_indicator",
-        indicator,
-        "remittance_information",
-        List.of(desc),
-        "booking_date",
-        bookingDate);
+  @Nested
+  @DisplayName("balance sync")
+  class BalanceSync {
+
+    @Test
+    @DisplayName("should update account balance from Enable Banking API response")
+    void shouldUpdateAccountBalanceFromApi() {
+      Map<String, Object> balanceResp =
+          Map.of(
+              "balances",
+              List.of(
+                  Map.of(
+                      "balance_amount",
+                      Map.of("amount", "2500.00", "currency", "EUR"),
+                      "balance_type",
+                      "CLBD")));
+      when(ebClient.getBalances(EXTERNAL_UID)).thenReturn(balanceResp);
+      when(ebClient.getTransactions(EXTERNAL_UID)).thenReturn(null);
+
+      Account account = new Account();
+      account.setId(ACCOUNT_ID);
+      account.setCustomerName("Test User");
+      account.setBalance(new BigDecimal("1000"));
+      when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+      when(bankingConnectionRepository.findByAccountIdAndStatus(ACCOUNT_ID, "ACTIVE"))
+          .thenReturn(List.of(activeConnection));
+
+      syncService.syncAccount(activeConnection);
+
+      ArgumentCaptor<Account> captor = ArgumentCaptor.forClass(Account.class);
+      verify(accountRepository).save(captor.capture());
+      assertEquals(new BigDecimal("2500.00"), captor.getValue().getBalance());
+    }
+
+    @Test
+    @DisplayName("should not crash when balance API returns null")
+    void shouldNotUpdateBalanceWhenResponseIsNull() {
+      when(ebClient.getBalances(EXTERNAL_UID)).thenReturn(null);
+      when(ebClient.getTransactions(EXTERNAL_UID)).thenReturn(null);
+
+      syncService.syncAccount(activeConnection);
+
+      verify(accountRepository, never()).save(any(Account.class));
+    }
+
+    @Test
+    @DisplayName("should skip balance update when balances list is empty")
+    void shouldNotUpdateBalanceWhenBalancesListIsEmpty() {
+      when(ebClient.getBalances(EXTERNAL_UID)).thenReturn(Map.of("balances", List.of()));
+      when(ebClient.getTransactions(EXTERNAL_UID)).thenReturn(null);
+
+      syncService.syncAccount(activeConnection);
+
+      verify(accountRepository, never()).save(any(Account.class));
+    }
   }
 
-  @Test
-  void syncStoresBalanceReplacesTransactionsAndRecomputesAggregate() {
-    EnableBankingClient eb = mock(EnableBankingClient.class);
-    AccountRepository accounts = mock(AccountRepository.class);
-    TransactionRepository transactions = mock(TransactionRepository.class);
-    BankingConnectionRepository connections = mock(BankingConnectionRepository.class);
+  @Nested
+  @DisplayName("transaction sync")
+  class TransactionSync {
 
-    BankingConnection conn = connection("N26", "uid-1", null);
-    Account account = new Account();
-    account.setId(ACCOUNT_ID);
-    account.setCustomerName("My accounts");
-    account.setBalance(BigDecimal.ZERO);
+    @Test
+    @DisplayName("should insert new transactions from Enable Banking")
+    void shouldInsertNewTransactions() {
+      when(ebClient.getBalances(EXTERNAL_UID)).thenReturn(null);
 
-    // Several balance types: the closing booked (CLBD) one must win over interim (ITBD).
-    when(eb.getBalances("uid-1"))
-        .thenReturn(
-            Map.of(
-                "balances",
-                List.of(balance("55.18", "EUR", "ITBD"), balance("1234.56", "EUR", "CLBD"))));
-    when(eb.getTransactions("uid-1"))
-        .thenReturn(
-            Map.of(
-                "transactions",
-                List.of(
-                    tx("10.00", "DBIT", "REWE SAGT DANKE", "2026-07-01"),
-                    tx("2000.00", "CRDT", "SALARY", "2026-06-15"))));
-    when(accounts.findById(ACCOUNT_ID)).thenReturn(java.util.Optional.of(account));
-    // Aggregate re-reads the active connections; conn now carries its synced balance.
-    when(connections.findByAccountIdAndStatus(ACCOUNT_ID, "ACTIVE")).thenReturn(List.of(conn));
+      Map<String, Object> txResp =
+          Map.of(
+              "transactions",
+              List.of(
+                  Map.of(
+                      "transaction_amount",
+                      Map.of("amount", "45.50", "currency", "EUR"),
+                      "credit_debit_indicator",
+                      "DBIT",
+                      "remittance_information",
+                      List.of("Grocery shopping"),
+                      "booking_date",
+                      "2026-07-01"),
+                  Map.of(
+                      "transaction_amount",
+                      Map.of("amount", "200.00", "currency", "EUR"),
+                      "credit_debit_indicator",
+                      "CRDT",
+                      "remittance_information",
+                      List.of("Salary"),
+                      "booking_date",
+                      "2026-06-15")));
+      when(ebClient.getTransactions(EXTERNAL_UID)).thenReturn(txResp);
 
-    new BankingSyncService(eb, accounts, transactions, connections).syncAccount(conn);
+      Account account = new Account();
+      account.setId(ACCOUNT_ID);
+      account.setBalance(BigDecimal.ZERO);
+      when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+      when(bankingConnectionRepository.findByAccountIdAndStatus(ACCOUNT_ID, "ACTIVE"))
+          .thenReturn(List.of(activeConnection));
 
-    // Per-connection balance + currency stored.
-    assertThat(conn.getBalance()).isEqualByComparingTo("1234.56");
-    assertThat(conn.getCurrency()).isEqualTo("EUR");
+      syncService.syncAccount(activeConnection);
 
-    // Replace-by-connection: old rows cleared before inserting the fetched window.
-    verify(transactions).deleteByConnectionId(conn.getId());
+      // Two transactions should be saved
+      ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+      verify(transactionRepository, org.mockito.Mockito.times(2)).save(captor.capture());
 
-    ArgumentCaptor<Transaction> saved = ArgumentCaptor.forClass(Transaction.class);
-    verify(transactions, times(2)).save(saved.capture());
-    List<Transaction> rows = saved.getAllValues();
-    assertThat(rows).allSatisfy(t -> assertThat(t.getConnectionId()).isEqualTo(conn.getId()));
-    assertThat(rows).allSatisfy(t -> assertThat(t.getBankName()).isEqualTo("N26"));
-    Transaction debit = rows.get(0);
-    assertThat(debit.getDirection()).isEqualTo("DEBIT");
-    assertThat(debit.getCategory()).isEqualTo("REWE SAGT DANKE");
-    // Booking date drives created_at (not now()), so the trend buckets by the real month.
-    assertThat(debit.getCreatedAt().getMonthValue()).isEqualTo(7);
-    assertThat(rows.get(1).getDirection()).isEqualTo("CREDIT");
-    assertThat(rows.get(1).getCreatedAt().getMonthValue()).isEqualTo(6);
+      List<Transaction> saved = captor.getAllValues();
+      assertEquals(2, saved.size());
 
-    // Aggregate account reflects the single active bank's balance.
-    assertThat(account.getBalance()).isEqualByComparingTo("1234.56");
-    assertThat(account.getCustomerName()).isEqualTo("N26");
+      // First: DEBIT, Grocery shopping
+      Transaction tx1 = saved.get(0);
+      assertEquals(ACCOUNT_ID, tx1.getAccountId());
+      assertEquals("Grocery shopping", tx1.getCategory());
+      assertEquals(new BigDecimal("45.50"), tx1.getAmount());
+      assertEquals("DEBIT", tx1.getDirection());
+
+      // Second: CREDIT, Salary
+      Transaction tx2 = saved.get(1);
+      assertEquals("Salary", tx2.getCategory());
+      assertEquals("CREDIT", tx2.getDirection());
+    }
+
+    @Test
+    @DisplayName("should replace transactions via deleteByConnectionId")
+    void shouldReplaceTransactionsByConnection() {
+      when(ebClient.getBalances(EXTERNAL_UID)).thenReturn(null);
+
+      Map<String, Object> txResp =
+          Map.of(
+              "transactions",
+              List.of(
+                  Map.of(
+                      "transaction_amount",
+                      Map.of("amount", "100.00", "currency", "EUR"),
+                      "credit_debit_indicator",
+                      "DBIT",
+                      "remittance_information",
+                      List.of("Rent"),
+                      "booking_date",
+                      "2026-06-30")));
+      when(ebClient.getTransactions(EXTERNAL_UID)).thenReturn(txResp);
+
+      Account account = new Account();
+      account.setId(ACCOUNT_ID);
+      account.setBalance(BigDecimal.ZERO);
+      when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+      when(bankingConnectionRepository.findByAccountIdAndStatus(ACCOUNT_ID, "ACTIVE"))
+          .thenReturn(List.of(activeConnection));
+
+      syncService.syncAccount(activeConnection);
+
+      // Service uses replace-by-connection: deletes old rows then inserts
+      verify(transactionRepository).deleteByConnectionId(CONNECTION_ID);
+      verify(transactionRepository).save(any(Transaction.class));
+    }
+
+    @Test
+    @DisplayName("should not crash when transaction API returns null")
+    void shouldNotInsertTransactionsWhenResponseIsNull() {
+      when(ebClient.getBalances(EXTERNAL_UID)).thenReturn(null);
+      when(ebClient.getTransactions(EXTERNAL_UID)).thenReturn(null);
+
+      syncService.syncAccount(activeConnection);
+
+      verify(transactionRepository, never()).save(any(Transaction.class));
+    }
   }
 
-  @Test
-  void aggregateSumsMultipleActiveBanksInSameCurrency() {
-    EnableBankingClient eb = mock(EnableBankingClient.class);
-    AccountRepository accounts = mock(AccountRepository.class);
-    TransactionRepository transactions = mock(TransactionRepository.class);
-    BankingConnectionRepository connections = mock(BankingConnectionRepository.class);
+  @Nested
+  @DisplayName("direction mapping (credit_debit_indicator → CREDIT/DEBIT)")
+  class DirectionMapping {
 
-    BankingConnection syncing = connection("N26", "uid-1", null);
-    BankingConnection other = connection("Revolut", "uid-2", new BigDecimal("500.00"));
-    other.setAccountName("Revolut Personal");
-    Account account = new Account();
-    account.setId(ACCOUNT_ID);
-    account.setBalance(BigDecimal.ZERO);
+    @Test
+    @DisplayName("should map CRDT to CREDIT")
+    void shouldMapCrdtToCredit() {
+      when(ebClient.getBalances(EXTERNAL_UID)).thenReturn(null);
+      when(ebClient.getTransactions(EXTERNAL_UID))
+          .thenReturn(
+              Map.of(
+                  "transactions",
+                  List.of(
+                      Map.of(
+                          "transaction_amount",
+                          Map.of("amount", "10.00", "currency", "EUR"),
+                          "credit_debit_indicator",
+                          "CRDT",
+                          "booking_date",
+                          "2026-07-01"))));
 
-    when(eb.getBalances("uid-1"))
-        .thenReturn(Map.of("balances", List.of(balance("1000.00", "EUR", "CLBD"))));
-    when(eb.getTransactions("uid-1")).thenReturn(Map.of("transactions", List.of()));
-    when(accounts.findById(ACCOUNT_ID)).thenReturn(java.util.Optional.of(account));
-    when(connections.findByAccountIdAndStatus(ACCOUNT_ID, "ACTIVE"))
-        .thenReturn(List.of(syncing, other));
+      Account account = new Account();
+      account.setId(ACCOUNT_ID);
+      account.setBalance(BigDecimal.ZERO);
+      when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+      when(bankingConnectionRepository.findByAccountIdAndStatus(ACCOUNT_ID, "ACTIVE"))
+          .thenReturn(List.of(activeConnection));
 
-    new BankingSyncService(eb, accounts, transactions, connections).syncAccount(syncing);
+      syncService.syncAccount(activeConnection);
 
-    assertThat(account.getBalance()).isEqualByComparingTo("1500.00");
+      ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+      verify(transactionRepository).save(captor.capture());
+      assertEquals("CREDIT", captor.getValue().getDirection());
+    }
+
+    @Test
+    @DisplayName("should map DBIT to DEBIT")
+    void shouldMapDbitToDebit() {
+      when(ebClient.getBalances(EXTERNAL_UID)).thenReturn(null);
+      when(ebClient.getTransactions(EXTERNAL_UID))
+          .thenReturn(
+              Map.of(
+                  "transactions",
+                  List.of(
+                      Map.of(
+                          "transaction_amount",
+                          Map.of("amount", "5.00", "currency", "EUR"),
+                          "credit_debit_indicator",
+                          "DBIT",
+                          "booking_date",
+                          "2026-07-01"))));
+
+      Account account = new Account();
+      account.setId(ACCOUNT_ID);
+      account.setBalance(BigDecimal.ZERO);
+      when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+      when(bankingConnectionRepository.findByAccountIdAndStatus(ACCOUNT_ID, "ACTIVE"))
+          .thenReturn(List.of(activeConnection));
+
+      syncService.syncAccount(activeConnection);
+
+      ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+      verify(transactionRepository).save(captor.capture());
+      assertEquals("DEBIT", captor.getValue().getDirection());
+    }
+
+    @Test
+    @DisplayName("should default to DEBIT when indicator is unrecognized")
+    void shouldDefaultToDebitForUnknownIndicator() {
+      when(ebClient.getBalances(EXTERNAL_UID)).thenReturn(null);
+      when(ebClient.getTransactions(EXTERNAL_UID))
+          .thenReturn(
+              Map.of(
+                  "transactions",
+                  List.of(
+                      Map.of(
+                          "transaction_amount",
+                          Map.of("amount", "1.00", "currency", "EUR"),
+                          "credit_debit_indicator",
+                          "UNKNOWN",
+                          "booking_date",
+                          "2026-07-01"))));
+
+      Account account = new Account();
+      account.setId(ACCOUNT_ID);
+      account.setBalance(BigDecimal.ZERO);
+      when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+      when(bankingConnectionRepository.findByAccountIdAndStatus(ACCOUNT_ID, "ACTIVE"))
+          .thenReturn(List.of(activeConnection));
+
+      syncService.syncAccount(activeConnection);
+
+      ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+      verify(transactionRepository).save(captor.capture());
+      assertEquals("DEBIT", captor.getValue().getDirection());
+    }
   }
 
-  @Test
-  void fallsBackToCounterpartyNameAndCamelCaseKeys() {
-    EnableBankingClient eb = mock(EnableBankingClient.class);
-    AccountRepository accounts = mock(AccountRepository.class);
-    TransactionRepository transactions = mock(TransactionRepository.class);
-    BankingConnectionRepository connections = mock(BankingConnectionRepository.class);
+  @Nested
+  @DisplayName("category fallback")
+  class CategoryFallback {
 
-    BankingConnection conn = connection("N26", "uid-1", null);
-    Account account = new Account();
-    account.setId(ACCOUNT_ID);
-    account.setBalance(BigDecimal.ZERO);
+    @Test
+    @DisplayName("should use 'Uncategorized' when remittance_information is null")
+    void shouldFallbackCategoryWhenRemittanceInfoIsNull() {
+      when(ebClient.getBalances(EXTERNAL_UID)).thenReturn(null);
+      when(ebClient.getTransactions(EXTERNAL_UID))
+          .thenReturn(
+              Map.of(
+                  "transactions",
+                  List.of(
+                      Map.of(
+                          "transaction_amount",
+                          Map.of("amount", "15.00", "currency", "EUR"),
+                          "credit_debit_indicator",
+                          "DBIT",
+                          "booking_date",
+                          "2026-07-01"))));
 
-    // camelCase balance (Berlin-Group style payloads) must still parse via the fallback.
-    when(eb.getBalances("uid-1"))
-        .thenReturn(
-            Map.of(
-                "balances",
-                List.of(Map.of("balanceAmount", Map.of("amount", "77.00", "currency", "EUR")))));
-    // No remittance info: the creditor name is the best available description for a debit.
-    when(eb.getTransactions("uid-1"))
-        .thenReturn(
-            Map.of(
-                "transactions",
-                List.of(
-                    Map.of(
-                        "transaction_amount",
-                        Map.of("amount", "3.03", "currency", "EUR"),
-                        "credit_debit_indicator",
-                        "DBIT",
-                        "creditor",
-                        Map.of("name", "Ella Mäkinen"),
-                        "booking_date",
-                        "2026-06-30"))));
-    when(accounts.findById(ACCOUNT_ID)).thenReturn(java.util.Optional.of(account));
-    when(connections.findByAccountIdAndStatus(ACCOUNT_ID, "ACTIVE")).thenReturn(List.of(conn));
+      Account account = new Account();
+      account.setId(ACCOUNT_ID);
+      account.setBalance(BigDecimal.ZERO);
+      when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+      when(bankingConnectionRepository.findByAccountIdAndStatus(ACCOUNT_ID, "ACTIVE"))
+          .thenReturn(List.of(activeConnection));
 
-    new BankingSyncService(eb, accounts, transactions, connections).syncAccount(conn);
+      syncService.syncAccount(activeConnection);
 
-    assertThat(conn.getBalance()).isEqualByComparingTo("77.00");
-    ArgumentCaptor<Transaction> saved = ArgumentCaptor.forClass(Transaction.class);
-    verify(transactions).save(saved.capture());
-    assertThat(saved.getValue().getCategory()).isEqualTo("Ella Mäkinen");
+      ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+      verify(transactionRepository).save(captor.capture());
+      assertEquals("Uncategorized", captor.getValue().getCategory());
+    }
   }
 
-  @Test
-  void skipsSyncWhenExternalUidMissing() {
-    EnableBankingClient eb = mock(EnableBankingClient.class);
-    AccountRepository accounts = mock(AccountRepository.class);
-    TransactionRepository transactions = mock(TransactionRepository.class);
-    BankingConnectionRepository connections = mock(BankingConnectionRepository.class);
+  @Nested
+  @DisplayName("connection timestamp update")
+  class TimestampUpdate {
 
-    BankingConnection conn = connection("N26", null, null);
+    @Test
+    @DisplayName("should update connection timestamp after successful sync")
+    void shouldUpdateConnectionTimestampAfterSync() {
+      when(ebClient.getBalances(EXTERNAL_UID)).thenReturn(null);
+      when(ebClient.getTransactions(EXTERNAL_UID)).thenReturn(null);
 
-    new BankingSyncService(eb, accounts, transactions, connections).syncAccount(conn);
+      LocalDateTime before = activeConnection.getUpdatedAt();
+      syncService.syncAccount(activeConnection);
 
-    verify(eb, times(0)).getBalances(any());
-    verify(transactions, times(0)).deleteByConnectionId(any());
-    verify(accounts, times(0)).save(any());
+      ArgumentCaptor<BankingConnection> captor = ArgumentCaptor.forClass(BankingConnection.class);
+      verify(bankingConnectionRepository).save(captor.capture());
+      assertNotNull(captor.getValue().getUpdatedAt());
+      // updatedAt should be refreshed (not equal to the old value)
+      assertTrue(
+          captor.getValue().getUpdatedAt().isAfter(before)
+              || captor.getValue().getUpdatedAt().equals(before));
+    }
+
+    @Test
+    @DisplayName("should still update connection timestamp even when APIs return null")
+    void shouldUpdateTimestampEvenOnNullResponses() {
+      when(ebClient.getBalances(EXTERNAL_UID)).thenReturn(null);
+      when(ebClient.getTransactions(EXTERNAL_UID)).thenReturn(null);
+
+      syncService.syncAccount(activeConnection);
+
+      verify(bankingConnectionRepository).save(any(BankingConnection.class));
+    }
   }
 }

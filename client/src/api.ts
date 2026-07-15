@@ -12,6 +12,8 @@ export interface AccountSummary {
   accountId: string;
   customerName: string;
   totalBalance: number;
+  totalCreditLimit: number;
+  utilizationRate: number;
 }
 
 export interface BankListItem {
@@ -92,30 +94,45 @@ export async function fetchDashboard(
 }
 
 export async function fetchBanks(country: string): Promise<BankListItem[]> {
-  const response = await fetch(`${API_BASE}/api/banking/banks?country=${country}`);
-  if (!response.ok) {throw new Error("Failed to load banks");}
+  const response = await fetch(
+    `${API_BASE}/api/banking/banks?country=${country}`,
+  );
+  if (!response.ok) {
+    throw new Error("Failed to load banks");
+  }
 
   return response.json() as Promise<BankListItem[]>;
 }
 
-export async function connectBank(bankName: string, country: string, accountId: string): Promise<{ authUrl: string }> {
+export async function connectBank(
+  bankName: string,
+  country: string,
+  accountId: string,
+): Promise<{ authUrl: string }> {
   const response = await fetch(`${API_BASE}/api/banking/connect`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ bankName, country, accountId })
+    body: JSON.stringify({ bankName, country, accountId }),
   });
-  if (!response.ok) {throw new Error("Failed to initiate connection");}
+  if (!response.ok) {
+    throw new Error("Failed to initiate connection");
+  }
 
   return response.json() as Promise<{ authUrl: string }>;
 }
 
-export async function handleBankCallback(code: string, state: string): Promise<ConnectionStatus> {
+export async function handleBankCallback(
+  code: string,
+  state: string,
+): Promise<ConnectionStatus> {
   const response = await fetch(`${API_BASE}/api/banking/callback`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ code, state })
+    body: JSON.stringify({ code, state }),
   });
-  if (!response.ok) {throw new Error("Bank connection failed");}
+  if (!response.ok) {
+    throw new Error("Bank connection failed");
+  }
 
   return response.json() as Promise<ConnectionStatus>;
 }
@@ -148,5 +165,10 @@ export interface ChatReply {
 
 export type ChatContext = Pick<
   DashboardPayload,
-  "account" | "trend" | "expenses" | "connections" | "transactions" | "monthlyFlow"
+  | "account"
+  | "trend"
+  | "expenses"
+  | "connections"
+  | "transactions"
+  | "monthlyFlow"
 >;
