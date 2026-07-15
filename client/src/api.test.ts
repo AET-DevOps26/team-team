@@ -30,6 +30,10 @@ function mockDashboard(
     expenses: [{ category: "Food", percentage: 40 }],
     aiSummary: "All good.",
     connectionStatus: null,
+    connections: [],
+    transactions: [],
+    monthlyFlow: null,
+    spendByBank: [],
     ...overrides,
   };
 }
@@ -183,7 +187,9 @@ describe("sendChat", () => {
       },
       trend: [],
       expenses: [],
-      connection: { status: "ACTIVE", bankName: "Nordea", country: "FI" },
+      connections: [{ status: "ACTIVE", bankName: "Nordea", country: "FI" }],
+      transactions: [],
+      monthlyFlow: null,
     };
 
     await sendChat([{ role: "user", content: "balance?" }], context);
@@ -192,7 +198,7 @@ describe("sendChat", () => {
     expect(callArgs).toHaveLength(2);
     const body = JSON.parse((callArgs[1]?.body as string) ?? "{}");
     expect(body.context).toBeDefined();
-    expect(body.context.connection.status).toBe("ACTIVE");
+    expect(body.context.connections[0].status).toBe("ACTIVE");
   });
 
   it("should throw when chat fails", async () => {
