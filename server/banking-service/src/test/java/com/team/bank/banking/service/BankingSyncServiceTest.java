@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -104,14 +103,22 @@ class BankingSyncServiceTest {
       Map<String, Object> balanceResp =
           Map.of(
               "balances",
-              List.of(Map.of("balanceAmount", Map.of("amount", "2500.00", "currency", "EUR"))));
+              List.of(
+                  Map.of(
+                      "balance_amount",
+                      Map.of("amount", "2500.00", "currency", "EUR"),
+                      "balance_type",
+                      "CLBD")));
       when(ebClient.getBalances(EXTERNAL_UID)).thenReturn(balanceResp);
+      when(ebClient.getTransactions(EXTERNAL_UID)).thenReturn(null);
 
       Account account = new Account();
       account.setId(ACCOUNT_ID);
       account.setCustomerName("Test User");
       account.setBalance(new BigDecimal("1000"));
       when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+      when(bankingConnectionRepository.findByAccountIdAndStatus(ACCOUNT_ID, "ACTIVE"))
+          .thenReturn(List.of(activeConnection));
 
       syncService.syncAccount(activeConnection);
 
@@ -157,25 +164,31 @@ class BankingSyncServiceTest {
               "transactions",
               List.of(
                   Map.of(
-                      "transactionAmount",
+                      "transaction_amount",
                       Map.of("amount", "45.50", "currency", "EUR"),
-                      "creditDebitIndicator",
+                      "credit_debit_indicator",
                       "DBIT",
-                      "remittanceInformationUnstructured",
-                      "Grocery shopping"),
+                      "remittance_information",
+                      List.of("Grocery shopping"),
+                      "booking_date",
+                      "2026-07-01"),
                   Map.of(
-                      "transactionAmount",
+                      "transaction_amount",
                       Map.of("amount", "200.00", "currency", "EUR"),
-                      "creditDebitIndicator",
+                      "credit_debit_indicator",
                       "CRDT",
-                      "remittanceInformationUnstructured",
-                      "Salary")));
+                      "remittance_information",
+                      List.of("Salary"),
+                      "booking_date",
+                      "2026-06-15")));
       when(ebClient.getTransactions(EXTERNAL_UID)).thenReturn(txResp);
 
-      // No existing duplicates
-      when(transactionRepository.findByAccountIdAndCategoryAndAmountAndDirection(
-              any(), anyString(), any(), anyString()))
-          .thenReturn(List.of());
+      Account account = new Account();
+      account.setId(ACCOUNT_ID);
+      account.setBalance(BigDecimal.ZERO);
+      when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+      when(bankingConnectionRepository.findByAccountIdAndStatus(ACCOUNT_ID, "ACTIVE"))
+          .thenReturn(List.of(activeConnection));
 
       syncService.syncAccount(activeConnection);
 
@@ -200,8 +213,8 @@ class BankingSyncServiceTest {
     }
 
     @Test
-    @DisplayName("should skip duplicate transactions already in database")
-    void shouldSkipDuplicateTransactions() {
+    @DisplayName("should replace transactions via deleteByConnectionId")
+    void shouldReplaceTransactionsByConnection() {
       when(ebClient.getBalances(EXTERNAL_UID)).thenReturn(null);
 
       Map<String, Object> txResp =
@@ -209,22 +222,28 @@ class BankingSyncServiceTest {
               "transactions",
               List.of(
                   Map.of(
-                      "transactionAmount", Map.of("amount", "100.00", "currency", "EUR"),
-                      "creditDebitIndicator", "DBIT",
-                      "remittanceInformationUnstructured", "Rent")));
+                      "transaction_amount",
+                      Map.of("amount", "100.00", "currency", "EUR"),
+                      "credit_debit_indicator",
+                      "DBIT",
+                      "remittance_information",
+                      List.of("Rent"),
+                      "booking_date",
+                      "2026-06-30")));
       when(ebClient.getTransactions(EXTERNAL_UID)).thenReturn(txResp);
 
-      // Simulate an existing duplicate
-      Transaction existing = new Transaction();
-      existing.setId(UUID.randomUUID());
-      when(transactionRepository.findByAccountIdAndCategoryAndAmountAndDirection(
-              eq(ACCOUNT_ID), eq("Rent"), eq(new BigDecimal("100.00")), eq("DEBIT")))
-          .thenReturn(List.of(existing));
+      Account account = new Account();
+      account.setId(ACCOUNT_ID);
+      account.setBalance(BigDecimal.ZERO);
+      when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+      when(bankingConnectionRepository.findByAccountIdAndStatus(ACCOUNT_ID, "ACTIVE"))
+          .thenReturn(List.of(activeConnection));
 
       syncService.syncAccount(activeConnection);
 
-      // Should NOT save a duplicate
-      verify(transactionRepository, never()).save(any(Transaction.class));
+      // Service uses replace-by-connection: deletes old rows then inserts
+      verify(transactionRepository).deleteByConnectionId(CONNECTION_ID);
+      verify(transactionRepository).save(any(Transaction.class));
     }
 
     @Test
@@ -240,7 +259,7 @@ class BankingSyncServiceTest {
   }
 
   @Nested
-  @DisplayName("direction mapping (creditDebitIndicator → CREDIT/DEBIT)")
+  @DisplayName("direction mapping (credit_debit_indicator → CREDIT/DEBIT)")
   class DirectionMapping {
 
     @Test
@@ -253,13 +272,19 @@ class BankingSyncServiceTest {
                   "transactions",
                   List.of(
                       Map.of(
-                          "transactionAmount",
+                          "transaction_amount",
                           Map.of("amount", "10.00", "currency", "EUR"),
-                          "creditDebitIndicator",
-                          "CRDT"))));
-      when(transactionRepository.findByAccountIdAndCategoryAndAmountAndDirection(
-              any(), anyString(), any(), anyString()))
-          .thenReturn(List.of());
+                          "credit_debit_indicator",
+                          "CRDT",
+                          "booking_date",
+                          "2026-07-01"))));
+
+      Account account = new Account();
+      account.setId(ACCOUNT_ID);
+      account.setBalance(BigDecimal.ZERO);
+      when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+      when(bankingConnectionRepository.findByAccountIdAndStatus(ACCOUNT_ID, "ACTIVE"))
+          .thenReturn(List.of(activeConnection));
 
       syncService.syncAccount(activeConnection);
 
@@ -278,13 +303,19 @@ class BankingSyncServiceTest {
                   "transactions",
                   List.of(
                       Map.of(
-                          "transactionAmount",
+                          "transaction_amount",
                           Map.of("amount", "5.00", "currency", "EUR"),
-                          "creditDebitIndicator",
-                          "DBIT"))));
-      when(transactionRepository.findByAccountIdAndCategoryAndAmountAndDirection(
-              any(), anyString(), any(), anyString()))
-          .thenReturn(List.of());
+                          "credit_debit_indicator",
+                          "DBIT",
+                          "booking_date",
+                          "2026-07-01"))));
+
+      Account account = new Account();
+      account.setId(ACCOUNT_ID);
+      account.setBalance(BigDecimal.ZERO);
+      when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+      when(bankingConnectionRepository.findByAccountIdAndStatus(ACCOUNT_ID, "ACTIVE"))
+          .thenReturn(List.of(activeConnection));
 
       syncService.syncAccount(activeConnection);
 
@@ -303,13 +334,19 @@ class BankingSyncServiceTest {
                   "transactions",
                   List.of(
                       Map.of(
-                          "transactionAmount",
+                          "transaction_amount",
                           Map.of("amount", "1.00", "currency", "EUR"),
-                          "creditDebitIndicator",
-                          "UNKNOWN"))));
-      when(transactionRepository.findByAccountIdAndCategoryAndAmountAndDirection(
-              any(), anyString(), any(), anyString()))
-          .thenReturn(List.of());
+                          "credit_debit_indicator",
+                          "UNKNOWN",
+                          "booking_date",
+                          "2026-07-01"))));
+
+      Account account = new Account();
+      account.setId(ACCOUNT_ID);
+      account.setBalance(BigDecimal.ZERO);
+      when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+      when(bankingConnectionRepository.findByAccountIdAndStatus(ACCOUNT_ID, "ACTIVE"))
+          .thenReturn(List.of(activeConnection));
 
       syncService.syncAccount(activeConnection);
 
@@ -324,7 +361,7 @@ class BankingSyncServiceTest {
   class CategoryFallback {
 
     @Test
-    @DisplayName("should use 'Uncategorized' when remittanceInformation is null")
+    @DisplayName("should use 'Uncategorized' when remittance_information is null")
     void shouldFallbackCategoryWhenRemittanceInfoIsNull() {
       when(ebClient.getBalances(EXTERNAL_UID)).thenReturn(null);
       when(ebClient.getTransactions(EXTERNAL_UID))
@@ -333,13 +370,19 @@ class BankingSyncServiceTest {
                   "transactions",
                   List.of(
                       Map.of(
-                          "transactionAmount",
+                          "transaction_amount",
                           Map.of("amount", "15.00", "currency", "EUR"),
-                          "creditDebitIndicator",
-                          "DBIT"))));
-      when(transactionRepository.findByAccountIdAndCategoryAndAmountAndDirection(
-              any(), eq("Uncategorized"), any(), anyString()))
-          .thenReturn(List.of());
+                          "credit_debit_indicator",
+                          "DBIT",
+                          "booking_date",
+                          "2026-07-01"))));
+
+      Account account = new Account();
+      account.setId(ACCOUNT_ID);
+      account.setBalance(BigDecimal.ZERO);
+      when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(account));
+      when(bankingConnectionRepository.findByAccountIdAndStatus(ACCOUNT_ID, "ACTIVE"))
+          .thenReturn(List.of(activeConnection));
 
       syncService.syncAccount(activeConnection);
 
