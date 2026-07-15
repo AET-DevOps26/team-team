@@ -7,7 +7,8 @@ spec:
   selector:
     app: account-service-selector
   ports:
-    - port: {{ .Values.accountService.service.port }}
+    - name: http
+      port: {{ .Values.accountService.service.port }}
       targetPort: {{ .Values.accountService.service.targetPort }}
       protocol: TCP
   type: {{ .Values.accountService.service.type }}

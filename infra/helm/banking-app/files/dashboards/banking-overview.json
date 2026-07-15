@@ -42,7 +42,7 @@
       },
       "targets": [
         {
-          "expr": "rate(http_server_requests_seconds_sum[5m]) / clamp_min(rate(http_server_requests_seconds_count[5m]), 0.001)",
+          "expr": "rate(http_server_requests_seconds_sum[5m]) / rate(http_server_requests_seconds_count[5m])",
           "legendFormat": "{{job}}"
         }
       ],
@@ -67,7 +67,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (job) (rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])) / clamp_min(sum by (job) (rate(http_server_requests_seconds_count[5m])), 0.001) or sum by (job) (up * 0)",
+          "expr": "sum by (job) (rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])) / sum by (job) (rate(http_server_requests_seconds_count[5m])) or sum by (job) (up * 0)",
           "legendFormat": "{{job}}"
         }
       ],
@@ -84,7 +84,7 @@
     {
       "id": 4,
       "type": "timeseries",
-      "title": "Avg Latency (aggregate)",
+      "title": "Avg / Max Latency (aggregate)",
       "gridPos": {
         "h": 8,
         "w": 12,
@@ -93,7 +93,7 @@
       },
       "targets": [
         {
-          "expr": "rate(http_server_requests_seconds_sum[5m]) / clamp_min(rate(http_server_requests_seconds_count[5m]), 0.001)",
+          "expr": "rate(http_server_requests_seconds_sum[5m]) / rate(http_server_requests_seconds_count[5m])",
           "legendFormat": "avg"
         }
       ],
@@ -206,7 +206,7 @@
       },
       "targets": [
         {
-          "expr": "rate(http_request_duration_seconds_sum{job=\"genai-service\"}[5m]) / clamp_min(rate(http_request_duration_seconds_count{job=\"genai-service\"}[5m]), 0.001)",
+          "expr": "rate(http_request_duration_seconds_sum{job=\"genai-service\"}[5m]) / rate(http_request_duration_seconds_count{job=\"genai-service\"}[5m])",
           "legendFormat": "GenAI avg"
         }
       ],
@@ -231,7 +231,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (job) (rate(http_requests_total{job=\"genai-service\",status=~\"5..\"}[5m])) / clamp_min(sum by (job) (rate(http_requests_total{job=\"genai-service\"}[5m])), 0.001)",
+          "expr": "sum by (job) (rate(http_requests_total{job=\"genai-service\",status=~\"5..\"}[5m])) / sum by (job) (rate(http_requests_total{job=\"genai-service\"}[5m]))",
           "legendFormat": "GenAI 5xx"
         }
       ],

@@ -78,6 +78,7 @@ class BankingSyncServiceTest {
 
       verify(ebClient, never()).getBalances(anyString());
       verify(ebClient, never()).getTransactions(anyString());
+      verify(bankingConnectionRepository, never()).save(any(BankingConnection.class));
     }
 
     @Test
@@ -88,6 +89,8 @@ class BankingSyncServiceTest {
       syncService.syncAccount(activeConnection);
 
       verify(ebClient, never()).getBalances(anyString());
+      verify(ebClient, never()).getTransactions(anyString());
+      verify(bankingConnectionRepository, never()).save(any(BankingConnection.class));
     }
   }
 

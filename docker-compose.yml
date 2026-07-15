@@ -8,6 +8,8 @@ networks:
 
 volumes:
   postgres-data:
+  prometheus-data:
+  grafana-data:
 
 services:
   # -------------------------
@@ -223,6 +225,18 @@ services:
     image: prom/prometheus:v2.54.1
     volumes:
       - ./infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infra/monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - backend
+
+  # -------------------------
+  # ALERTMANAGER
+  # -------------------------
+  alertmanager:
+    image: prom/alertmanager:v0.28.0
+    volumes:
+      - ./infra/monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
     networks:
       - backend
 
@@ -235,12 +249,15 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin1
-      GF_SERVER_ROOT_URL: https://localhost/grafana/
+      GF_SERVER_ROOT_URL: "https://localhost/grafana/"
       GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
 
     volumes:
       - ./infra/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./infra/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
 
     networks:
+      # edge = reachable via Traefik; backend = can reach Prometheus/Alertmanager.
       - edge
+      - backend

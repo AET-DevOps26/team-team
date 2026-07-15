@@ -27,3 +27,10 @@ app_env:
   ENABLE_BANKING_APP_ID: "{{ eb_app_id | default('') }}"
   ENABLE_BANKING_PRIVATE_KEY_PATH: "{{ (app_dir ~ '/secrets/eb_private_key.pem') if (eb_private_key_pem | default('') | length > 0) else '/dev/null' }}"
   ENABLE_BANKING_REDIRECT_URL: "{{ eb_redirect_url | default('https://localhost/callback') }}"
+  # GenAI / Logos — injected via --extra-vars from GitHub secret LOGOS_KEY.
+  # When empty, MODEL_PROVIDER falls back to 'local' so /chat still works with
+  # the canned offline reply instead of throwing on every request.
+  MODEL_PROVIDER: "{{ 'logos' if (logos_key | default('') | length > 0) else 'local' }}"
+  LOGOS_KEY: "{{ logos_key | default('') }}"
+  LOGOS_BASE_URL: "{{ logos_base_url | default('https://logos.aet.cit.tum.de') }}"
+  LOGOS_MODEL: "{{ logos_model | default('openai/gpt-oss-120b') }}"

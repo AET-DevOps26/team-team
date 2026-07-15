@@ -106,9 +106,8 @@ class ParseAmountTest {
     }
 
     @Test
-    @DisplayName("should return null for an unexpected object type")
-    void shouldReturnNullForUnexpectedType() throws ReflectiveOperationException {
-      // An Integer should still parse via toString()
+    @DisplayName("should parse an Integer via toString()")
+    void shouldParseIntegerViaToString() throws ReflectiveOperationException {
       BigDecimal result = invokeParseAmount(100);
       assertEquals(new BigDecimal("100"), result);
     }

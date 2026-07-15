@@ -7,7 +7,8 @@ spec:
   selector:
     app: transaction-service-selector
   ports:
-    - port: {{ .Values.transactionService.service.port }}
+    - name: http
+      port: {{ .Values.transactionService.service.port }}
       targetPort: {{ .Values.transactionService.service.targetPort }}
       protocol: TCP
   type: {{ .Values.transactionService.service.type }}

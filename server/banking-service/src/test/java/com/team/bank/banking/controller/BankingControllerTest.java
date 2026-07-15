@@ -299,15 +299,21 @@ class BankingControllerTest {
     void shouldFallbackToMostRecentWhenNoActive() throws Exception {
       BankingConnection older =
           connection("PENDING", LocalDateTime.now(ZoneId.systemDefault()).minusHours(2));
+      older.setBankName("OldBank");
+      older.setCountry("DE");
       BankingConnection newer =
           connection("PENDING", LocalDateTime.now(ZoneId.systemDefault()).minusHours(1));
+      newer.setBankName("NewBank");
+      newer.setCountry("SE");
       when(connectionRepository.findByAccountId(ACCOUNT_ID)).thenReturn(List.of(older, newer));
 
       mockMvc
           .perform(
               get("/api/banking/status/{accountId}", ACCOUNT_ID).accept(MediaType.APPLICATION_JSON))
           .andExpect(status().isOk())
-          .andExpect(jsonPath("$.status").value("PENDING"));
+          .andExpect(jsonPath("$.status").value("PENDING"))
+          .andExpect(jsonPath("$.bankName").value("NewBank"))
+          .andExpect(jsonPath("$.country").value("SE"));
     }
   }
 
