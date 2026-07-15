@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.team.bank.banking.client.EnableBankingClient;
 import com.team.bank.banking.config.EnableBankingConfig;
+import com.team.bank.banking.model.AccountRepository;
 import com.team.bank.banking.model.BankingConnection;
 import com.team.bank.banking.model.BankingConnectionRepository;
 import com.team.bank.banking.service.BankingSyncService;
@@ -43,6 +44,7 @@ class BankingControllerTest {
   @MockitoBean private EnableBankingClient ebClient;
   @MockitoBean private EnableBankingConfig ebConfig;
   @MockitoBean private BankingConnectionRepository connectionRepository;
+  @MockitoBean private AccountRepository accountRepository;
   @MockitoBean private BankingSyncService syncService;
 
   private static final UUID ACCOUNT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
@@ -325,7 +327,7 @@ class BankingControllerTest {
     @DisplayName("should return 400 when no ACTIVE connection exists for account")
     void shouldReturn400OnSyncWithoutActiveConnection() throws Exception {
       when(connectionRepository.findByAccountIdAndStatus(ACCOUNT_ID, "ACTIVE"))
-          .thenReturn(Optional.empty());
+          .thenReturn(List.of());
 
       mockMvc
           .perform(
@@ -339,7 +341,7 @@ class BankingControllerTest {
       BankingConnection activeConn =
           connection("ACTIVE", LocalDateTime.now(ZoneId.systemDefault()));
       when(connectionRepository.findByAccountIdAndStatus(ACCOUNT_ID, "ACTIVE"))
-          .thenReturn(Optional.of(activeConn));
+          .thenReturn(List.of(activeConn));
 
       mockMvc
           .perform(

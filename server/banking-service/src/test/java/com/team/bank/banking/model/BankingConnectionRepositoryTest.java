@@ -1,6 +1,7 @@
 package com.team.bank.banking.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -12,7 +13,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.test.context.ActiveProfiles;
 
 @DataJpaTest
@@ -60,10 +61,10 @@ class BankingConnectionRepositoryTest {
         buildConnection("state-xyz", "ACTIVE", LocalDateTime.now(ZoneId.systemDefault()));
     connectionRepository.save(conn);
 
-    Optional<BankingConnection> found =
+    List<BankingConnection> found =
         connectionRepository.findByAccountIdAndStatus(ACCOUNT_ID, "ACTIVE");
-    assertTrue(found.isPresent());
-    assertEquals("ACTIVE", found.get().getStatus());
+    assertFalse(found.isEmpty());
+    assertEquals("ACTIVE", found.get(0).getStatus());
   }
 
   @Test
@@ -73,7 +74,7 @@ class BankingConnectionRepositoryTest {
         buildConnection("state-pending", "PENDING", LocalDateTime.now(ZoneId.systemDefault()));
     connectionRepository.save(conn);
 
-    Optional<BankingConnection> found =
+    List<BankingConnection> found =
         connectionRepository.findByAccountIdAndStatus(ACCOUNT_ID, "ACTIVE");
     assertTrue(found.isEmpty());
   }
