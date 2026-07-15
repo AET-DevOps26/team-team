@@ -187,7 +187,7 @@ describe("sendChat", () => {
       },
       trend: [],
       expenses: [],
-      connections: [{ status: "ACTIVE", bankName: "Nordea", country: "FI" }],
+      connections: [{ status: "ACTIVE", bankName: "Nordea", country: "FI", accountName: null, balance: null, currency: null }],
       transactions: [],
       monthlyFlow: null,
     };
