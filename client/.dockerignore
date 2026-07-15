@@ -1,0 +1,17 @@
+# The image only needs dist/ + nginx.conf (see client/Dockerfile). Everything
+# else is either irrelevant or already been consumed by the host build step.
+node_modules
+src
+coverage
+.vscode
+.git
+*.log
+package.json
+package-lock.json
+tsconfig.json
+tsconfig.app.json
+vite.config.ts
+eslint.config.js
+index.html
+.npmrc
+Dockerfile

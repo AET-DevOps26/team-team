@@ -6,6 +6,15 @@ server:
   # with `Invalid CORS request`).
   forward-headers-strategy: framework
 
+spring:
+  # The orchestrator persists registered app users (see UserRepository) directly
+  # via JdbcClient — no JPA. Defaults mirror the other services' compose config.
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/bankdb}
+    username: ${SPRING_DATASOURCE_USERNAME:bank}
+    password: ${SPRING_DATASOURCE_PASSWORD:bank}
+    driver-class-name: org.postgresql.Driver
+
 services:
   account:
     url: ${ACCOUNT_SERVICE_URL:http://localhost:8081}
@@ -22,6 +31,16 @@ app:
     # https://localhost = Traefik dev deployment (self-signed TLS).
     # Add the production FQDN here (or via APP_CORS_ALLOWED_ORIGINS) too.
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173,https://localhost}
+
+# Lightweight GitHub OAuth login (see AuthController). All three values must be set for
+# /api/auth/github/* to work; empty defaults keep the service startable in tests / CI.
+# The redirect-uri MUST match the "Authorization callback URL" registered on the GitHub OAuth App
+# (Settings -> Developer settings -> OAuth Apps). It points at the SPA route that posts back to
+# /api/auth/github/callback.
+github:
+  client-id: ${GITHUB_CLIENT_ID:}
+  client-secret: ${GITHUB_CLIENT_SECRET:}
+  redirect-uri: ${GITHUB_REDIRECT_URI:https://localhost/login/oauth2/code/github}
 
 management:
   endpoints:

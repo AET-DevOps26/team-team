@@ -10,6 +10,8 @@ dependencies {
     implementation(libs.org.springframework.boot.spring.boot.starter.web)
     implementation(libs.org.springframework.boot.spring.boot.starter.webflux)
     implementation(libs.org.springframework.boot.spring.boot.starter.actuator)
+    implementation(libs.org.springframework.boot.spring.boot.starter.jdbc)
+    runtimeOnly(libs.org.postgresql.postgresql)
     implementation(libs.org.springdoc.springdoc.openapi.starter.webmvc.ui)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 

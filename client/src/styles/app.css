@@ -105,6 +105,12 @@ body {
 .signout:hover {
   color: var(--accent);
 }
+.statusbar .avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
+}
 
 /* Demo/Live segmented control — embedded in the header and the pre-dashboard
    states so the data source can be switched at any time. */
