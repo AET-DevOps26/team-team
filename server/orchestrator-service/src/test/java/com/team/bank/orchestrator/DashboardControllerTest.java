@@ -87,6 +87,20 @@ class DashboardControllerTest {
     return "[{\"category\":\"Rent\",\"percentage\":60},{\"category\":\"Food\",\"percentage\":40}]";
   }
 
+  private String transactionsJson() {
+    return "[{\"id\":\""
+        + UUID.randomUUID()
+        + "\",\"accountId\":\""
+        + ACCOUNT_ID
+        + "\",\"category\":\"Rent\",\"amount\":500.00,\"direction\":\"DEBIT\",\"createdAt\":\"2026-07-01T10:00:00\"}]";
+  }
+
+  private String bankingConnectionsJson() {
+    return "[{\"bankName\":\"Nordea\",\"country\":\"FI\",\"status\":\"ACTIVE\",\"accountId\":\""
+        + ACCOUNT_ID
+        + "\",\"externalAccountUid\":\"ext-123\"}]";
+  }
+
   @Test
   @DisplayName("GET /api should return UP")
   void shouldReturnApiIndex() throws Exception {
@@ -102,9 +116,11 @@ class DashboardControllerTest {
     accountServer.enqueue(json(accountJson()));
     accountServer.enqueue(json(trendJson()));
     transactionServer.enqueue(json(expensesJson()));
+    transactionServer.enqueue(json(transactionsJson()));
     genaiServer.enqueue(json("{\"summary\":\"OK\"}"));
     bankingServer.enqueue(
         json("{\"status\":\"ACTIVE\",\"bankName\":\"Nordea\",\"country\":\"FI\"}"));
+    bankingServer.enqueue(json(bankingConnectionsJson()));
 
     mockMvc
         .perform(get("/api/dashboard/{accountId}", ACCOUNT_ID).accept(MediaType.APPLICATION_JSON))
@@ -131,8 +147,10 @@ class DashboardControllerTest {
     accountServer.enqueue(json(accountJson()));
     accountServer.enqueue(json(trendJson()));
     transactionServer.enqueue(json(expensesJson()));
+    transactionServer.enqueue(json(transactionsJson()));
     genaiServer.enqueue(new MockResponse().setResponseCode(500));
     bankingServer.enqueue(json("{\"status\":\"ACTIVE\",\"bankName\":\"N\",\"country\":\"FI\"}"));
+    bankingServer.enqueue(json(bankingConnectionsJson()));
 
     mockMvc
         .perform(get("/api/dashboard/{accountId}", ACCOUNT_ID).accept(MediaType.APPLICATION_JSON))
@@ -146,6 +164,7 @@ class DashboardControllerTest {
     accountServer.enqueue(json(accountJson()));
     accountServer.enqueue(json(trendJson()));
     transactionServer.enqueue(json(expensesJson()));
+    transactionServer.enqueue(json(transactionsJson()));
     genaiServer.enqueue(json("{\"summary\":\"OK\"}"));
     bankingServer.enqueue(new MockResponse().setResponseCode(500));
 
