@@ -77,7 +77,12 @@ services:
       context: ./genai
       dockerfile: Dockerfile
     environment:
-      MODEL_PROVIDER: local
+      # Defaults to the offline canned assistant; set MODEL_PROVIDER=logos and
+      # LOGOS_KEY in the (gitignored) root .env to test with the real gateway.
+      MODEL_PROVIDER: ${MODEL_PROVIDER:-local}
+      LOGOS_KEY: ${LOGOS_KEY:-}
+      LOGOS_BASE_URL: ${LOGOS_BASE_URL:-https://logos.aet.cit.tum.de}
+      LOGOS_MODEL: ${LOGOS_MODEL:-openai/gpt-oss-120b}
       OLLAMA_BASE_URL: http://host.docker.internal:11434
       OLLAMA_MODEL: llama3.1:8b
     ports:
