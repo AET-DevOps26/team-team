@@ -1,0 +1,52 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migration
+  namespace: {{ .Release.Namespace | quote }}
+  annotations:
+    "helm.sh/hook": pre-upgrade,pre-install
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: postgres:16-alpine
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              psql "postgresql://${PGUSER}:${PGPASSWORD}@${PGHOST}:${PGPORT}/${PGDATABASE}" <<'SQL'
+              -- Per-linked-bank data now lives on the connection row.
+              ALTER TABLE banking_connections ADD COLUMN IF NOT EXISTS account_name VARCHAR(100);
+              ALTER TABLE banking_connections ADD COLUMN IF NOT EXISTS balance NUMERIC(14,2);
+              ALTER TABLE banking_connections ADD COLUMN IF NOT EXISTS currency VARCHAR(10);
+
+              -- Real transaction descriptions exceed 40 chars.
+              ALTER TABLE transactions ALTER COLUMN category TYPE VARCHAR(255);
+
+              -- Tag each transaction with its source bank.
+              ALTER TABLE transactions ADD COLUMN IF NOT EXISTS bank_name VARCHAR(100);
+              ALTER TABLE transactions ADD COLUMN IF NOT EXISTS connection_id UUID;
+              ALTER TABLE transactions ADD COLUMN IF NOT EXISTS counterparty VARCHAR(100);
+
+              -- Second aggregate account for live mode.
+              INSERT INTO accounts (id, customer_name, account_type, balance, credit_limit)
+              VALUES
+                ('22222222-2222-2222-2222-222222222222', 'My accounts', 'AGGREGATE', 0.00, 0.00)
+              ON CONFLICT (id) DO NOTHING;
+              SQL
+          env:
+            - name: PGHOST
+              value: {{ .Values.postgres.service.name | quote }}
+            - name: PGPORT
+              value: {{ .Values.postgres.service.port | quote }}
+            - name: PGDATABASE
+              value: {{ .Values.postgres.database.name | quote }}
+            - name: PGUSER
+              value: {{ .Values.postgres.database.user | quote }}
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: password
