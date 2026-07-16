@@ -202,7 +202,9 @@ export async function fetchBanks(country: string): Promise<BankListItem[]> {
   const response = await fetch(`${API_BASE}/api/banking/banks?country=${country}`, {
     headers: authHeaders(),
   });
-  if (!response.ok) {throw new Error("Failed to load banks");}
+  if (!response.ok) {
+    throw new Error("Failed to load banks");
+  }
 
   return response.json() as Promise<BankListItem[]>;
 }
