@@ -298,27 +298,8 @@ test("sends a chat message and shows the reply", async () => {
 // Additional tests — error states, edge cases, chat persistence, trend chart
 // ---------------------------------------------------------------------------
 
-test("shows error message for wrong login credentials", async () => {
-  sessionStorage.clear();
-  vi.spyOn(api, "fetchDashboard").mockResolvedValue(
-    dashboard({ connectionStatus: null }),
-  );
-  render(<App />);
-
-  fireEvent.change(screen.getByPlaceholderText("Username"), {
-    target: { value: "wrong" },
-  });
-  fireEvent.change(screen.getByPlaceholderText("Password"), {
-    target: { value: "wrong" },
-  });
-  fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
-
-  // Should stay on login page with error
-  expect(
-    await screen.findByText(/Incorrect username or password/i),
-  ).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: "Sign in" })).toBeInTheDocument();
-});
+// The old admin/admin login test was removed; the sign-in gate is now the GitHub
+// button flow covered by earlier tests.
 
 test("shows error state when dashboard fetch fails", async () => {
   vi.spyOn(api, "fetchDashboard").mockRejectedValue(new Error("Network error"));
