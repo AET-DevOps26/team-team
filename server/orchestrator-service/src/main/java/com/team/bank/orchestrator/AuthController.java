@@ -143,13 +143,7 @@ public class AuthController {
 
     String sessionToken = UUID.randomUUID().toString();
     sessions.put(sessionToken, user);
-    log.info(
-        "Signed in user login={} githubId={} firstName={} lastName={} email={}",
-        user.login(),
-        user.githubId(),
-        user.firstName(),
-        user.lastName(),
-        user.email());
+    log.info("Signed in user login={} githubId={}", user.login(), user.githubId());
     return new AuthSession(sessionToken, user);
   }
 
