@@ -187,6 +187,20 @@
           {% endfor %}
 
     # ---------------------------------------------------------------------
+    # Build the client bundle on the VM so client/Dockerfile can COPY dist/.
+    # We use a throwaway Node container instead of installing Node on the host
+    # so nothing about the base image needs to change (Docker is already there).
+    # ---------------------------------------------------------------------
+    - name: Build client bundle (npm ci + npm run build)
+      ansible.builtin.command:
+        cmd: >-
+          docker run --rm
+          -v {{ app_dir }}/client:/app -w /app
+          node:22-alpine sh -c "npm ci && npm run build"
+      register: client_build
+      changed_when: true
+
+    # ---------------------------------------------------------------------
     # Bring the stack up
     # ---------------------------------------------------------------------
     - name: Build and start docker compose stack
