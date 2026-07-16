@@ -9,8 +9,8 @@
 -- Usage:
 --   Get-Content scripts\seed-demo-data.sql | docker compose --env-file .env exec -T database psql -U admin-bankuser -d bankdb
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 BEGIN;
-
 -- Fixed IDs for the seeded connections. Keeping them stable makes the script idempotent
 -- (ON CONFLICT (id) DO UPDATE) and lets us wipe just our seeded transactions.
 DO $$
