@@ -1,3 +1,4 @@
+/* eslint-disable no-magic-numbers */
 import type { FormEvent, MouseEvent as ReactMouseEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -47,10 +48,14 @@ function formatMoney(value: number): string {
 
 // A single bank's balance, honoring its own currency (banks may report in
 // non-EUR currencies, which the aggregate total does not attempt to convert).
-function formatBankBalance(value: number | null, currency: string | null): string {
+function formatBankBalance(
+  value: number | null,
+  currency: string | null,
+): string {
   if (value === null) {
     return "—";
   }
+
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: currency || "EUR",
@@ -61,6 +66,7 @@ function formatBankBalance(value: number | null, currency: string | null): strin
 // Signed money for a transaction row: credits show +, debits show −.
 function formatSignedMoney(amount: number, direction: string): string {
   const credit = direction.toUpperCase() === "CREDIT";
+
   return `${credit ? "+" : "−"}${formatMoney(Math.abs(amount))}`;
 }
 
@@ -70,14 +76,20 @@ function formatTxDate(iso: string): string {
   if (Number.isNaN(d.getTime())) {
     return "";
   }
+
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
 function resolveAccountId(): string {
-  const queryAccountId = new URLSearchParams(window.location.search).get("accountId");
-  const configured = queryAccountId || import.meta.env.VITE_ACCOUNT_ID || FRIENDLY_ACCOUNT_ALIAS;
+  const queryAccountId = new URLSearchParams(window.location.search).get(
+    "accountId",
+  );
+  const configured =
+    queryAccountId || import.meta.env.VITE_ACCOUNT_ID || FRIENDLY_ACCOUNT_ALIAS;
 
-  return configured === FRIENDLY_ACCOUNT_ALIAS ? DEFAULT_ACCOUNT_UUID : configured;
+  return configured === FRIENDLY_ACCOUNT_ALIAS
+    ? DEFAULT_ACCOUNT_UUID
+    : configured;
 }
 
 /* Demo vs. live data source. Both run the same backend flow against different
@@ -167,7 +179,9 @@ function BankConnect({ accountId }: { accountId: string }) {
       const { authUrl } = await connectBank(bank.name, bank.country, accountId);
       window.location.href = authUrl;
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to initiate connection");
+      setError(
+        e instanceof Error ? e.message : "Failed to initiate connection",
+      );
       setConnecting(false);
     }
   };
@@ -175,13 +189,18 @@ function BankConnect({ accountId }: { accountId: string }) {
   // Narrow a long country bank list by name so the picker stays usable.
   const visibleBanks = useMemo(() => {
     const q = filter.trim().toLowerCase();
+
     return q ? banks.filter((b) => b.name.toLowerCase().includes(q)) : banks;
   }, [banks, filter]);
 
   return (
     <>
       <div className="picker">
-        <select aria-label="Country" value={country} onChange={(e) => setCountry(e.target.value)}>
+        <select
+          aria-label="Country"
+          value={country}
+          onChange={(e) => setCountry(e.target.value)}
+        >
           {COUNTRIES.map((c) => (
             <option key={c.code} value={c.code}>
               {c.name}
@@ -220,7 +239,11 @@ function BankConnect({ accountId }: { accountId: string }) {
               {visibleBanks.map((bank) => (
                 <li key={`${bank.country}:${bank.name}`}>
                   <span className="bn">{bank.name}</span>
-                  <button className="link" disabled={connecting} onClick={() => onConnect(bank)}>
+                  <button
+                    className="link"
+                    disabled={connecting}
+                    onClick={() => onConnect(bank)}
+                  >
                     {connecting ? "Connecting…" : "Connect"}
                   </button>
                 </li>
@@ -276,10 +299,17 @@ function TrendChart({ trend }: { trend: BalancePoint[] }) {
           Combined balance <span className="n">{chart.months.length}M</span>
         </p>
         <div className="plot">
-          <svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true">
+          <svg
+            viewBox={`0 0 100 ${VIEW_H}`}
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
             <polyline className="line" points={chart.points} />
           </svg>
-          <i className="enddot" style={{ left: chart.dotLeft, top: chart.dotTop }} />
+          <i
+            className="enddot"
+            style={{ left: chart.dotLeft, top: chart.dotTop }}
+          />
         </div>
         <div className="axis">
           {chart.months.map((m) => (
@@ -332,6 +362,7 @@ function loadSessions(accountId: string): ChatSession[] {
       return [];
     }
     const parsed = JSON.parse(raw) as ChatSession[];
+
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
@@ -340,7 +371,10 @@ function loadSessions(accountId: string): ChatSession[] {
 
 function saveSessions(accountId: string, sessions: ChatSession[]): void {
   try {
-    localStorage.setItem(sessionsStorageKey(accountId), JSON.stringify(sessions));
+    localStorage.setItem(
+      sessionsStorageKey(accountId),
+      JSON.stringify(sessions),
+    );
   } catch {
     // storage quota / disabled — chat still works, just no persistence.
   }
@@ -348,7 +382,7 @@ function saveSessions(accountId: string, sessions: ChatSession[]): void {
 
 function newSession(): ChatSession {
   return {
-    id: (crypto.randomUUID?.() ?? String(Date.now())),
+    id: crypto.randomUUID?.() ?? String(Date.now()),
     title: "New chat",
     createdAt: Date.now(),
     messages: [],
@@ -357,6 +391,7 @@ function newSession(): ChatSession {
 
 function deriveTitle(text: string): string {
   const clean = text.trim().replace(/\s+/g, " ");
+
   return clean.length > 40 ? `${clean.slice(0, 40)}…` : clean || "New chat";
 }
 
@@ -374,6 +409,7 @@ function buildContext(data: DashboardPayload): ChatContext {
 
 type ChatView = "overview" | "chat";
 
+// eslint-disable-next-line max-lines-per-function
 function ChatPanel({
   data,
   accountId,
@@ -412,7 +448,10 @@ function ChatPanel({
     }
   }, [view, active?.messages.length]);
 
-  const patchSession = (id: string, update: (s: ChatSession) => ChatSession) => {
+  const patchSession = (
+    id: string,
+    update: (s: ChatSession) => ChatSession,
+  ) => {
     setSessions((prev) => prev.map((s) => (s.id === id ? update(s) : s)));
   };
 
@@ -481,7 +520,12 @@ function ChatPanel({
         ...s,
         messages: s.messages.map((m) =>
           m.id === pendingId
-            ? { ...m, content: reply.reply, reasoning: reply.reasoning, pending: false }
+            ? {
+                ...m,
+                content: reply.reply,
+                reasoning: reply.reasoning,
+                pending: false,
+              }
             : m,
         ),
       }));
@@ -490,7 +534,11 @@ function ChatPanel({
         ...s,
         messages: s.messages.map((m) =>
           m.id === pendingId
-            ? { ...m, content: "Assistant is unavailable right now.", pending: false }
+            ? {
+                ...m,
+                content: "Assistant is unavailable right now.",
+                pending: false,
+              }
             : m,
         ),
       }));
@@ -523,7 +571,9 @@ function ChatPanel({
                 Chats <span className="n">{sessions.length}</span>
               </>
             ) : (
-              <span className="chat-active-title">{active?.title ?? "New chat"}</span>
+              <span className="chat-active-title">
+                {active?.title ?? "New chat"}
+              </span>
             )}
           </p>
         </div>
@@ -623,8 +673,8 @@ function ChatPanel({
             {active && active.messages.length === 0 && (
               <div className="chat-empty">
                 <p>
-                  I can see your linked banks, balances and expenses. Ask me anything about
-                  them — for example:
+                  I can see your linked banks, balances and expenses. Ask me
+                  anything about them — for example:
                 </p>
                 <ul className="chat-suggestions">
                   {SUGGESTED_PROMPTS.map((prompt) => (
@@ -644,7 +694,11 @@ function ChatPanel({
             {active?.messages.map((m) => (
               <div key={m.id} className={`bubble ${m.role}`}>
                 <p className="content">
-                  {m.pending ? <span className="typing">thinking…</span> : m.content}
+                  {m.pending ? (
+                    <span className="typing">thinking…</span>
+                  ) : (
+                    m.content
+                  )}
                 </p>
                 {m.role === "assistant" && m.reasoning && !m.pending && (
                   <details
@@ -657,7 +711,10 @@ function ChatPanel({
                       // viewport so it doesn't slide off the bottom.
                       if (el.open) {
                         requestAnimationFrame(() => {
-                          el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                          el.scrollIntoView({
+                            block: "nearest",
+                            behavior: "smooth",
+                          });
                         });
                       }
                     }}
@@ -701,16 +758,34 @@ const PUSH_LAYOUT_MIN_VW = 900; // below this, the dock overlays instead of push
 function clampDockWidth(w: number): number {
   const vw = typeof window !== "undefined" ? window.innerWidth : 1600;
   const max = Math.max(DOCK_MIN_WIDTH, Math.floor(vw * DOCK_MAX_RATIO));
+
   return Math.min(max, Math.max(DOCK_MIN_WIDTH, Math.round(w)));
 }
 
-function ChatDock({ data, accountId }: { data: DashboardPayload; accountId: string }) {
+function ChatDock({
+  data,
+  accountId,
+}: {
+  data: DashboardPayload;
+  accountId: string;
+}) {
   const [open, setOpen] = useState(false);
   const [width, setWidth] = useState<number>(() => {
     const raw =
-      typeof window !== "undefined" ? localStorage.getItem(DOCK_WIDTH_STORAGE_KEY) : null;
+      typeof window !== "undefined"
+        ? (() => {
+            try {
+              return localStorage.getItem(DOCK_WIDTH_STORAGE_KEY);
+            } catch {
+              return null;
+            }
+          })()
+        : null;
     const parsed = raw ? Number(raw) : DOCK_DEFAULT_WIDTH;
-    return clampDockWidth(Number.isFinite(parsed) ? parsed : DOCK_DEFAULT_WIDTH);
+
+    return clampDockWidth(
+      Number.isFinite(parsed) ? parsed : DOCK_DEFAULT_WIDTH,
+    );
   });
   const [dragging, setDragging] = useState(false);
 
@@ -721,6 +796,7 @@ function ChatDock({ data, accountId }: { data: DashboardPayload; accountId: stri
     root.style.setProperty("--dock-width", `${width}px`);
     const canPush = window.innerWidth >= PUSH_LAYOUT_MIN_VW;
     document.body.classList.toggle("chat-pushed", open && canPush);
+
     return () => {
       document.body.classList.remove("chat-pushed");
     };
@@ -737,6 +813,7 @@ function ChatDock({ data, accountId }: { data: DashboardPayload; accountId: stri
       );
     };
     window.addEventListener("resize", onResize);
+
     return () => window.removeEventListener("resize", onResize);
   }, [open]);
 
@@ -750,6 +827,7 @@ function ChatDock({ data, accountId }: { data: DashboardPayload; accountId: stri
       }
     };
     window.addEventListener("keydown", onKey);
+
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
@@ -771,6 +849,7 @@ function ChatDock({ data, accountId }: { data: DashboardPayload; accountId: stri
         } catch {
           /* storage disabled — ignore */
         }
+
         return w;
       });
     };
@@ -818,7 +897,11 @@ function ChatDock({ data, accountId }: { data: DashboardPayload; accountId: stri
           onMouseDown={onResizeStart}
         />
         {open && (
-          <ChatPanel data={data} accountId={accountId} onClose={() => setOpen(false)} />
+          <ChatPanel
+            data={data}
+            accountId={accountId}
+            onClose={() => setOpen(false)}
+          />
         )}
       </aside>
     </>
@@ -849,12 +932,16 @@ function Dashboard({
   const bankLabel = bankCount === 1 ? "bank" : "banks";
   const total = data.account.totalBalance;
   const flow = data.monthlyFlow;
-  const maxBankSpend = data.spendByBank.reduce((m, b) => Math.max(m, b.spending), 0);
+  const maxBankSpend = data.spendByBank.reduce(
+    (m, b) => Math.max(m, b.spending),
+    0,
+  );
 
   const bankShare = (balance: number | null): string | null => {
     if (balance === null || total <= 0) {
       return null;
     }
+
     return `${Math.round((balance / total) * 100)}%`;
   };
 
@@ -892,6 +979,20 @@ function Dashboard({
         </p>
       </section>
 
+      <hr className="divide" />
+
+      <div className="pair">
+        <div className="cell">
+          <p className="k">Credit limit</p>
+          <p className="v">{formatMoney(data.account.totalCreditLimit)}</p>
+        </div>
+        <div className="cell">
+          <p className="k">Utilization</p>
+          <p className="v">
+            {(data.account.utilizationRate * 100).toFixed(1)}%
+          </p>
+        </div>
+      </div>
       {flow && (
         <>
           <hr className="divide" />
@@ -924,6 +1025,7 @@ function Dashboard({
         <ul className="roster">
           {data.connections.map((c, i) => {
             const share = bankShare(c.balance);
+
             return (
               <li key={`${c.bankName}-${i}`}>
                 <span className="dot" />
@@ -934,7 +1036,9 @@ function Dashboard({
                     {share && ` · ${share}`}
                   </span>
                 </span>
-                <span className="st">{formatBankBalance(c.balance, c.currency)}</span>
+                <span className="st">
+                  {formatBankBalance(c.balance, c.currency)}
+                </span>
               </li>
             );
           })}
@@ -983,7 +1087,9 @@ function Dashboard({
                 <div className="erow" key={b.bankName}>
                   <span className="cat">{b.bankName}</span>
                   <span className="track">
-                    <i style={{ width: `${(b.spending / maxBankSpend) * 100}%` }} />
+                    <i
+                      style={{ width: `${(b.spending / maxBankSpend) * 100}%` }}
+                    />
                   </span>
                   <span className="pct">{formatMoney(b.spending)}</span>
                 </div>
@@ -998,13 +1104,16 @@ function Dashboard({
           <hr className="divide" />
           <section className="pad">
             <p className="seclabel">
-              Recent transactions <span className="n">{data.transactions.length}</span>
+              Recent transactions{" "}
+              <span className="n">{data.transactions.length}</span>
             </p>
             <ul className="feed">
               {data.transactions.map((t) => (
                 <li key={t.id}>
                   <span className="tdesc">{t.counterparty || t.category}</span>
-                  <span className={`tamt ${t.direction.toUpperCase() === "CREDIT" ? "pos" : "neg"}`}>
+                  <span
+                    className={`tamt ${t.direction.toUpperCase() === "CREDIT" ? "pos" : "neg"}`}
+                  >
                     {formatSignedMoney(t.amount, t.direction)}
                   </span>
                   <span className="tmeta">
@@ -1077,12 +1186,18 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
 }
 
 function App() {
-  const [authed, setAuthed] = useState(() => sessionStorage.getItem("authed") === "1");
+  const [authed, setAuthed] = useState(() => {
+    try {
+      return sessionStorage.getItem("authed") === "1";
+    } catch {
+      return false;
+    }
+  });
   const [data, setData] = useState<DashboardPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<DataMode>(loadMode);
-  const accountId = useMemo(resolveAccountId, []);
+  const accountId = useMemo(() => resolveAccountId(), []);
   // The account everything targets: the demo aggregate (mock ASPSP banks) or
   // the real one (production Enable Banking connections).
   const activeAccountId = mode === "demo" ? DEMO_ACCOUNT_UUID : accountId;
@@ -1094,7 +1209,9 @@ function App() {
 
   useEffect(() => {
     if (!activeAccountId) {
-      setError("Missing accountId. Set VITE_ACCOUNT_ID or use ?accountId=<uuid> in URL.");
+      setError(
+        "Missing accountId. Set VITE_ACCOUNT_ID or use ?accountId=<uuid> in URL.",
+      );
       setLoading(false);
 
       return;
@@ -1195,18 +1312,24 @@ function App() {
         <section className="empty">
           <p className="mark">Home banking</p>
           <h2>No banks connected</h2>
+          <p>
+            Connect your first bank to start aggregating balances, limits and
+            spending. Add as many as you like — nothing is shown until there’s
+            real data.
+          </p>
+          <BankConnect accountId={activeAccountId} />
           {mode === "demo" ? (
             <p>
-              Demo mode uses its own account. Connect a Mock ASPSP bank to populate it with
-              sandbox data — your real banks stay off screen.
+              Demo mode uses its own account. Connect a Mock ASPSP bank to
+              populate it with sandbox data — your real banks stay off screen.
             </p>
           ) : (
             <p>
-              Connect your first bank to start aggregating balances, limits and spending. Add as
-              many as you like — nothing is shown until there’s real data.
+              Connect your first bank to start aggregating balances, limits and
+              spending. Add as many as you like — nothing is shown until there’s
+              real data.
             </p>
           )}
-          <BankConnect accountId={activeAccountId} />
         </section>
       </main>
     );
