@@ -95,7 +95,7 @@ public class UserRepository {
   private void provisionAccountIfMissing(long githubId, String customerName) {
     Optional<UUID> existing =
         jdbcClient
-            .sql("SELECT account_id FROM users WHERE github_id = :githubId")
+            .sql("SELECT account_id FROM users WHERE github_id = :githubId FOR UPDATE")
             .param("githubId", githubId)
             .query((rs, rn) -> rs.getObject("account_id", UUID.class))
             .optional();
