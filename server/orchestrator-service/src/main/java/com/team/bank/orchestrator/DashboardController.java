@@ -1,6 +1,12 @@
 package com.team.bank.orchestrator;
 
+import java.math.BigDecimal;
+import java.time.YearMonth;
+import java.time.ZoneId;
+import java.time.format.TextStyle;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -24,6 +30,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class DashboardController {
 
   private static final Logger log = LoggerFactory.getLogger(DashboardController.class);
+  private static final int RECENT_TX_LIMIT = 10;
 
   private final WebClient webClient;
 
@@ -78,13 +85,31 @@ public class DashboardController {
             .bodyToMono(BalancePoint[].class)
             .block();
 
-    ExpenseSlice[] expenses =
-        webClient
-            .get()
-            .uri(transactionServiceUrl + "/api/transactions/{accountId}/expenses", accountId)
-            .retrieve()
-            .bodyToMono(ExpenseSlice[].class)
-            .block();
+    ExpenseSlice[] expenses = null;
+    TransactionItem[] allTx = null;
+    try {
+      expenses =
+          webClient
+              .get()
+              .uri(transactionServiceUrl + "/api/transactions/{accountId}/expenses", accountId)
+              .retrieve()
+              .bodyToMono(ExpenseSlice[].class)
+              .block();
+      allTx =
+          webClient
+              .get()
+              .uri(transactionServiceUrl + "/api/transactions/{accountId}", accountId)
+              .retrieve()
+              .bodyToMono(TransactionItem[].class)
+              .block();
+    } catch (RuntimeException e) {
+      // transaction-service unavailable, continue with empty transactions
+      log.warn("transaction-service unavailable, continuing without transactions", e);
+    }
+    List<TransactionItem> transactions =
+        allTx == null ? List.of() : List.of(allTx).stream().limit(RECENT_TX_LIMIT).toList();
+    MonthlyFlow monthlyFlow = monthlyFlow(allTx);
+    List<BankSpend> spendByBank = spendByBank(allTx);
 
     SummaryRequest summaryRequest =
         new SummaryRequest(
@@ -108,6 +133,7 @@ public class DashboardController {
     }
 
     ConnectionStatus connectionStatus = null;
+    BankConnection[] connections = null;
     try {
       connectionStatus =
           webClient
@@ -115,6 +141,13 @@ public class DashboardController {
               .uri(bankingServiceUrl + "/api/banking/status/{accountId}", accountId)
               .retrieve()
               .bodyToMono(ConnectionStatus.class)
+              .block();
+      connections =
+          webClient
+              .get()
+              .uri(bankingServiceUrl + "/api/banking/connections/{accountId}", accountId)
+              .retrieve()
+              .bodyToMono(BankConnection[].class)
               .block();
     } catch (RuntimeException e) {
       // banking-service unavailable, continue without it
@@ -126,7 +159,53 @@ public class DashboardController {
         trend == null ? List.of() : List.of(trend),
         expenses == null ? List.of() : List.of(expenses),
         summary == null ? "No summary available." : summary.summary(),
-        connectionStatus);
+        connectionStatus,
+        connections == null ? List.of() : List.of(connections),
+        transactions,
+        monthlyFlow,
+        spendByBank);
+  }
+
+  /** This month's income (credits), spending (debits) and net across all linked banks. */
+  private static MonthlyFlow monthlyFlow(TransactionItem[] txs) {
+    YearMonth now = YearMonth.now(ZoneId.systemDefault());
+    BigDecimal income = BigDecimal.ZERO;
+    BigDecimal spending = BigDecimal.ZERO;
+    if (txs != null) {
+      for (TransactionItem tx : txs) {
+        if (tx.createdAt() == null
+            || tx.amount() == null
+            || !YearMonth.from(tx.createdAt()).equals(now)) {
+          continue;
+        }
+        if ("CREDIT".equalsIgnoreCase(tx.direction())) {
+          income = income.add(tx.amount());
+        } else {
+          spending = spending.add(tx.amount());
+        }
+      }
+    }
+    String month = now.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
+    return new MonthlyFlow(month, income, spending, income.subtract(spending));
+  }
+
+  /** Total debits attributed to each linked bank, most-spent first. */
+  private static List<BankSpend> spendByBank(TransactionItem[] txs) {
+    if (txs == null) {
+      return List.of();
+    }
+    Map<String, BigDecimal> byBank = new LinkedHashMap<>();
+    for (TransactionItem tx : txs) {
+      if (tx.amount() == null || !"DEBIT".equalsIgnoreCase(tx.direction())) {
+        continue;
+      }
+      String bank = tx.bankName() != null ? tx.bankName() : "Unknown";
+      byBank.merge(bank, tx.amount(), BigDecimal::add);
+    }
+    return byBank.entrySet().stream()
+        .map(e -> new BankSpend(e.getKey(), e.getValue()))
+        .sorted((a, b) -> b.spending().compareTo(a.spending()))
+        .toList();
   }
 
   @PostMapping(value = "/chat", produces = MediaType.APPLICATION_JSON_VALUE)

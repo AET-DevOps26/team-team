@@ -6,6 +6,8 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -22,6 +24,8 @@ import org.springframework.web.client.RestTemplate;
  */
 @Component
 public class EnableBankingClient {
+
+  private static final Logger log = LoggerFactory.getLogger(EnableBankingClient.class);
 
   private final RestTemplate restTemplate;
   private final EnableBankingJwtSigner jwtSigner;
@@ -99,9 +103,23 @@ public class EnableBankingClient {
     String url = config.getBaseUrl() + "/sessions";
     Map<String, Object> body = Map.of("code", code);
     HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, authHeaders());
-    ResponseEntity<Map<String, Object>> response =
-        restTemplate.exchange(url, HttpMethod.POST, entity, new ParameterizedTypeReference<>() {});
-    return response.getBody();
+    try {
+      ResponseEntity<Map<String, Object>> response =
+          restTemplate.exchange(
+              url, HttpMethod.POST, entity, new ParameterizedTypeReference<>() {});
+      Map<String, Object> respBody = response.getBody();
+      log.info(
+          "Enable Banking createSession — HTTP {} — body present: {}",
+          response.getStatusCode().value(),
+          respBody != null);
+      if (respBody == null || respBody.isEmpty()) {
+        log.warn("Enable Banking returned empty session body — code may be expired or invalid");
+      }
+      return respBody;
+    } catch (Exception e) {
+      log.error("Enable Banking createSession failed: {}", e.getMessage());
+      return null;
+    }
   }
 
   @SuppressWarnings("unchecked")

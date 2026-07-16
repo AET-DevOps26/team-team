@@ -26,6 +26,15 @@ public class Transaction {
   @Column(nullable = false)
   private String direction;
 
+  @Column(name = "bank_name", length = 100)
+  private String bankName;
+
+  @Column(name = "connection_id")
+  private UUID connectionId;
+
+  @Column(length = 100)
+  private String counterparty;
+
   @Column(name = "created_at", nullable = false)
   private LocalDateTime createdAt;
 
@@ -67,6 +76,30 @@ public class Transaction {
 
   public void setDirection(String direction) {
     this.direction = direction;
+  }
+
+  public String getBankName() {
+    return bankName;
+  }
+
+  public void setBankName(String bankName) {
+    this.bankName = bankName;
+  }
+
+  public UUID getConnectionId() {
+    return connectionId;
+  }
+
+  public void setConnectionId(UUID connectionId) {
+    this.connectionId = connectionId;
+  }
+
+  public String getCounterparty() {
+    return counterparty;
+  }
+
+  public void setCounterparty(String counterparty) {
+    this.counterparty = counterparty;
   }
 
   public LocalDateTime getCreatedAt() {

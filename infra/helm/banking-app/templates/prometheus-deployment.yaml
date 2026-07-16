@@ -24,7 +24,7 @@ spec:
           args:
             - "--config.file=/etc/prometheus/prometheus.yml"
             - "--storage.tsdb.path=/prometheus"
-            - "--web.external-url=/prometheus"
+            - "--web.external-url=https://{{ .Values.tumid }}-devops-ss26.stud.k8s.aet.cit.tum.de/prometheus/"
             - "--web.route-prefix=/prometheus"
           ports:
             - containerPort: {{ .Values.monitoring.prometheus.service.targetPort }}

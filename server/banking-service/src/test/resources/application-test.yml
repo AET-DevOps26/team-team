@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+
+enablebanking:
+  app-id: test-app-id
+  private-key-path: classpath:test-key.pem
+  redirect-url: http://localhost:5173/callback
+  base-url: https://api.enablebanking.com
