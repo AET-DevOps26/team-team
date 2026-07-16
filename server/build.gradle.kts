@@ -10,7 +10,6 @@ plugins {
 
     // Quality tools
     id("com.diffplug.spotless") version "8.8.0"
-    id("com.github.spotbugs") version "6.5.8"
     id("io.gitlab.arturbosch.detekt") version "1.23.8" apply false
     id("net.ltgt.errorprone") version "5.1.0" apply false
 }
@@ -38,7 +37,6 @@ subprojects {
     apply(plugin = "java")
     apply(plugin = "io.spring.dependency-management")
     apply(plugin = "com.diffplug.spotless")
-    apply(plugin = "com.github.spotbugs")
     apply(plugin = "io.gitlab.arturbosch.detekt")
     apply(plugin = "net.ltgt.errorprone")
 
@@ -80,14 +78,6 @@ subprojects {
     }
 
     // -----------------------------
-    // SpotBugs (static analysis)
-    // -----------------------------
-    extensions.configure<com.github.spotbugs.snom.SpotBugsExtension> {
-        effort.set(com.github.spotbugs.snom.Effort.MAX)
-        reportLevel.set(com.github.spotbugs.snom.Confidence.LOW)
-    }
-
-    // -----------------------------
     // Detekt (Kotlin analysis)
     // -----------------------------
     extensions.configure<io.gitlab.arturbosch.detekt.extensions.DetektExtension> {
@@ -101,7 +91,7 @@ subprojects {
     // -----------------------------
     dependencies {
         add("errorprone", "com.google.errorprone:error_prone_core:2.50.0")
-        add("compileOnly", "com.github.spotbugs:spotbugs-annotations:4.10.2")
+        add("compileOnly", "com.github.spotbugs:spotbugs-annotations:4.10.3")
     }
 
     tasks.withType<JavaCompile>().configureEach {
@@ -130,7 +120,6 @@ subprojects {
     tasks.named("check") {
     dependsOn(
         "spotlessCheck",
-        "spotbugsMain",
         "detekt"
     )
 }

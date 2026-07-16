@@ -5,9 +5,9 @@
 #   - postgres.database.password: a secure database password
 #
 # Example:
-#   helm install ... --set tumid=ge42cer --set postgres.database.password=MyS3cret
+#   helm install ... --set tumid=team --set postgres.database.password=MyS3cret
 
-tumid: ge42cer
+tumid: team
 
 # Whether to create the release namespace (set to false if pre-created)
 namespace:

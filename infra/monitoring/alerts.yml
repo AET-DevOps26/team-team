@@ -25,7 +25,7 @@ groups:
         expr: |
           sum by (job) (rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
           /
-          sum by (job) (rate(http_server_requests_seconds_count[5m]))
+          clamp_min(sum by (job) (rate(http_server_requests_seconds_count[5m])), 0.001)
           > 0.05
         for: 5m
         labels:
@@ -38,7 +38,7 @@ groups:
         expr: |
           sum by (job) (rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
           /
-          sum by (job) (rate(http_server_requests_seconds_count[5m]))
+          clamp_min(sum by (job) (rate(http_server_requests_seconds_count[5m])), 0.001)
           > 0.10
         for: 2m
         labels:
@@ -89,7 +89,7 @@ groups:
         expr: |
           sum by (job) (rate(http_requests_total{job="genai-service",status=~"5.."}[5m]))
           /
-          sum by (job) (rate(http_requests_total{job="genai-service"}[5m]))
+          clamp_min(sum by (job) (rate(http_requests_total{job="genai-service"}[5m])), 0.001)
           > 0.05
         for: 5m
         labels:

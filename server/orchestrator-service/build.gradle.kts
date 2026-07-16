@@ -12,9 +12,10 @@ dependencies {
     implementation(libs.org.springframework.boot.spring.boot.starter.actuator)
     implementation(libs.org.springdoc.springdoc.openapi.starter.webmvc.ui)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation(libs.com.squareup.okhttp3.mockwebserver)
 
     implementation(libs.io.micrometer.micrometer.registry.prometheus)
-    testImplementation(libs.org.springframework.boot.spring.boot.starter.test)
+    testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
 }
 
 description = "orchestrator-service"
