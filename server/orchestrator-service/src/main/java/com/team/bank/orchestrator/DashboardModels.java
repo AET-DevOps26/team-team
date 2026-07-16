@@ -5,7 +5,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-record AccountSummary(UUID accountId, String customerName, BigDecimal totalBalance) {}
+record AccountSummary(
+    UUID accountId,
+    String customerName,
+    BigDecimal totalBalance,
+    BigDecimal totalCreditLimit,
+    BigDecimal utilizationRate) {}
 
 record BalancePoint(String month, BigDecimal balance) {}
 
