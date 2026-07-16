@@ -26,11 +26,10 @@ public class Transaction {
   @Column(nullable = false)
   private String direction;
 
-  @Column(name = "bank_name", length = 100)
+  @Column(name = "bank_name")
   private String bankName;
 
-  @Column(length = 100)
-  private String counterparty;
+  @Column private String counterparty;
 
   @Column(name = "created_at", nullable = false)
   private LocalDateTime createdAt;

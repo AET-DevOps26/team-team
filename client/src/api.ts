@@ -171,4 +171,5 @@ export type ChatContext = Pick<
   | "connections"
   | "transactions"
   | "monthlyFlow"
+  | "spendByBank"
 >;

@@ -190,6 +190,7 @@ describe("sendChat", () => {
       connections: [{ status: "ACTIVE", bankName: "Nordea", country: "FI", accountName: null, balance: null, currency: null }],
       transactions: [],
       monthlyFlow: null,
+      spendByBank: [],
     };
 
     await sendChat([{ role: "user", content: "balance?" }], context);

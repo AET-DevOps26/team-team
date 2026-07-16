@@ -232,11 +232,7 @@ public class BankingController {
     account.setBalance(BigDecimal.ZERO);
     account.setCreditLimit(BigDecimal.ZERO);
     account.setUpdatedAt(now);
-    try {
-      accountRepository.save(account);
-    } catch (org.springframework.dao.DataIntegrityViolationException e) {
-      // Another concurrent request created the anchor row first.
-    }
+    accountRepository.save(account);
   }
 
   /** Enable Banking account display name (name/product), falling back to the bank name. */

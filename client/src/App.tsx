@@ -403,6 +403,7 @@ function buildContext(data: DashboardPayload): ChatContext {
     connections: data.connections,
     transactions: data.transactions,
     monthlyFlow: data.monthlyFlow,
+    spendByBank: data.spendByBank,
   };
 }
 
