@@ -208,9 +208,11 @@ def test_chat_fallback_grounded_in_multibank_context():
     )
     assert response.status_code == 200
     reply = response.json()["reply"]
-    assert "€1,700" in reply
-    assert "N26 €800" in reply
-    assert "Revolut €900" in reply
+    # Amounts are wrapped in **...** by the money-normalizer post-processor so
+    # the client renders them in the accent color.
+    assert "**€1,700**" in reply
+    assert "N26 **€800**" in reply
+    assert "Revolut **€900**" in reply
 
 
 def test_summarize_multibank():
