@@ -197,7 +197,7 @@ If the upstream is unreachable the service transparently falls back to a canned 
 
 ## 3a. GitHub OAuth Login
 
-The orchestrator exposes a minimal GitHub OAuth flow (see [server/orchestrator-service/src/main/java/com/team/bank/orchestrator/AuthController.java](server/orchestrator-service/src/main/java/com/team/bank/orchestrator/AuthController.java)). No Spring Security — three endpoints and an in-memory session map.
+The orchestrator exposes a minimal GitHub OAuth flow (see [server/orchestrator-service/src/main/java/com/team/bank/orchestrator/AuthController.java](server/orchestrator-service/src/main/java/com/team/bank/orchestrator/AuthController.java)). No Spring Security — four endpoints and an in-memory session map.
 
 **Endpoints (under `/api/auth`):**
 
