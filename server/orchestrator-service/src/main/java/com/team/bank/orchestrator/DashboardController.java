@@ -12,6 +12,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -33,6 +35,7 @@ public class DashboardController {
   private static final int RECENT_TX_LIMIT = 10;
 
   private final WebClient webClient;
+  private final AuthController authController;
 
   @Value("${services.account.url}")
   private String accountServiceUrl;
@@ -46,8 +49,9 @@ public class DashboardController {
   @Value("${services.banking.url}")
   private String bankingServiceUrl;
 
-  public DashboardController(WebClient webClient) {
+  public DashboardController(WebClient webClient, AuthController authController) {
     this.webClient = webClient.mutate().build();
+    this.authController = authController;
   }
 
   @GetMapping(
@@ -64,7 +68,9 @@ public class DashboardController {
   }
 
   @GetMapping(value = "/dashboard/{accountId}", produces = MediaType.APPLICATION_JSON_VALUE)
-  public DashboardResponse dashboard(@PathVariable UUID accountId) {
+  public DashboardResponse dashboard(
+      @PathVariable UUID accountId,
+      @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader) {
     AccountSummary account =
         webClient
             .get()
@@ -75,6 +81,25 @@ public class DashboardController {
 
     if (account == null) {
       throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Failed to retrieve account");
+    }
+
+    // If the signed-in user is viewing their OWN aggregate account, replace whatever the accounts
+    // table has in customer_name (banking-service overwrites it from bank data on each sync — see
+    // BankingSyncService#recomputeAggregate) with the user's actual profile name so the greeting
+    // in the AI summary and the UI addresses the real person, not the last-synced bank account
+    // holder. Demo account and cross-user views keep whatever customerName the DB returned.
+    AppUser signedInUser = authController.lookupSession(authHeader);
+    if (signedInUser != null && accountId.equals(signedInUser.accountId())) {
+      String preferredName = displayName(signedInUser);
+      if (!preferredName.isBlank() && !preferredName.equals(account.customerName())) {
+        account =
+            new AccountSummary(
+                account.accountId(),
+                preferredName,
+                account.totalBalance(),
+                account.totalCreditLimit(),
+                account.utilizationRate());
+      }
     }
 
     BalancePoint[] trend =
@@ -160,6 +185,24 @@ public class DashboardController {
         transactions,
         monthlyFlow,
         spendByBank);
+  }
+
+  /** "First Last" from the users table, falling back to the GitHub login when both are blank. */
+  private static String displayName(AppUser user) {
+    StringBuilder sb = new StringBuilder();
+    if (StringUtils.hasText(user.firstName())) {
+      sb.append(user.firstName().trim());
+    }
+    if (StringUtils.hasText(user.lastName())) {
+      if (sb.length() > 0) {
+        sb.append(' ');
+      }
+      sb.append(user.lastName().trim());
+    }
+    if (sb.length() == 0) {
+      sb.append(user.login());
+    }
+    return sb.toString();
   }
 
   /** This month's income (credits), spending (debits) and net across all linked banks. */
