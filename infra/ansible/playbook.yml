@@ -105,6 +105,17 @@
         group: "{{ ansible_user }}"
         mode: "0600"
 
+    # Reclaim ownership of anything left behind by previous container runs
+    # (e.g. client/dist artifacts written as root inside Docker) so that the
+    # unprivileged rsync in the next task can delete/overwrite them.
+    - name: Reclaim ownership of app_dir before sync
+      ansible.builtin.shell: |
+        set -e
+        chown -R {{ ansible_user }}:{{ ansible_user }} {{ app_dir }}
+      args:
+        executable: /bin/bash
+      changed_when: false
+
     - name: Sync project sources to VM
       ansible.posix.synchronize:
         src: "{{ local_project_root }}/"
