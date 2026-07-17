@@ -19,9 +19,9 @@ class AccountSummary(BaseModel):
     accountId: str
     customerName: str
     totalBalance: float
-    # Optional so callers that only care about balances (orchestrator's DashboardModels
-    # only sends the three above) don't get rejected with a 422. Defaults keep the
-    # local prompt/fallback code paths null-safe without extra guards.
+    # Optional so older callers that only send the three fields above don't get
+    # rejected with a 422. Defaults keep the local prompt/fallback code paths
+    # null-safe without extra guards.
     totalCreditLimit: float = 0.0
     utilizationRate: float = 0.0
 
