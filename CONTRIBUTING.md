@@ -98,7 +98,7 @@ cd server && ./gradlew :transaction-service:test
 cd server && ./gradlew :banking-service:test
 cd server && ./gradlew :orchestrator-service:test
 
-# Full CI-equivalent quality gate (compile + tests + Spotless + Error Prone + Detekt)
+# Full CI-equivalent quality gate (compile + tests + Spotless + Error Prone)
 cd server && ./gradlew test spotlessCheck --parallel
 
 # GenAI service
