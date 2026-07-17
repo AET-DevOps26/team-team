@@ -76,7 +76,7 @@ class DashboardControllerTest {
   private String accountJson() {
     return "{\"accountId\":\""
         + ACCOUNT_ID
-        + "\",\"customerName\":\"Test\",\"totalBalance\":1200,\"totalCreditLimit\":4000,\"utilizationRate\":0.3}";
+        + "\",\"customerName\":\"Test\",\"totalBalance\":1200}";
   }
 
   private String trendJson() {

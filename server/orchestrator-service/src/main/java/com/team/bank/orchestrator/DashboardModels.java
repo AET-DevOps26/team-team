@@ -9,7 +9,12 @@ record AccountSummary(UUID accountId, String customerName, BigDecimal totalBalan
 
 record BalancePoint(String month, BigDecimal balance) {}
 
-record ExpenseSlice(String category, BigDecimal percentage) {}
+record ExpenseSlice(
+    String category,
+    BigDecimal percentage,
+    BigDecimal amount,
+    Integer count,
+    List<String> topMerchants) {}
 
 record SummaryRequest(
     AccountSummary account,
