@@ -1,5 +1,5 @@
 /* eslint-disable no-magic-numbers */
-import type { FormEvent, MouseEvent as ReactMouseEvent } from "react";
+import type { FormEvent, MouseEvent as ReactMouseEvent, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type {
@@ -501,6 +501,94 @@ function buildContext(data: DashboardPayload): ChatContext {
 
 type ChatView = "overview" | "chat";
 
+// Renders the small subset of Markdown the LLM actually emits: **bold**, paragraph breaks
+// (blank line), and hyphen/asterisk/numeric bullet lists. Keeps the chat bubble readable
+// without pulling in a full markdown dependency.
+function AssistantMarkdown({ text }: { text: string }) {
+  const bulletRe = /^\s*(?:[-*•]\s+|\d+\.\s+)(.*)$/;
+  const boldRe = /\*\*([^*]+)\*\*/g;
+
+  const renderInline = (line: string, keyBase: string) => {
+    const parts: ReactNode[] = [];
+    let cursor = 0;
+    let idx = 0;
+    for (const match of line.matchAll(boldRe)) {
+      const start = match.index ?? 0;
+      if (start > cursor) {
+        parts.push(line.slice(cursor, start));
+      }
+      parts.push(<strong key={`${keyBase}-b-${idx++}`}>{match[1]}</strong>);
+      cursor = start + match[0].length;
+    }
+    if (cursor < line.length) {
+      parts.push(line.slice(cursor));
+    }
+
+    return parts;
+  };
+
+  const blocks = text.split(/\n{2,}/);
+
+  return (
+    <div className="md">
+      {blocks.map((block, blockIdx) => {
+        const lines = block.split("\n").filter((l) => l.trim().length > 0);
+        const allBullets = lines.length > 0 && lines.every((l) => bulletRe.test(l));
+        if (allBullets) {
+          return (
+            <ul key={`b${blockIdx}`}>
+              {lines.map((line, i) => {
+                const m = line.match(bulletRe);
+                const inner = m ? m[1] : line;
+
+                return (
+                  <li key={`b${blockIdx}-li${i}`}>
+                    {renderInline(inner, `b${blockIdx}-li${i}`)}
+                  </li>
+                );
+              })}
+            </ul>
+          );
+        }
+
+        return (
+          <p key={`b${blockIdx}`}>
+            {lines.map((line, i) => (
+              <span key={`b${blockIdx}-l${i}`}>
+                {renderInline(line, `b${blockIdx}-l${i}`)}
+                {i < lines.length - 1 && <br />}
+              </span>
+            ))}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
+function AssistantBubbleContent({
+  message,
+}: {
+  message: { pending?: boolean; role: string; content: string };
+}) {
+  if (message.pending) {
+    return (
+      <p className="content">
+        <span className="typing">thinking…</span>
+      </p>
+    );
+  }
+  if (message.role === "assistant") {
+    return (
+      <div className="content">
+        <AssistantMarkdown text={message.content} />
+      </div>
+    );
+  }
+
+  return <p className="content">{message.content}</p>;
+}
+
 // eslint-disable-next-line max-lines-per-function
 function ChatPanel({
   data,
@@ -785,13 +873,7 @@ function ChatPanel({
             )}
             {active?.messages.map((m) => (
               <div key={m.id} className={`bubble ${m.role}`}>
-                <p className="content">
-                  {m.pending ? (
-                    <span className="typing">thinking…</span>
-                  ) : (
-                    m.content
-                  )}
-                </p>
+                <AssistantBubbleContent message={m} />
                 {m.role === "assistant" && m.reasoning && !m.pending && (
                   <details
                     className="reasoning"

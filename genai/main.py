@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from typing import List, Optional
 
 import requests
@@ -148,10 +149,65 @@ SYSTEM_PROMPT = (
     "transactions (with counterparty and source bank), this month's income vs spending and "
     "the per-bank spending breakdown "
     "using the CONTEXT JSON provided in the system message. Be concise (usually 1-4 "
-    "sentences). Format money as euros. When the user asks about data that is missing from "
-    "the context, say so honestly. Never invent transactions, account numbers, or personal "
-    "details."
+    "sentences). Format every monetary amount exactly as '\u20ac1,234.56' \u2014 the euro "
+    "sign directly attached to the number with no space, a comma as the thousands separator, "
+    "and a dot as the decimal separator. Never write '\u20ac 1 234,56' or '\u20ac1.234,56'. "
+    "When the user asks about data that is missing from the context, say so honestly. Never "
+    "invent transactions, account numbers, or personal details."
 )
+
+
+# Matches a euro amount possibly written with a space (regular, NBSP U+00A0, or
+# narrow NBSP U+202F) between the sign and the number, and/or spaces used as a
+# thousands separator (e.g. "\u20ac 16 251.40" or "\u20ac\u00a01\u202f234,56").
+# The capture MUST end with a digit so we never swallow trailing sentence
+# punctuation like ", " after "\u20ac164,006" or ". " after "\u20ac205,994".
+_EURO_AMOUNT_RE = re.compile(
+    r"\u20ac[\s\u00a0\u202f]*(\d[\d\s\u00a0\u202f.,]*\d|\d)"
+)
+
+
+def _normalize_money(text: str) -> str:
+    """Rewrite euro amounts to the canonical '\u20ac1,234.56' form regardless of
+    what locale style the LLM decided to use, and wrap them in markdown bold so
+    the client's AssistantMarkdown renders them in the accent color."""
+
+    def _repl(match: re.Match) -> str:
+        raw = match.group(1)
+        # Strip every kind of space \u2014 they're only ever thousands separators.
+        stripped = re.sub(r"[\s\u00a0\u202f]", "", raw)
+        # Decide which of '.' / ',' is the decimal separator: the last one seen,
+        # but only if it's followed by 1\u20132 digits (typical cents). Otherwise
+        # treat both as thousands separators.
+        decimal_sep = None
+        last_dot = stripped.rfind(".")
+        last_comma = stripped.rfind(",")
+        last = max(last_dot, last_comma)
+        if last != -1 and len(stripped) - last - 1 in (1, 2):
+            decimal_sep = stripped[last]
+        if decimal_sep is None:
+            digits = re.sub(r"[.,]", "", stripped)
+            cents = ""
+        else:
+            int_part = stripped[:last]
+            frac_part = stripped[last + 1:]
+            digits = re.sub(r"[.,]", "", int_part) or "0"
+            cents = "." + frac_part
+        try:
+            formatted = f"{int(digits):,}{cents}"
+        except ValueError:
+            return match.group(0)
+        amount = f"\u20ac{formatted}"
+        # Skip re-wrapping if the LLM already surrounded the amount with **...**.
+        start, end = match.start(), match.end()
+        already_bold = (
+            text[max(0, start - 2):start] == "**"
+            and text[end:end + 2] == "**"
+        )
+
+        return amount if already_bold else f"**{amount}**"
+
+    return _EURO_AMOUNT_RE.sub(_repl, text)
 
 
 def _context_message(context: Optional[DashboardContext]) -> Optional[ChatMessage]:
@@ -332,12 +388,15 @@ def chat(req: ChatRequest) -> ChatResponse:
 
     try:
         if provider == "logos":
-            return logos_chat(messages)
-        if provider == "ollama":
-            return ollama_chat(messages)
+            response = logos_chat(messages)
+        elif provider == "ollama":
+            response = ollama_chat(messages)
+        else:
+            response = local_chat(messages, req.context)
     except Exception:
-        # Never surface an upstream failure to the user — fall back to the
+        # Never surface an upstream failure to the user \u2014 fall back to the
         # local context-grounded assistant so the chat panel stays usable.
-        return local_chat(messages, req.context)
+        response = local_chat(messages, req.context)
 
-    return local_chat(messages, req.context)
+    # LLMs love European locale spacing ("\u20ac 16 251,40"). Normalize before returning.
+    return response.model_copy(update={"reply": _normalize_money(response.reply)})
