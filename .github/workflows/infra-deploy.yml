@@ -136,7 +136,7 @@ jobs:
           EB_REDIRECT_URL: ${{ secrets.EB_REDIRECT_URL }}
           LOGOS_KEY: ${{ secrets.LOGOS_KEY }}
           # GitHub Actions won't allow secret names starting with GITHUB_, so the OAuth App
-          # credentials for the app itself are stored as GH_OAUTH_CLIENT_ID / _CLIENT_SECRET
+          # credentials for the app itself are stored as GH_OAUTH_AZURE_CLIENT_ID / _CLIENT_SECRET
           # and translated to GITHUB_CLIENT_ID / _SECRET on the VM by group_vars/all.yml.
           GH_OAUTH_CLIENT_ID: ${{ secrets.GH_OAUTH_AZURE_CLIENT_ID }}
           GH_OAUTH_CLIENT_SECRET: ${{ secrets.GH_OAUTH_AZURE_CLIENT_SECRET }}
