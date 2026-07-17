@@ -36,5 +36,10 @@ spec:
                 secretKeyRef:
                   name: postgres-credentials
                   key: password
+            # The balance-trend endpoint calls transaction-service to reconstruct
+            # history; without this it falls back to localhost and returns a single
+            # flat point. Mirrors the orchestrator's service-URL wiring.
+            - name: TRANSACTION_SERVICE_URL
+              value: "http://transaction-service:{{ .Values.transactionService.service.port }}"
           resources:
             {{- toYaml .Values.accountService.resources | nindent 12 }}
