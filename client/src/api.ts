@@ -17,8 +17,6 @@ export interface AccountSummary {
   accountId: string;
   customerName: string;
   totalBalance: number;
-  totalCreditLimit: number;
-  utilizationRate: number;
 }
 
 export interface BankListItem {

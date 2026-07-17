@@ -12,8 +12,6 @@ function dashboard(
       accountId: "1",
       customerName: "Test User",
       totalBalance: 1200,
-      totalCreditLimit: 0,
-      utilizationRate: 0,
     },
     trend: [
       { month: "Jan", balance: 1000 },
@@ -177,8 +175,6 @@ function mockDashboardByAccount() {
             accountId: DEMO_ACCOUNT_UUID,
             customerName: "Mock Holder",
             totalBalance: 500,
-            totalCreditLimit: 0,
-            utilizationRate: 0,
           },
           connectionStatus: {
             status: "ACTIVE",
@@ -444,8 +440,6 @@ test("formats currency values in euro notation", async () => {
         accountId: "1",
         customerName: "Test User",
         totalBalance: 2500,
-        totalCreditLimit: 5000,
-        utilizationRate: 0.5,
       },
     }),
   );
