@@ -83,13 +83,14 @@ public class DashboardController {
       throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Failed to retrieve account");
     }
 
-    // If the signed-in user is viewing their OWN aggregate account, replace whatever the accounts
-    // table has in customer_name (banking-service overwrites it from bank data on each sync — see
-    // BankingSyncService#recomputeAggregate) with the user's actual profile name so the greeting
-    // in the AI summary and the UI addresses the real person, not the last-synced bank account
-    // holder. Demo account and cross-user views keep whatever customerName the DB returned.
+    // If a user is signed in, always address them by their own name in the greeting/summary —
+    // regardless of which aggregate they're viewing (Live, Demo, or a shared one). This masks
+    // stale customer_name values in the accounts table (e.g. banking-service's
+    // BankingSyncService#recomputeAggregate overwrites customer_name from the last-synced bank's
+    // account holder, and the Demo seed uses a generic "Demo user"). Anonymous callers see
+    // whatever customerName the DB returned.
     AppUser signedInUser = authController.lookupSession(authHeader);
-    if (signedInUser != null && accountId.equals(signedInUser.accountId())) {
+    if (signedInUser != null) {
       String preferredName = displayName(signedInUser);
       if (!preferredName.isBlank() && !preferredName.equals(account.customerName())) {
         account =
