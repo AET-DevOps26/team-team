@@ -12,8 +12,6 @@ function dashboard(
       accountId: "1",
       customerName: "Test User",
       totalBalance: 1200,
-      totalCreditLimit: 0,
-      utilizationRate: 0,
     },
     trend: [
       { month: "Jan", balance: 1000 },
@@ -177,8 +175,6 @@ function mockDashboardByAccount() {
             accountId: DEMO_ACCOUNT_UUID,
             customerName: "Mock Holder",
             totalBalance: 500,
-            totalCreditLimit: 0,
-            utilizationRate: 0,
           },
           connectionStatus: {
             status: "ACTIVE",
@@ -345,6 +341,60 @@ test("renders expense breakdown with category names and percentages", async () =
   expect(screen.getByText("Utilities")).toBeInTheDocument();
 });
 
+test("expense rows show amount and merchant context, and filter the feed", async () => {
+  vi.spyOn(api, "fetchDashboard").mockResolvedValue(
+    dashboard({
+      connectionStatus: active,
+      expenses: [
+        {
+          category: "Groceries",
+          percentage: 60,
+          amount: 541.42,
+          count: 23,
+          topMerchants: ["REWE", "ALDI"],
+        },
+        { category: "Other", percentage: 40, amount: 100, count: 2, topMerchants: [] },
+      ],
+      transactions: [
+        {
+          id: "t1",
+          category: "Groceries",
+          amount: 8.18,
+          direction: "DEBIT",
+          bankName: "N26",
+          counterparty: "REWE",
+          createdAt: "2026-07-10T12:00:00",
+        },
+        {
+          id: "t2",
+          category: "Subscriptions",
+          amount: 9.99,
+          direction: "DEBIT",
+          bankName: "N26",
+          counterparty: "Spotify",
+          createdAt: "2026-07-09T12:00:00",
+        },
+      ],
+    }),
+  );
+  render(<App />);
+  await screen.findByText("Total balance");
+
+  // enriched row: absolute amount plus merchants and purchase count
+  expect(screen.getByText("€541.42")).toBeInTheDocument();
+  expect(screen.getByText(/mostly REWE, ALDI/)).toBeInTheDocument();
+  expect(screen.getByText(/23 purchases/)).toBeInTheDocument();
+
+  // clicking a category filters the feed to it
+  fireEvent.click(screen.getByTitle("Show Groceries in recent transactions"));
+  expect(screen.getByText("REWE")).toBeInTheDocument();
+  expect(screen.queryByText("Spotify")).not.toBeInTheDocument();
+
+  // the chip clears the filter again
+  fireEvent.click(screen.getByTitle("Clear category filter"));
+  expect(screen.getByText("Spotify")).toBeInTheDocument();
+});
+
 test("renders trend chart with SVG polyline when multiple data points exist", async () => {
   vi.spyOn(api, "fetchDashboard").mockResolvedValue(
     dashboard({
@@ -390,8 +440,6 @@ test("formats currency values in euro notation", async () => {
         accountId: "1",
         customerName: "Test User",
         totalBalance: 2500,
-        totalCreditLimit: 5000,
-        utilizationRate: 0.5,
       },
     }),
   );

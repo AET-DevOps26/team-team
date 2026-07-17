@@ -119,8 +119,6 @@ def test_chat_with_context():
                     "accountId": "test-1",
                     "customerName": "Alice",
                     "totalBalance": 5000.0,
-                    "totalCreditLimit": 10000.0,
-                    "utilizationRate": 0.3,
                 },
                 "trend": [
                     {"month": "Jan", "balance": 4000.0},
@@ -285,8 +283,6 @@ def test_summarize_upward_trend():
                 "accountId": "1",
                 "customerName": "Bob",
                 "totalBalance": 3000.0,
-                "totalCreditLimit": 5000.0,
-                "utilizationRate": 0.2,
             },
             "trend": [
                 {"month": "Jan", "balance": 2000.0},
@@ -310,8 +306,6 @@ def test_summarize_downward_trend():
                 "accountId": "2",
                 "customerName": "Carol",
                 "totalBalance": 1000.0,
-                "totalCreditLimit": 5000.0,
-                "utilizationRate": 0.5,
             },
             "trend": [
                 {"month": "Mar", "balance": 2000.0},
@@ -334,8 +328,6 @@ def test_summarize_stable_trend():
                 "accountId": "3",
                 "customerName": "Dave",
                 "totalBalance": 500.0,
-                "totalCreditLimit": 1000.0,
-                "utilizationRate": 0.5,
             },
             "trend": [
                 {"month": "May", "balance": 500.0},
@@ -356,8 +348,6 @@ def test_summarize_single_point_is_stable():
                 "accountId": "4",
                 "customerName": "Eve",
                 "totalBalance": 100.0,
-                "totalCreditLimit": 1000.0,
-                "utilizationRate": 0.1,
             },
             "trend": [{"month": "Jul", "balance": 100.0}],
             "expenses": [],
