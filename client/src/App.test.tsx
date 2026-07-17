@@ -127,9 +127,6 @@ test("shows the empty state when no bank is connected", async () => {
 
 test("shows the live dashboard and roster when a bank is ACTIVE", async () => {
   vi.spyOn(api, "fetchDashboard").mockResolvedValue(
-    dashboard({ connectionStatus: active }),
-  );
-  vi.spyOn(api, "fetchDashboard").mockResolvedValue(
     dashboard({ connectionStatus: active, connections: activeConnections }),
   );
   render(<App />);
@@ -260,9 +257,6 @@ test("demo mode only fetches the demo account, never the real one", async () => 
 
 test("signs out back to the login page", async () => {
   vi.spyOn(api, "fetchDashboard").mockResolvedValue(
-    dashboard({ connectionStatus: active }),
-  );
-  vi.spyOn(api, "fetchDashboard").mockResolvedValue(
     dashboard({ connectionStatus: active, connections: activeConnections }),
   );
   render(<App />);
@@ -275,9 +269,6 @@ test("signs out back to the login page", async () => {
 
 test("sends a chat message and shows the reply", async () => {
   vi.spyOn(api, "fetchDashboard").mockResolvedValue(
-    dashboard({ connectionStatus: active }),
-  );
-  vi.spyOn(api, "fetchDashboard").mockResolvedValue(
     dashboard({ connectionStatus: active, connections: activeConnections }),
   );
   render(<App />);
@@ -286,7 +277,12 @@ test("sends a chat message and shows the reply", async () => {
   // Chat lives behind a floating action button; open the dock first.
   fireEvent.click(screen.getByRole("button", { name: /open assistant/i }));
 
-  fireEvent.change(screen.getByPlaceholderText(/ask about your spending/i), {
+  // findBy* (not getBy*) so a transient re-render — e.g. fetchCurrentUser
+  // resolving and re-triggering the dashboard effect — can't race the input.
+  const chatInput = await screen.findByPlaceholderText(
+    /ask about your spending/i,
+  );
+  fireEvent.change(chatInput, {
     target: { value: "How do I lower utilization?" },
   });
   fireEvent.click(screen.getByText("Run"));
