@@ -4,22 +4,26 @@
 
 ## 🚀 Endpoints
 
-| Service           | Local (Docker)                            | Production (K8s)                                                         |
-| ----------------- | ----------------------------------------- | ------------------------------------------------------------------------ |
-| Frontend          | `https://localhost/`                      | `https://team-devops-ss26.stud.k8s.aet.cit.tum.de/`                      |
-| Backend API       | `https://localhost/api`                   | `https://team-devops-ss26.stud.k8s.aet.cit.tum.de/api`                   |
-| Swagger UI        | `https://localhost/swagger-ui/index.html` | `https://team-devops-ss26.stud.k8s.aet.cit.tum.de/swagger-ui/index.html` |
-| OpenAPI JSON      | `https://localhost/v3/api-docs`           | `https://team-devops-ss26.stud.k8s.aet.cit.tum.de/v3/api-docs`           |
-| Grafana           | `https://localhost/grafana/`              | `https://team-devops-ss26.stud.k8s.aet.cit.tum.de/grafana/`              |
-| Prometheus        | —                                         | `https://team-devops-ss26.stud.k8s.aet.cit.tum.de/prometheus/`           |
-| Traefik Dashboard | `http://localhost:8080/dashboard/`        | —                                                                        |
+| Service               | Local (Docker)                            | Production (K8s)                                                         |
+| --------------------- | ----------------------------------------- | ------------------------------------------------------------------------ |
+| Frontend              | `https://localhost/`                      | `https://team-devops-ss26.stud.k8s.aet.cit.tum.de/`                      |
+| Backend API           | `https://localhost/api`                   | `https://team-devops-ss26.stud.k8s.aet.cit.tum.de/api`                   |
+| GitHub OAuth (start)  | `https://localhost/api/auth/github/login` | `https://team-devops-ss26.stud.k8s.aet.cit.tum.de/api/auth/github/login` |
+| GitHub OAuth callback | `https://localhost/login/oauth2/code/github` | `https://team-devops-ss26.stud.k8s.aet.cit.tum.de/login/oauth2/code/github` |
+| Banking (PSD2) API    | `https://localhost/api/banking/*`         | `https://team-devops-ss26.stud.k8s.aet.cit.tum.de/api/banking/*`         |
+| Swagger UI            | `https://localhost/swagger-ui/index.html` | `https://team-devops-ss26.stud.k8s.aet.cit.tum.de/swagger-ui/index.html` |
+| OpenAPI JSON          | `https://localhost/v3/api-docs`           | `https://team-devops-ss26.stud.k8s.aet.cit.tum.de/v3/api-docs`           |
+| Grafana               | `https://localhost/grafana/`              | `https://team-devops-ss26.stud.k8s.aet.cit.tum.de/grafana/`              |
+| Prometheus            | —                                         | `https://team-devops-ss26.stud.k8s.aet.cit.tum.de/prometheus/`           |
+| Traefik Dashboard     | `http://localhost:8080/dashboard/`        | —                                                                        |
 
 This repository contains a full mono-repo banking web application with:
 
-- `client`: React + TypeScript frontend
-- `server`: Java Spring Boot microservices (4 services, Gradle-built)
-- `genai`: Python-based GenAI microservice
-- `infra`: Docker Compose, Traefik reverse proxy, Kubernetes manifests, Helm chart, monitoring stack (Prometheus + Grafana)
+- `client`: React + TypeScript frontend (with GitHub OAuth sign-in gate)
+- `server`: Java Spring Boot microservices — **five** services, Gradle-built:
+  `account-service`, `transaction-service`, `banking-service`, `orchestrator-service`, plus a shared build.
+- `genai`: Python-based GenAI microservice (FastAPI)
+- `infra`: Docker Compose, Traefik reverse proxy, Kubernetes manifests, Helm chart (`infra/helm/banking-app`), monitoring stack (Prometheus + Alertmanager + Grafana), Terraform + Ansible bootstrap
 
 ---
 
@@ -131,7 +135,7 @@ Prerequisites:
 
 - Docker + Docker Compose plugin
 
-Create or update your local environment file:
+Create or update your local environment file (see the [Environment Variables](#environment-variables) table below for the full list):
 
 ```bash
 # if .env already exists, just edit it
@@ -139,17 +143,16 @@ Create or update your local environment file:
 touch .env
 ```
 
+At minimum you must set `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `APP_HOSTNAME` (the launcher validates these). Optional variables enable GitHub sign-in, Enable Banking (PSD2), and the Logos GenAI gateway.
+
 Start with the team launcher (enforces required env file and variables):
 
 ```bash
-./scripts/dev-up.sh
+./scripts/dev-up.sh              # uses ./.env by default
+./scripts/dev-up.sh path/to/file.env   # or point at any other env file
 ```
 
-Optional: pass a custom env file path.
-
-```bash
-./scripts/dev-up.sh path/to/file.env
-```
+Windows PowerShell equivalents live at [scripts/dev-up.ps1](scripts/dev-up.ps1) / [scripts/dev-down.ps1](scripts/dev-down.ps1).
 
 Stop the stack:
 
@@ -159,28 +162,76 @@ Stop the stack:
 
 > See [Endpoints](#-endpoints) at the top of this README for all app URLs.
 
-## 3. GenAI Model Modes (No Cloud Dependency)
+### Environment Variables
 
-Configure in `docker-compose.yml` through env vars:
+| Variable                          | Required | Used by            | Purpose / Default                                                                                             |
+| --------------------------------- | :------: | ------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `POSTGRES_USER`                   |    ✅    | database, services | Postgres role name.                                                                                           |
+| `POSTGRES_PASSWORD`               |    ✅    | database, services | Postgres password.                                                                                            |
+| `APP_HOSTNAME`                    |    ✅    | orchestrator, client, Traefik | External hostname used for CORS + client `PUBLIC_API_URL` (use `localhost` in dev).                    |
+| `TRAEFIK_HTTP_PORT`               |          | Traefik            | Host port for HTTP (default `8088`).                                                                          |
+| `TRAEFIK_HTTPS_PORT`              |          | Traefik            | Host port for HTTPS (default `443`).                                                                          |
+| `TRAEFIK_DASHBOARD_PORT`          |          | Traefik            | Host port for the dashboard (default `8080`).                                                                 |
+| `GITHUB_CLIENT_ID`                |    ⚠️    | orchestrator       | GitHub OAuth App Client ID. Required for login (`/api/auth/github/*`).                                        |
+| `GITHUB_CLIENT_SECRET`            |    ⚠️    | orchestrator       | GitHub OAuth App Client Secret.                                                                               |
+| `GITHUB_REDIRECT_URI`             |          | orchestrator       | OAuth callback URL. Default `https://localhost/login/oauth2/code/github` — must exactly match the OAuth App.  |
+| `ENABLE_BANKING_APP_ID`           |          | banking-service    | Enable Banking (PSD2) application ID.                                                                         |
+| `ENABLE_BANKING_PRIVATE_KEY_PATH` |          | banking-service    | Host path to the RSA `.pem` private key mounted into the container.                                           |
+| `ENABLE_BANKING_REDIRECT_URL`     |          | banking-service    | Enable Banking PSD2 callback (default `https://localhost/callback`).                                          |
+| `MODEL_PROVIDER`                  |          | genai              | `logos` (default in `docker-compose.yml`), `local`, or `ollama`. Dev compose defaults to `local`.             |
+| `LOGOS_KEY`                       |    ⚠️    | genai              | Required only when `MODEL_PROVIDER=logos`. TUM AET Logos gateway API key.                                     |
+| `LOGOS_BASE_URL`                  |          | genai              | Default `https://logos.aet.cit.tum.de`.                                                                       |
+| `LOGOS_MODEL`                     |          | genai              | Default `openai/gpt-oss-120b`.                                                                                |
 
-- `MODEL_PROVIDER=local` (default, no cloud dependency)
-- `MODEL_PROVIDER=ollama` for local LLM via Ollama
+⚠️ = optional at startup, but the corresponding feature (login, banking sync, Logos LLM) is disabled without it.
+
+## 3. GenAI Model Modes
+
+Configure via `MODEL_PROVIDER` in `.env` / `docker-compose.yml`:
+
+- `local` — canned offline replies, no external calls. Default in `docker-compose.dev.yml`.
+- `logos` — TUM AET Logos gateway (OpenAI-compatible). Requires `LOGOS_KEY`. Default in `docker-compose.yml`.
+- `ollama` — local LLM via Ollama at `http://host.docker.internal:11434` (model `llama3.1:8b`).
+
+If the upstream is unreachable the service transparently falls back to a canned local reply, so the dashboard keeps working offline.
+
+## 3a. GitHub OAuth Login
+
+The orchestrator exposes a minimal GitHub OAuth flow (see [server/orchestrator-service/src/main/java/com/team/bank/orchestrator/AuthController.java](server/orchestrator-service/src/main/java/com/team/bank/orchestrator/AuthController.java)). No Spring Security — three endpoints and an in-memory session map.
+
+**Endpoints (under `/api/auth`):**
+
+- `GET /github/login` — returns the GitHub authorize URL + state
+- `POST /github/callback` — exchanges `{ code, state }` for an opaque bearer token and the app user
+- `GET /me` — returns the current `AppUser` for the bearer token
+- `POST /logout` — invalidates the token
+
+**Local setup:**
+
+1. Register a new [GitHub OAuth App](https://github.com/settings/developers).
+2. Set the **Authorization callback URL** to `https://localhost/login/oauth2/code/github` (or whatever `GITHUB_REDIRECT_URI` you use).
+3. Copy the Client ID + Secret into `.env` as `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`.
+4. Restart the stack — the sign-in gate on the SPA will now redirect through GitHub.
+
+**Production (K8s):** the CD workflow injects the OAuth credentials from the `GH_OAUTH_K8S_CLIENT_ID` / `GH_OAUTH_K8S_CLIENT_SECRET` GitHub repo secrets into the orchestrator deployment. Register `https://<tumid>-devops-ss26.stud.k8s.aet.cit.tum.de/login/oauth2/code/github` as the callback on that OAuth App.
 
 ## 4. CI/CD
 
-GitHub Actions workflows:
+GitHub Actions workflows live under [.github/workflows/](.github/workflows/):
 
-- **CI** (`.github/workflows/ci.yml`):
-  - Runs the full quality gate for backend via `./gradlew clean check` (compilation + Error Prone + Spotless + SpotBugs + Detekt + tests)
-  - Lints, tests, and builds the React frontend (`npm run lint`, `npm run test`, `npm run build`)
-  - Tests the Python GenAI service (`pytest`)
-  - Runs OWASP Dependency Check for vulnerability scanning
+- **CI** ([ci.yml](.github/workflows/ci.yml)) — runs on every PR and push to `main`:
+  - Backend quality gate: `./gradlew test spotlessCheck --parallel` (compilation + tests + Spotless formatting; Error Prone and Detekt run at compile time via [server/build.gradle.kts](server/build.gradle.kts))
+  - Lints, tests, and builds the React frontend (`npm ci && npm run lint && npm run test && npm run build`)
+  - Runs the Python GenAI service test suite (`pytest`)
   - Uses Java 21 (Temurin), Node 22, Python 3.12
-  - Uploads test reports and OWASP security reports as artifacts
-- **CD** (`.github/workflows/cd.yml`):
-  - Runs `helm upgrade --install` on merge to `main` (triggers after GHCR image build)
-  - Can also be triggered manually via `workflow_dispatch`
-  - Requires secrets: `KUBECONFIG`, `POSTGRES_PASSWORD`
+- **CD** ([cd.yml](.github/workflows/cd.yml)) — runs on every push and `workflow_dispatch`:
+  - Always: `helm lint` + `helm template` dry-run of the chart
+  - Always: builds Docker images for all six services (`account-service`, `transaction-service`, `banking-service`, `orchestrator-service`, `genai-service`, `client`)
+  - On `main` (or manual dispatch): pushes images to GHCR and runs `helm upgrade --install` against the TUM cluster
+  - Required repo secrets: `KUBECONFIG`, `POSTGRES_PASSWORD`, `GRAFANA_ADMIN_PASSWORD`, `EB_APP_ID`, `EB_PRIVATE_KEY`, `GH_OAUTH_K8S_CLIENT_ID`, `GH_OAUTH_K8S_CLIENT_SECRET`, `LOGOS_KEY`
+  - Optional repo variable: `GENAI_MODEL_PROVIDER` (defaults to `logos`)
+- **Infra** ([infra-plan.yml](.github/workflows/infra-plan.yml), [infra-deploy.yml](.github/workflows/infra-deploy.yml)) — Terraform plan/apply for the bootstrap VM (see [infra/CI-CD.md](infra/CI-CD.md))
+- **Docker** ([docker.yaml](.github/workflows/docker.yaml)) — auxiliary image workflow
 
 ## 5. Kubernetes Deployment (Helm)
 
@@ -232,8 +283,8 @@ Tracked metrics include:
 ## 8. Testing
 
 - Java unit tests in each Spring service under `src/test`
-- Python tests in `genai/tests`
-- React tests in `client/src/App.test.tsx`
+- Python tests in [genai/tests](genai/tests)
+- React tests in [client/src/App.test.tsx](client/src/App.test.tsx) and [client/src/api.test.ts](client/src/api.test.ts)
 
 Manual local test commands (without Docker):
 
@@ -244,7 +295,11 @@ cd server && ./gradlew test
 # Individual services
 cd server && ./gradlew :account-service:test
 cd server && ./gradlew :transaction-service:test
+cd server && ./gradlew :banking-service:test
 cd server && ./gradlew :orchestrator-service:test
+
+# Quality gate mirrored from CI
+cd server && ./gradlew test spotlessCheck --parallel
 
 # Python
 cd genai && pip install -r requirements.txt && pytest
