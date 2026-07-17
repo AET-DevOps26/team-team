@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 
 import * as api from "./api";
-import type { DashboardPayload } from "./api";
+import type { DashboardPayload, AppUser } from "./api";
 import App from "./App";
 
 function dashboard(
@@ -40,38 +40,76 @@ const activeConnections = [
   },
 ];
 
+const REAL_ACCOUNT_UUID = "22222222-2222-2222-2222-222222222222";
+const DEMO_ACCOUNT_UUID = "11111111-1111-1111-1111-111111111111";
+
+const testUser: AppUser = {
+  githubId: 1,
+  login: "testuser",
+  firstName: "Test",
+  lastName: "Person",
+  email: "test@example.com",
+  avatarUrl: null,
+  accountId: REAL_ACCOUNT_UUID,
+};
+
+// Skip the login gate for dashboard tests by pre-seeding a stored session and
+// short-circuiting the /me revalidation call.
+function primeSignedIn(user: AppUser = testUser) {
+  localStorage.setItem("auth.token", "test-token");
+  localStorage.setItem("auth.user", JSON.stringify(user));
+  vi.spyOn(api, "fetchCurrentUser").mockResolvedValue(user);
+}
+
 beforeEach(() => {
-  window.history.pushState({}, "", "/?accountId=111-222");
-  sessionStorage.setItem("authed", "1"); // skip the login gate for dashboard tests
-  localStorage.clear(); // chat sessions live in localStorage
-  vi.spyOn(api, "sendChat").mockResolvedValue({
-    reply: "reply",
-    reasoning: null,
-  });
+  window.history.pushState({}, "", "/");
+  localStorage.clear();
+  sessionStorage.clear();
+  primeSignedIn();
+  vi.spyOn(api, "sendChat").mockResolvedValue({ reply: "reply", reasoning: null });
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
+  localStorage.clear();
   sessionStorage.clear();
 });
 
-test("shows the login page and signs in with admin/admin", async () => {
-  sessionStorage.clear();
-  vi.spyOn(api, "fetchDashboard").mockResolvedValue(
-    dashboard({ connectionStatus: null }),
-  );
+test("shows the login page with a GitHub sign-in button when unauthenticated", async () => {
+  localStorage.clear(); // remove the primed session
+  vi.spyOn(api, "fetchDashboard").mockResolvedValue(dashboard({ connectionStatus: null }));
   render(<App />);
 
   expect(screen.getByRole("heading", { name: "Sign in" })).toBeInTheDocument();
-  fireEvent.change(screen.getByPlaceholderText("Username"), {
-    target: { value: "admin" },
-  });
-  fireEvent.change(screen.getByPlaceholderText("Password"), {
-    target: { value: "admin" },
-  });
-  fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+  expect(
+    screen.getByRole("button", { name: /sign in with github/i }),
+  ).toBeInTheDocument();
+});
 
-  expect(await screen.findByText("No banks connected")).toBeInTheDocument();
+test("clicking the GitHub sign-in button redirects to the returned authorize URL", async () => {
+  localStorage.clear();
+  vi.spyOn(api, "fetchDashboard").mockResolvedValue(dashboard({ connectionStatus: null }));
+  vi.spyOn(api, "startGithubLogin").mockResolvedValue({
+    authUrl: "https://github.example/authorize?state=abc",
+    state: "abc",
+  });
+  // jsdom's window.location.href is not directly assignable in a spy-friendly way,
+  // so intercept navigation via the setter on the descriptor.
+  const originalLocation = window.location;
+  const hrefSpy = vi.fn();
+  Object.defineProperty(window, "location", {
+    configurable: true,
+    value: { ...originalLocation, assign: hrefSpy, set href(v: string) { hrefSpy(v); }, get href() { return originalLocation.href; } },
+  });
+
+  render(<App />);
+  fireEvent.click(screen.getByRole("button", { name: /sign in with github/i }));
+
+  await vi.waitFor(() =>
+    expect(hrefSpy).toHaveBeenCalledWith("https://github.example/authorize?state=abc"),
+  );
+
+  Object.defineProperty(window, "location", { configurable: true, value: originalLocation });
 });
 
 test("shows the empty state when no bank is connected", async () => {
@@ -86,9 +124,6 @@ test("shows the empty state when no bank is connected", async () => {
 });
 
 test("shows the live dashboard and roster when a bank is ACTIVE", async () => {
-  vi.spyOn(api, "fetchDashboard").mockResolvedValue(
-    dashboard({ connectionStatus: active }),
-  );
   vi.spyOn(api, "fetchDashboard").mockResolvedValue(
     dashboard({ connectionStatus: active, connections: activeConnections }),
   );
@@ -162,9 +197,6 @@ test("bank list can be filtered and closed", async () => {
   expect(screen.getByText("Find banks")).toBeInTheDocument();
 });
 
-const REAL_ACCOUNT_UUID = "22222222-2222-2222-2222-222222222222";
-const DEMO_ACCOUNT_UUID = "11111111-1111-1111-1111-111111111111";
-
 // fetchDashboard mock that serves the demo account (mock ASPSP data) or the
 // real account (production EB data) depending on the requested id.
 function mockDashboardByAccount() {
@@ -193,20 +225,20 @@ test("toggles between the real and the demo account from the header", async () =
   const fetchDashboard = mockDashboardByAccount();
   render(<App />);
 
-  // Defaults to live: the real account is fetched and shown.
-  expect(await screen.findByText("Test User")).toBeInTheDocument();
+  // Defaults to live: the real account is fetched, so the live bank shows.
+  expect(await screen.findByText("Nordea")).toBeInTheDocument();
   expect(fetchDashboard).toHaveBeenCalledWith(REAL_ACCOUNT_UUID);
 
   // Flip to demo: the demo account (mock ASPSP data) replaces it, persisted.
   fireEvent.click(screen.getByRole("button", { name: "Demo" }));
-  expect(await screen.findByText("Mock Holder")).toBeInTheDocument();
-  expect(screen.queryByText("Test User")).not.toBeInTheDocument();
+  expect(await screen.findByText("Mock ASPSP")).toBeInTheDocument();
+  expect(screen.queryByText("Nordea")).not.toBeInTheDocument();
   expect(fetchDashboard).toHaveBeenCalledWith(DEMO_ACCOUNT_UUID);
   expect(localStorage.getItem("dashboard.mode")).toBe("demo");
 
-  // Flip back to live: the real account returns.
+  // Flip back to live: the real bank returns.
   fireEvent.click(screen.getByRole("button", { name: "Live" }));
-  expect(await screen.findByText("Test User")).toBeInTheDocument();
+  expect(await screen.findByText("Nordea")).toBeInTheDocument();
 });
 
 test("demo mode only fetches the demo account, never the real one", async () => {
@@ -214,15 +246,12 @@ test("demo mode only fetches the demo account, never the real one", async () => 
   const fetchDashboard = mockDashboardByAccount();
   render(<App />);
 
-  expect(await screen.findByText("Mock Holder")).toBeInTheDocument();
+  expect(await screen.findByText("Mock ASPSP")).toBeInTheDocument();
   expect(fetchDashboard).toHaveBeenCalledWith(DEMO_ACCOUNT_UUID);
   expect(fetchDashboard).not.toHaveBeenCalledWith(REAL_ACCOUNT_UUID);
 });
 
 test("signs out back to the login page", async () => {
-  vi.spyOn(api, "fetchDashboard").mockResolvedValue(
-    dashboard({ connectionStatus: active }),
-  );
   vi.spyOn(api, "fetchDashboard").mockResolvedValue(
     dashboard({ connectionStatus: active, connections: activeConnections }),
   );
@@ -236,9 +265,6 @@ test("signs out back to the login page", async () => {
 
 test("sends a chat message and shows the reply", async () => {
   vi.spyOn(api, "fetchDashboard").mockResolvedValue(
-    dashboard({ connectionStatus: active }),
-  );
-  vi.spyOn(api, "fetchDashboard").mockResolvedValue(
     dashboard({ connectionStatus: active, connections: activeConnections }),
   );
   render(<App />);
@@ -247,7 +273,12 @@ test("sends a chat message and shows the reply", async () => {
   // Chat lives behind a floating action button; open the dock first.
   fireEvent.click(screen.getByRole("button", { name: /open assistant/i }));
 
-  fireEvent.change(screen.getByPlaceholderText(/ask about your spending/i), {
+  // findBy* (not getBy*) so a transient re-render — e.g. fetchCurrentUser
+  // resolving and re-triggering the dashboard effect — can't race the input.
+  const chatInput = await screen.findByPlaceholderText(
+    /ask about your spending/i,
+  );
+  fireEvent.change(chatInput, {
     target: { value: "How do I lower utilization?" },
   });
   fireEvent.click(screen.getByText("Run"));
@@ -259,27 +290,8 @@ test("sends a chat message and shows the reply", async () => {
 // Additional tests — error states, edge cases, chat persistence, trend chart
 // ---------------------------------------------------------------------------
 
-test("shows error message for wrong login credentials", async () => {
-  sessionStorage.clear();
-  vi.spyOn(api, "fetchDashboard").mockResolvedValue(
-    dashboard({ connectionStatus: null }),
-  );
-  render(<App />);
-
-  fireEvent.change(screen.getByPlaceholderText("Username"), {
-    target: { value: "wrong" },
-  });
-  fireEvent.change(screen.getByPlaceholderText("Password"), {
-    target: { value: "wrong" },
-  });
-  fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
-
-  // Should stay on login page with error
-  expect(
-    await screen.findByText(/Incorrect username or password/i),
-  ).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: "Sign in" })).toBeInTheDocument();
-});
+// The old admin/admin login test was removed; the sign-in gate is now the GitHub
+// button flow covered by earlier tests.
 
 test("shows error state when dashboard fetch fails", async () => {
   vi.spyOn(api, "fetchDashboard").mockRejectedValue(new Error("Network error"));

@@ -69,8 +69,11 @@ describe("fetchDashboard", () => {
 
     await fetchDashboard(MOCK_ACCOUNT_ID);
 
+    // Every /api/* call now sends an options bag with the auth headers (empty when signed out),
+    // so match the URL substring but accept any options object as the second arg.
     expect(fetchSpy).toHaveBeenCalledWith(
       expect.stringContaining(`/api/dashboard/${MOCK_ACCOUNT_ID}`),
+      expect.anything(),
     );
   });
 });
@@ -89,6 +92,7 @@ describe("fetchBanks", () => {
     expect(result[0].name).toBe("Nordea");
     expect(fetchSpy).toHaveBeenCalledWith(
       expect.stringContaining("country=FI"),
+      expect.anything(),
     );
   });
 

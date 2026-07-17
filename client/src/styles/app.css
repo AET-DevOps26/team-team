@@ -106,6 +106,12 @@ body {
 .signout:hover {
   color: var(--accent);
 }
+.statusbar .avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
+}
 
 /* Demo/Live segmented control — embedded in the header and the pre-dashboard
    states so the data source can be switched at any time. */
@@ -966,6 +972,35 @@ body {
 .bubble .typing {
   color: var(--muted);
   font-style: italic;
+}
+
+/* Assistant markdown: **bold**, paragraphs, and bullet lists. */
+.bubble .md {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+.bubble .md p {
+  margin: 0;
+  white-space: normal;
+}
+.bubble .md strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+.bubble .md ul {
+  margin: 0;
+  padding-left: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.bubble .md li {
+  margin: 0;
+  padding-left: 0.15rem;
+}
+.bubble .md li::marker {
+  color: var(--muted);
 }
 
 .reasoning {

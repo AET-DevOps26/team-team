@@ -95,15 +95,24 @@ services:
       dockerfile: orchestrator-service/Dockerfile
     environment:
       SERVER_PORT: 8083
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bankdb
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-bank}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-bank}
       ACCOUNT_SERVICE_URL: http://account-service:8081
       TRANSACTION_SERVICE_URL: http://transaction-service:8082
       GENAI_SERVICE_URL: http://genai-service:8000
       BANKING_SERVICE_URL: http://banking-service:8084
+      # GitHub OAuth login (see AuthController). Must match the callback URL registered on
+      # the GitHub OAuth App.
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      GITHUB_REDIRECT_URI: ${GITHUB_REDIRECT_URI:-http://localhost:3000/login/oauth2/code/github}
     depends_on:
       - account-service
       - transaction-service
       - genai-service
       - banking-service
+      - postgres
     ports:
       - "8083:8083"
 

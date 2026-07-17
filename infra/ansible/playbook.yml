@@ -105,6 +105,17 @@
         group: "{{ ansible_user }}"
         mode: "0600"
 
+    # Reclaim ownership of anything left behind by previous container runs
+    # (e.g. client/dist artifacts written as root inside Docker) so that the
+    # unprivileged rsync in the next task can delete/overwrite them.
+    - name: Reclaim ownership of app_dir before sync
+      ansible.builtin.shell: |
+        set -e
+        chown -R {{ ansible_user }}:{{ ansible_user }} {{ app_dir }}
+      args:
+        executable: /bin/bash
+      changed_when: false
+
     - name: Sync project sources to VM
       ansible.posix.synchronize:
         src: "{{ local_project_root }}/"
@@ -187,6 +198,20 @@
           {% endfor %}
 
     # ---------------------------------------------------------------------
+    # Build the client bundle on the VM so client/Dockerfile can COPY dist/.
+    # We use a throwaway Node container instead of installing Node on the host
+    # so nothing about the base image needs to change (Docker is already there).
+    # ---------------------------------------------------------------------
+    - name: Build client bundle (npm ci + npm run build)
+      ansible.builtin.command:
+        cmd: >-
+          docker run --rm
+          -v {{ app_dir }}/client:/app -w /app
+          node:22-alpine sh -c "npm ci && npm run build"
+      register: client_build
+      changed_when: true
+
+    # ---------------------------------------------------------------------
     # Bring the stack up
     # ---------------------------------------------------------------------
     - name: Build and start docker compose stack
@@ -195,6 +220,47 @@
         chdir: "{{ app_dir }}"
       register: compose_up
       changed_when: "'Creating' in compose_up.stderr or 'Recreating' in compose_up.stderr or 'Started' in compose_up.stderr"
+
+    # ---------------------------------------------------------------------
+    # Apply idempotent SQL migrations against the running postgres. The
+    # postgres data volume is persistent, so init.sql only runs on the very
+    # first deploy — any later schema change (users table, multibank columns,
+    # etc.) must be applied explicitly here or fresh sign-ins / dashboard
+    # calls will 500 with `relation "…" does not exist`.
+    # ---------------------------------------------------------------------
+    - name: Wait for postgres to accept connections
+      ansible.builtin.shell: |
+        set -e
+        for i in $(seq 1 30); do
+          if docker compose exec -T database pg_isready -U bank -d bankdb >/dev/null 2>&1; then
+            exit 0
+          fi
+          sleep 2
+        done
+        echo "postgres did not become ready in time" >&2
+        exit 1
+      args:
+        chdir: "{{ app_dir }}"
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Apply multibank schema migration
+      ansible.builtin.shell: >-
+        docker compose exec -T database psql -U bank -d bankdb -v ON_ERROR_STOP=1
+        -f /dev/stdin < infra/docker/migrate-multibank.sql
+      args:
+        chdir: "{{ app_dir }}"
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Apply users schema migration
+      ansible.builtin.shell: >-
+        docker compose exec -T database psql -U bank -d bankdb -v ON_ERROR_STOP=1
+        -f /dev/stdin < infra/docker/migrate-users.sql
+      args:
+        chdir: "{{ app_dir }}"
+        executable: /bin/bash
+      changed_when: false
 
     - name: Show running containers
       ansible.builtin.command: docker compose ps

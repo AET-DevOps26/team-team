@@ -1,5 +1,5 @@
 /* eslint-disable no-magic-numbers */
-import type { FormEvent, MouseEvent as ReactMouseEvent } from "react";
+import type { FormEvent, MouseEvent as ReactMouseEvent, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type {
@@ -8,6 +8,7 @@ import type {
   BalancePoint,
   ChatContext,
   ChatMessage,
+  AppUser,
   Transaction,
 } from "./api";
 import {
@@ -16,14 +17,22 @@ import {
   fetchBanks,
   connectBank,
   handleBankCallback,
+  startGithubLogin,
+  completeGithubLogin,
+  fetchCurrentUser,
+  getAuthToken,
+  getStoredUser,
+  saveAuth,
+  clearAuth,
+  signOut,
 } from "./api";
 
-const DEFAULT_ACCOUNT_UUID = "22222222-2222-2222-2222-222222222222";
-const FRIENDLY_ACCOUNT_ALIAS = "111-222";
-// Aggregate account for demo mode: the original anchor account, which is where
-// Mock ASPSP banks have historically been linked. Demo runs the exact same
-// backend flow against it, so a public demo shows sandbox data while the real
-// account (DEFAULT_ACCOUNT_UUID, production EB connections) stays off screen.
+const GITHUB_CALLBACK_PATH = "/login/oauth2/code/github";
+
+// Shared demo aggregate: the same account seeded by scripts/seed-demo-data.sql. Every
+// signed-in user sees the same demo data here, so the app can be shown publicly without
+// exposing anyone's real account. Live mode uses the per-user account_id we get from
+// /api/auth/me instead.
 const DEMO_ACCOUNT_UUID = "11111111-1111-1111-1111-111111111111";
 
 const COUNTRIES = [
@@ -98,22 +107,15 @@ function formatTxDate(iso: string): string {
 }
 
 function resolveAccountId(): string {
-  const queryAccountId = new URLSearchParams(window.location.search).get(
-    "accountId",
-  );
-  const configured =
-    queryAccountId || import.meta.env.VITE_ACCOUNT_ID || FRIENDLY_ACCOUNT_ALIAS;
-
-  return configured === FRIENDLY_ACCOUNT_ALIAS
-    ? DEFAULT_ACCOUNT_UUID
-    : configured;
+  const queryAccountId = new URLSearchParams(window.location.search).get("accountId");
+  return queryAccountId || import.meta.env.VITE_ACCOUNT_ID || "";
 }
 
 /* Demo vs. live data source. Both run the same backend flow against different
-   aggregate accounts: "demo" targets DEMO_ACCOUNT_UUID, whose linked banks are
-   Enable Banking Mock ASPSPs (sandbox data), so the dashboard can be shown
-   publicly without exposing the real account; "live" targets the real account
-   with production Enable Banking connections. The choice survives reloads. */
+   aggregate accounts: "demo" targets DEMO_ACCOUNT_UUID (a shared, seeded account so
+   the app can be shown publicly without exposing anyone's real data); "live" targets
+   the signed-in user's own account_id, provisioned on first sign-in by the orchestrator.
+   The choice survives reloads. An `?accountId=<uuid>` query param still wins for QA. */
 type DataMode = "demo" | "live";
 const MODE_STORAGE_KEY = "dashboard.mode";
 
@@ -499,6 +501,94 @@ function buildContext(data: DashboardPayload): ChatContext {
 
 type ChatView = "overview" | "chat";
 
+// Renders the small subset of Markdown the LLM actually emits: **bold**, paragraph breaks
+// (blank line), and hyphen/asterisk/numeric bullet lists. Keeps the chat bubble readable
+// without pulling in a full markdown dependency.
+function AssistantMarkdown({ text }: { text: string }) {
+  const bulletRe = /^\s*(?:[-*•]\s+|\d+\.\s+)(.*)$/;
+  const boldRe = /\*\*([^*]+)\*\*/g;
+
+  const renderInline = (line: string, keyBase: string) => {
+    const parts: ReactNode[] = [];
+    let cursor = 0;
+    let idx = 0;
+    for (const match of line.matchAll(boldRe)) {
+      const start = match.index ?? 0;
+      if (start > cursor) {
+        parts.push(line.slice(cursor, start));
+      }
+      parts.push(<strong key={`${keyBase}-b-${idx++}`}>{match[1]}</strong>);
+      cursor = start + match[0].length;
+    }
+    if (cursor < line.length) {
+      parts.push(line.slice(cursor));
+    }
+
+    return parts;
+  };
+
+  const blocks = text.split(/\n{2,}/);
+
+  return (
+    <div className="md">
+      {blocks.map((block, blockIdx) => {
+        const lines = block.split("\n").filter((l) => l.trim().length > 0);
+        const allBullets = lines.length > 0 && lines.every((l) => bulletRe.test(l));
+        if (allBullets) {
+          return (
+            <ul key={`b${blockIdx}`}>
+              {lines.map((line, i) => {
+                const m = line.match(bulletRe);
+                const inner = m ? m[1] : line;
+
+                return (
+                  <li key={`b${blockIdx}-li${i}`}>
+                    {renderInline(inner, `b${blockIdx}-li${i}`)}
+                  </li>
+                );
+              })}
+            </ul>
+          );
+        }
+
+        return (
+          <p key={`b${blockIdx}`}>
+            {lines.map((line, i) => (
+              <span key={`b${blockIdx}-l${i}`}>
+                {renderInline(line, `b${blockIdx}-l${i}`)}
+                {i < lines.length - 1 && <br />}
+              </span>
+            ))}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
+function AssistantBubbleContent({
+  message,
+}: {
+  message: { pending?: boolean; role: string; content: string };
+}) {
+  if (message.pending) {
+    return (
+      <p className="content">
+        <span className="typing">thinking…</span>
+      </p>
+    );
+  }
+  if (message.role === "assistant") {
+    return (
+      <div className="content">
+        <AssistantMarkdown text={message.content} />
+      </div>
+    );
+  }
+
+  return <p className="content">{message.content}</p>;
+}
+
 // eslint-disable-next-line max-lines-per-function
 function ChatPanel({
   data,
@@ -783,13 +873,7 @@ function ChatPanel({
             )}
             {active?.messages.map((m) => (
               <div key={m.id} className={`bubble ${m.role}`}>
-                <p className="content">
-                  {m.pending ? (
-                    <span className="typing">thinking…</span>
-                  ) : (
-                    m.content
-                  )}
-                </p>
+                <AssistantBubbleContent message={m} />
                 {m.role === "assistant" && m.reasoning && !m.pending && (
                   <details
                     className="reasoning"
@@ -1072,6 +1156,7 @@ function filterFeedByCategory(
 function Dashboard({
   data,
   accountId,
+  user,
   onLogout,
   mode,
   onModeChange,
@@ -1079,6 +1164,7 @@ function Dashboard({
 }: {
   data: DashboardPayload;
   accountId: string;
+  user: AppUser;
   onLogout: () => void;
   mode: DataMode;
   onModeChange: (mode: DataMode) => void;
@@ -1116,6 +1202,12 @@ function Dashboard({
     return `${Math.round((balance / total) * 100)}%`;
   };
 
+  // Prefer the first+last we persisted on sign-in, fall back to the login handle so the
+  // header always shows something recognisable even for GitHub accounts without a set name.
+  const signedInAs =
+    [user.firstName, user.lastName].filter((s) => s && s.trim().length > 0).join(" ").trim() ||
+    user.login;
+
   return (
     <main className={`term${refreshing ? " refreshing" : ""}`}>
       {refreshing && <span className="refbar" aria-hidden="true" />}
@@ -1126,7 +1218,17 @@ function Dashboard({
         </span>
         <span className="right">
           <ModeToggle mode={mode} onChange={onModeChange} />
-          {data.account.customerName}
+          {user.avatarUrl && (
+            <img
+              className="avatar"
+              src={user.avatarUrl}
+              alt=""
+              aria-hidden="true"
+              width={20}
+              height={20}
+            />
+          )}
+          <span title={`Signed in as @${user.login}`}>{signedInAs}</span>
           <button className="signout" onClick={onLogout}>
             Sign out
           </button>
@@ -1311,18 +1413,15 @@ function Dashboard({
   );
 }
 
-function Login({ onSuccess }: { onSuccess: () => void }) {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+function Login({ error, onSignIn }: { error: string | null; onSignIn: () => void | Promise<void> }) {
+  const [busy, setBusy] = useState(false);
 
-  const onSubmit = (event: FormEvent) => {
-    event.preventDefault();
-    if (username === "admin" && password === "admin") {
-      sessionStorage.setItem("authed", "1");
-      onSuccess();
-    } else {
-      setError("Incorrect username or password.");
+  const handleClick = async () => {
+    setBusy(true);
+    try {
+      await onSignIn();
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -1331,25 +1430,10 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
       <section className="empty">
         <p className="mark">Home banking</p>
         <h2>Sign in</h2>
-        <form className="login" onSubmit={onSubmit}>
-          <input
-            aria-label="Username"
-            type="text"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-          <input
-            aria-label="Password"
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <button className="find" type="submit">
-            Sign in
-          </button>
-        </form>
+        <p>Continue with your GitHub account to open the dashboard.</p>
+        <button className="find" type="button" onClick={handleClick} disabled={busy}>
+          {busy ? "Redirecting…" : "Sign in with GitHub"}
+        </button>
         {error && <p className="conn-msg error">{error}</p>}
       </section>
     </main>
@@ -1420,28 +1504,94 @@ function SkeletonDashboard({
 }
 
 function App() {
-  const [authed, setAuthed] = useState(() => {
-    try {
-      return sessionStorage.getItem("authed") === "1";
-    } catch {
-      return false;
-    }
-  });
+  // Two-part auth state: `user` is null until we're signed in (either from stored session or a
+  // completed GitHub callback). `authError` is only used to render the login screen's error slot.
+  const [user, setUser] = useState<AppUser | null>(() =>
+    getAuthToken() ? getStoredUser() : null,
+  );
+  const [authError, setAuthError] = useState<string | null>(null);
   const [data, setData] = useState<DashboardPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<DataMode>(loadMode);
-  const accountId = useMemo(() => resolveAccountId(), []);
-  // The account everything targets: the demo aggregate (mock ASPSP banks) or
-  // the real one (production Enable Banking connections).
-  const activeAccountId = mode === "demo" ? DEMO_ACCOUNT_UUID : accountId;
+  // An `?accountId=<uuid>` query param overrides everything (useful for QA / linking to a
+  // specific account). Otherwise: demo mode uses the shared demo aggregate, and live mode
+  // uses the signed-in user's own account_id provisioned by the orchestrator on first login.
+  const overrideAccountId = useMemo(resolveAccountId, []);
+  const activeAccountId =
+    overrideAccountId || (mode === "demo" ? DEMO_ACCOUNT_UUID : user?.accountId || "");
 
   const changeMode = (next: DataMode) => {
     persistMode(next);
     setMode(next);
   };
 
+  // Kicks off GitHub OAuth: ask the backend for an authorize URL, then hand the browser to GitHub.
+  const beginGithubLogin = async () => {
+    setAuthError(null);
+    try {
+      const { authUrl } = await startGithubLogin();
+      window.location.href = authUrl;
+    } catch (e) {
+      setAuthError(e instanceof Error ? e.message : "Failed to start sign-in");
+    }
+  };
+
+  // On mount: if we have a stored token, quietly revalidate it. On 401 the session is stale
+  // (e.g. server restart wiped the in-memory session map) — drop it and show the login screen.
   useEffect(() => {
+    if (!getAuthToken()) {
+      return;
+    }
+    fetchCurrentUser()
+      .then((fresh) => {
+        setUser(fresh);
+        // Keep the stored user in sync with what the server actually knows.
+        try {
+          localStorage.setItem("auth.user", JSON.stringify(fresh));
+        } catch {
+          // ignore
+        }
+      })
+      .catch(() => {
+        clearAuth();
+        setUser(null);
+      });
+  }, []);
+
+  // GitHub OAuth return: /auth/github/callback?code=&state= — the SPA finalizes the sign-in
+  // with the backend and then rewrites the URL back to `/` so a refresh doesn't retry.
+  useEffect(() => {
+    if (window.location.pathname !== GITHUB_CALLBACK_PATH) {
+      return;
+    }
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    const state = params.get("state");
+    if (!code || !state) {
+      window.history.replaceState({}, "", "/");
+      return;
+    }
+
+    setAuthError(null);
+    completeGithubLogin(code, state)
+      .then((session) => {
+        saveAuth(session);
+        setUser(session.user);
+        window.history.replaceState({}, "", "/");
+      })
+      .catch((e: Error) => {
+        setAuthError(e.message || "GitHub sign-in failed");
+        window.history.replaceState({}, "", "/");
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!user) {
+      // Signed out — no dashboard fetch. Reset loading so the next sign-in re-triggers it.
+      setLoading(false);
+      return;
+    }
     if (!activeAccountId) {
       setError(
         "Missing accountId. Set VITE_ACCOUNT_ID or use ?accountId=<uuid> in URL.",
@@ -1471,9 +1621,17 @@ function App() {
         setError(e.message);
         setLoading(false);
       });
-  }, [activeAccountId]);
+  }, [activeAccountId, user]);
 
   useEffect(() => {
+    // The Enable Banking OAuth callback lives at `/callback?code=&state=`. Ignore the GitHub
+    // callback path here so we don't accidentally forward auth codes to banking-service.
+    if (window.location.pathname === GITHUB_CALLBACK_PATH) {
+      return;
+    }
+    if (!user) {
+      return;
+    }
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
     const state = params.get("state");
@@ -1503,15 +1661,16 @@ function App() {
         setError("Bank connection failed. Please try again.");
         setLoading(false);
       });
-  }, [activeAccountId]);
+  }, [activeAccountId, user]);
 
   const onLogout = () => {
-    sessionStorage.removeItem("authed");
-    setAuthed(false);
+    void signOut();
+    setUser(null);
+    setData(null);
   };
 
-  if (!authed) {
-    return <Login onSuccess={() => setAuthed(true)} />;
+  if (!user) {
+    return <Login error={authError} onSignIn={beginGithubLogin} />;
   }
 
   // First load, nothing to show yet: render the layout skeleton. A refresh of
@@ -1570,6 +1729,7 @@ function App() {
       <Dashboard
         data={data}
         accountId={activeAccountId}
+        user={user}
         onLogout={onLogout}
         mode={mode}
         onModeChange={changeMode}

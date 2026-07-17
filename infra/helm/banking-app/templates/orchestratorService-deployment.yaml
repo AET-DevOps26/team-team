@@ -38,5 +38,24 @@ spec:
               value: "http://banking-service:{{ .Values.bankingService.service.port }}"
             - name: APP_CORS_ALLOWED_ORIGINS
               value: "https://{{ .Values.tumid }}-devops-ss26.stud.k8s.aet.cit.tum.de"
+            # DB access — UserRepository (JdbcClient) needs this to upsert users on sign-in.
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres:{{ .Values.postgres.service.port }}/{{ .Values.postgres.database.name }}"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "{{ .Values.postgres.database.user }}"
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: password
+            # GitHub OAuth login for the app itself. Empty defaults keep the deployment valid
+            # for helm-dry-run; real values are injected by cd.yml from GH_OAUTH_CLIENT_ID /
+            # GH_OAUTH_CLIENT_SECRET repo secrets.
+            - name: GITHUB_CLIENT_ID
+              value: "{{ .Values.orchestratorService.githubOauth.clientId }}"
+            - name: GITHUB_CLIENT_SECRET
+              value: "{{ .Values.orchestratorService.githubOauth.clientSecret }}"
+            - name: GITHUB_REDIRECT_URI
+              value: "https://{{ .Values.tumid }}-devops-ss26.stud.k8s.aet.cit.tum.de/login/oauth2/code/github"
           resources:
             {{- toYaml .Values.orchestratorService.resources | nindent 12 }}

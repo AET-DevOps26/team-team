@@ -49,3 +49,18 @@ CREATE TABLE IF NOT EXISTS banking_connections (
   updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
   valid_until TIMESTAMP
 );
+
+-- Registered application users. Populated on GitHub OAuth sign-in by the
+-- orchestrator-service AuthController: first sign-in inserts, subsequent
+-- sign-ins refresh the profile fields from GitHub.
+CREATE TABLE IF NOT EXISTS users (
+  github_id BIGINT PRIMARY KEY,
+  login VARCHAR(100) NOT NULL,
+  first_name VARCHAR(100),
+  last_name VARCHAR(100),
+  email VARCHAR(255),
+  avatar_url VARCHAR(500),
+  account_id UUID REFERENCES accounts(id),
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);

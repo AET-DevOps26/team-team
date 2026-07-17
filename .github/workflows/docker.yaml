@@ -57,6 +57,23 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # The client image expects a pre-built ./client/dist (see client/Dockerfile
+      # for why we build on the host instead of inside the container).
+      - name: Set up Node.js
+        if: matrix.service == 'client'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Build client bundle
+        if: matrix.service == 'client'
+        working-directory: client
+        run: |
+          npm ci
+          npm run build
+
       - name: Build and Push
         run: |
           docker build \
