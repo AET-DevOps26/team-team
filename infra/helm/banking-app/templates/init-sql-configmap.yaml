@@ -56,3 +56,23 @@ data:
       updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
       valid_until TIMESTAMP
     );
+
+    -- Registered application users. Populated on GitHub OAuth sign-in by the
+    -- orchestrator-service AuthController: first sign-in inserts, subsequent
+    -- sign-ins refresh the profile fields from GitHub. Keep in sync with
+    -- infra/docker/init.sql and infra/docker/migrate-users.sql.
+    CREATE TABLE IF NOT EXISTS users (
+      github_id BIGINT PRIMARY KEY,
+      login VARCHAR(100) NOT NULL,
+      first_name VARCHAR(100),
+      last_name VARCHAR(100),
+      email VARCHAR(255),
+      avatar_url VARCHAR(500),
+      account_id UUID REFERENCES accounts(id),
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    );
+
+    -- Backfill the per-user aggregate account link for DBs created before
+    -- this column existed (idempotent thanks to IF NOT EXISTS).
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS account_id UUID REFERENCES accounts(id);

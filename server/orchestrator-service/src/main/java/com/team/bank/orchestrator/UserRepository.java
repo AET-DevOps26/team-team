@@ -1,10 +1,7 @@
 package com.team.bank.orchestrator;
 
-import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -89,8 +86,10 @@ public class UserRepository {
 
   /**
    * Ensures the user has their own aggregate account. Idempotent — if `account_id` is already set
-   * on the users row, does nothing. Otherwise creates the accounts row, links it, and seeds a small
-   * illustrative transaction history so a first sign-in doesn't land on an empty dashboard.
+   * on the users row, does nothing. Otherwise creates an empty accounts row and links it. Real bank
+   * connections and transactions are populated exclusively by the Enable Banking OAuth flow; the
+   * live dashboard stays empty until a bank is actually linked. Rich mock data lives on the shared
+   * demo aggregate account (see scripts/seed-demo-data.sql) and is exposed via the Demo toggle.
    */
   private void provisionAccountIfMissing(long githubId, String customerName) {
     Optional<UUID> existing =
@@ -117,84 +116,6 @@ public class UserRepository {
         .sql("UPDATE users SET account_id = :accountId WHERE github_id = :githubId")
         .param("accountId", accountId)
         .param("githubId", githubId)
-        .update();
-
-    seedStarterData(accountId);
-  }
-
-  /**
-   * Small illustrative dataset for a freshly-provisioned user account: one linked bank + roughly
-   * three months of salary / rent / groceries / subscriptions. Kept minimal so the dashboard has
-   * something to render without pretending to be real financial data.
-   */
-  private void seedStarterData(UUID accountId) {
-    UUID connectionId = UUID.randomUUID();
-    BigDecimal openingBalance = new BigDecimal("3250.00");
-
-    jdbcClient
-        .sql(
-            "INSERT INTO banking_connections "
-                + "  (id, account_id, session_id, bank_name, country, state, "
-                + "   external_account_uid, account_name, balance, currency, status) "
-                + "VALUES (:id, :accountId, :session, 'N26', 'DE', :state, "
-                + "        :extUid, 'Main account', :balance, 'EUR', 'ACTIVE')")
-        .param("id", connectionId)
-        .param("accountId", accountId)
-        .param("session", "seed-" + connectionId)
-        .param("state", "seed-user-" + connectionId)
-        .param("extUid", "ext-" + connectionId)
-        .param("balance", openingBalance)
-        .update();
-
-    jdbcClient
-        .sql("UPDATE accounts SET balance = :balance WHERE id = :id")
-        .param("balance", openingBalance)
-        .param("id", accountId)
-        .update();
-
-    LocalDate today = LocalDate.now(ZoneId.of("UTC"));
-    for (int monthsAgo = 0; monthsAgo < 3; monthsAgo++) {
-      LocalDate month = today.minusMonths(monthsAgo).withDayOfMonth(1);
-      insertTx(
-          accountId,
-          connectionId,
-          month.withDayOfMonth(28),
-          "Salary",
-          "TUM Payroll",
-          "3200.00",
-          "CREDIT");
-      insertTx(accountId, connectionId, month, "Rent", "Vermieter GmbH", "1180.00", "DEBIT");
-      insertTx(accountId, connectionId, month.plusDays(3), "Groceries", "REWE", "62.40", "DEBIT");
-      insertTx(
-          accountId, connectionId, month.plusDays(10), "Subscription", "Spotify", "9.99", "DEBIT");
-      insertTx(
-          accountId, connectionId, month.plusDays(11), "Subscription", "Netflix", "12.99", "DEBIT");
-    }
-  }
-
-  private void insertTx(
-      UUID accountId,
-      UUID connectionId,
-      LocalDate date,
-      String category,
-      String counterparty,
-      String amount,
-      String direction) {
-    jdbcClient
-        .sql(
-            "INSERT INTO transactions "
-                + "  (id, account_id, connection_id, bank_name, category, counterparty, "
-                + "   amount, direction, created_at) "
-                + "VALUES (:id, :accountId, :connectionId, 'N26', :category, :counterparty, "
-                + "        :amount, :direction, :createdAt)")
-        .param("id", UUID.randomUUID())
-        .param("accountId", accountId)
-        .param("connectionId", connectionId)
-        .param("category", category)
-        .param("counterparty", counterparty)
-        .param("amount", new BigDecimal(amount))
-        .param("direction", direction)
-        .param("createdAt", Timestamp.valueOf(date.atTime(9, 0)))
         .update();
   }
 
