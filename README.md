@@ -20,8 +20,8 @@
 This repository contains a full mono-repo banking web application with:
 
 - `client`: React + TypeScript frontend (with GitHub OAuth sign-in gate)
-- `server`: Java Spring Boot microservices — **five** services, Gradle-built:
-  `account-service`, `transaction-service`, `banking-service`, `orchestrator-service`, plus a shared build.
+- `server`: Java Spring Boot microservices — **four** services, Gradle-built:
+  `account-service`, `transaction-service`, `banking-service`, `orchestrator-service`.
 - `genai`: Python-based GenAI microservice (FastAPI)
 - `infra`: Docker Compose, Traefik reverse proxy, Kubernetes manifests, Helm chart (`infra/helm/banking-app`), monitoring stack (Prometheus + Alertmanager + Grafana), Terraform + Ansible bootstrap
 
