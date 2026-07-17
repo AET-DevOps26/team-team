@@ -158,7 +158,13 @@ public class BankingSyncService {
       newTx.setConnectionId(connection.getId());
       newTx.setBankName(connection.getBankName());
       newTx.setCounterparty(counterparty);
-      newTx.setCategory(describe(tx, counterparty));
+      newTx.setCategory(
+          TransactionCategorizer.categorize(
+              direction,
+              counterparty,
+              remittanceText(tx),
+              stringField(tx, "merchant_category_code"),
+              bankTransactionCode(tx)));
       newTx.setAmount(txAmount);
       newTx.setDirection(direction);
       newTx.setCreatedAt(parseTransactionDate(tx));
@@ -190,10 +196,10 @@ public class BankingSyncService {
   }
 
   /**
-   * Human-readable description for a transaction: the bank's remittance info when present (Enable
-   * Banking sends it as a list of lines), otherwise the already-resolved counterparty name.
+   * The bank's remittance info as one line (Enable Banking sends it as a list of lines), or null
+   * when absent. Feeds the categorizer's keyword matching alongside the counterparty name.
    */
-  private static String describe(Map<String, Object> tx, String counterparty) {
+  private static String remittanceText(Map<String, Object> tx) {
     Object remittance = field(tx, "remittance_information");
     if (remittance instanceof List<?> lines && !lines.isEmpty()) {
       String joined =
@@ -208,7 +214,21 @@ public class BankingSyncService {
     } else if (remittance != null && !remittance.toString().isBlank()) {
       return remittance.toString();
     }
-    return counterparty != null ? counterparty : "Uncategorized";
+    return null;
+  }
+
+  private static String stringField(Map<String, Object> tx, String name) {
+    Object value = field(tx, name);
+    return value == null ? null : value.toString();
+  }
+
+  /** The ISO code inside bank_transaction_code ({description, code, sub_code}), or null. */
+  private static String bankTransactionCode(Map<String, Object> tx) {
+    Object btc = field(tx, "bank_transaction_code");
+    if (btc instanceof Map<?, ?> codes && codes.get("code") != null) {
+      return codes.get("code").toString();
+    }
+    return null;
   }
 
   /**

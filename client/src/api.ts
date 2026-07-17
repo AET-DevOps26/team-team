@@ -6,14 +6,17 @@ export interface BalancePoint {
 export interface ExpenseSlice {
   category: string;
   percentage: number;
+  // Enrichment served by newer backends; absent values fall back to the
+  // percentage-only rendering.
+  amount?: number | null;
+  count?: number | null;
+  topMerchants?: string[] | null;
 }
 
 export interface AccountSummary {
   accountId: string;
   customerName: string;
   totalBalance: number;
-  totalCreditLimit: number;
-  utilizationRate: number;
 }
 
 export interface BankListItem {

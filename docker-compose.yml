@@ -73,6 +73,9 @@ services:
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-bank}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-bank}
       SERVER_PORT: 8081
+      # The balance-trend endpoint reconstructs history from transaction-service;
+      # without this it falls back to localhost and returns a single flat point.
+      TRANSACTION_SERVICE_URL: http://transaction-service:8082
 
     depends_on:
       database:

@@ -199,16 +199,16 @@ class BankingSyncServiceTest {
       List<Transaction> saved = captor.getAllValues();
       assertEquals(2, saved.size());
 
-      // First: DEBIT, Grocery shopping
+      // First: DEBIT, "Grocery shopping" remittance categorizes as Groceries
       Transaction tx1 = saved.get(0);
       assertEquals(ACCOUNT_ID, tx1.getAccountId());
-      assertEquals("Grocery shopping", tx1.getCategory());
+      assertEquals("Groceries", tx1.getCategory());
       assertEquals(new BigDecimal("45.50"), tx1.getAmount());
       assertEquals("DEBIT", tx1.getDirection());
 
-      // Second: CREDIT, Salary
+      // Second: CREDIT with no refund hint categorizes as Income
       Transaction tx2 = saved.get(1);
-      assertEquals("Salary", tx2.getCategory());
+      assertEquals("Income", tx2.getCategory());
       assertEquals("CREDIT", tx2.getDirection());
     }
 
@@ -361,7 +361,7 @@ class BankingSyncServiceTest {
   class CategoryFallback {
 
     @Test
-    @DisplayName("should use 'Uncategorized' when remittance_information is null")
+    @DisplayName("should use 'Other' when nothing identifies the merchant")
     void shouldFallbackCategoryWhenRemittanceInfoIsNull() {
       when(ebClient.getBalances(EXTERNAL_UID)).thenReturn(null);
       when(ebClient.getTransactions(EXTERNAL_UID))
@@ -388,7 +388,7 @@ class BankingSyncServiceTest {
 
       ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
       verify(transactionRepository).save(captor.capture());
-      assertEquals("Uncategorized", captor.getValue().getCategory());
+      assertEquals("Other", captor.getValue().getCategory());
     }
   }
 

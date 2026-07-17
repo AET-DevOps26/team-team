@@ -9,6 +9,7 @@ import type {
   ChatContext,
   ChatMessage,
   AppUser,
+  Transaction,
 } from "./api";
 import {
   fetchDashboard,
@@ -47,11 +48,26 @@ const Y_TOP = 5;
 const Y_BOTTOM = 35;
 const MIN_TREND_POINTS = 2;
 
+// Money is shown to the cent everywhere: a rounded "€24,731" reads as mock
+// data, while "€24,731.28" reads as a real balance. Digits are tabular
+// (set globally on <body>) so amounts line up in columns.
 function formatMoney(value: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "EUR",
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+// Compact currency for the trend chart's scale labels (e.g. "€24.7K"), where
+// full cents would be too wide and exact precision doesn't matter.
+function formatCompact(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "EUR",
+    notation: "compact",
+    maximumFractionDigits: 1,
   }).format(value);
 }
 
@@ -68,7 +84,8 @@ function formatBankBalance(
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: currency || "EUR",
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(value);
 }
 
@@ -264,7 +281,20 @@ function BankConnect({ accountId }: { accountId: string }) {
   );
 }
 
+// The x position where a data point sits, given its index (points are evenly
+// spaced across the full 0..100 width).
+function trendX(index: number, count: number): number {
+  return count <= 1 ? 0 : (index / (count - 1)) * 100;
+}
+
+// Fraction of the plot's top the point sits at (for absolute CSS positioning),
+// so the hover tooltip/dot line up with the SVG geometry.
+const TOP_HALF_THRESHOLD = 30; // when the point is this high, flip the tip below
+
 function TrendChart({ trend }: { trend: BalancePoint[] }) {
+  const [hover, setHover] = useState<number | null>(null);
+  const plotRef = useRef<HTMLDivElement | null>(null);
+
   const chart = useMemo(() => {
     if (trend.length < MIN_TREND_POINTS) {
       return null;
@@ -274,18 +304,20 @@ function TrendChart({ trend }: { trend: BalancePoint[] }) {
     const min = Math.min(...balances);
     const spread = Math.max(1, max - min);
     const points = trend.map((p, index) => {
-      const x = (index / (trend.length - 1)) * 100;
+      const x = trendX(index, trend.length);
       const y = Y_TOP + (1 - (p.balance - min) / spread) * (Y_BOTTOM - Y_TOP);
 
-      return [x, y] as const;
+      return { x, y, month: p.month, balance: p.balance };
     });
-    const last = points[points.length - 1];
+    const line = points.map((q) => `${q.x},${q.y}`).join(" ");
 
     return {
-      points: points.map((q) => `${q[0]},${q[1]}`).join(" "),
-      dotLeft: `${last[0]}%`,
-      dotTop: `${(last[1] / VIEW_H) * 100}%`,
-      months: trend.map((p) => p.month),
+      points,
+      line,
+      // Close the polyline down to the baseline on both ends to fill the area.
+      area: `0,${VIEW_H} ${line} 100,${VIEW_H}`,
+      min,
+      max,
     };
   }, [trend]);
 
@@ -293,29 +325,87 @@ function TrendChart({ trend }: { trend: BalancePoint[] }) {
     return null;
   }
 
+  const onMove = (e: ReactMouseEvent) => {
+    const el = plotRef.current;
+    if (!el) {
+      return;
+    }
+    const rect = el.getBoundingClientRect();
+    if (!rect.width) {
+      return;
+    }
+    const ratio = (e.clientX - rect.left) / rect.width;
+    const idx = Math.round(ratio * (chart.points.length - 1));
+    if (!Number.isFinite(idx)) {
+      return;
+    }
+    setHover(Math.min(chart.points.length - 1, Math.max(0, idx)));
+  };
+
+  // With no cursor, park the marker on the latest point (as before). On hover
+  // it tracks the nearest point and reveals a guide line + value tooltip.
+  const hovering = hover !== null;
+  const activeIdx = hover ?? chart.points.length - 1;
+  const active = chart.points[activeIdx];
+  const topPct = (active.y / VIEW_H) * 100;
+  const tipBelow = topPct < TOP_HALF_THRESHOLD;
+  const tipLeft = Math.min(92, Math.max(8, active.x));
+
   return (
     <>
       <hr className="divide" />
       <section className="pad">
         <p className="seclabel">
-          Combined balance <span className="n">{chart.months.length}M</span>
+          Combined balance <span className="n">{chart.points.length}M</span>
         </p>
-        <div className="plot">
+        <div
+          className="plot"
+          ref={plotRef}
+          onMouseMove={onMove}
+          onMouseLeave={() => setHover(null)}
+        >
           <svg
             viewBox={`0 0 100 ${VIEW_H}`}
             preserveAspectRatio="none"
             aria-hidden="true"
           >
-            <polyline className="line" points={chart.points} />
+            <defs>
+              <linearGradient id="trendfill" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" className="fill-top" />
+                <stop offset="100%" className="fill-bottom" />
+              </linearGradient>
+            </defs>
+            <polygon
+              className="area"
+              points={chart.area}
+              fill="url(#trendfill)"
+            />
+            <polyline className="line" points={chart.line} />
           </svg>
+
+          <span className="yscale ymax">{formatCompact(chart.max)}</span>
+          <span className="yscale ymin">{formatCompact(chart.min)}</span>
+
+          {hovering && (
+            <i className="guide" style={{ left: `${active.x}%` }} />
+          )}
           <i
             className="enddot"
-            style={{ left: chart.dotLeft, top: chart.dotTop }}
+            style={{ left: `${active.x}%`, top: `${topPct}%` }}
           />
+          {hovering && (
+            <div
+              className={`tip ${tipBelow ? "below" : "above"}`}
+              style={{ left: `${tipLeft}%`, top: `${topPct}%` }}
+            >
+              <span className="tip-v">{formatMoney(active.balance)}</span>
+              <span className="tip-m">{active.month}</span>
+            </div>
+          )}
         </div>
         <div className="axis">
-          {chart.months.map((m) => (
-            <span key={m}>{m}</span>
+          {chart.points.map((p) => (
+            <span key={p.month}>{p.month}</span>
           ))}
         </div>
       </section>
@@ -910,6 +1000,77 @@ function ChatDock({
   );
 }
 
+// The recent-transactions list, optionally narrowed to the expense category
+// picked in the breakdown above it; the chip clears the filter.
+function TransactionFeed({
+  transactions,
+  filter,
+  onClearFilter,
+}: {
+  transactions: Transaction[];
+  filter: string | null;
+  onClearFilter: () => void;
+}) {
+  return (
+    <section className="pad">
+      <p className="seclabel">
+        <span className="seclt">
+          Recent transactions
+          {filter && (
+            <button
+              type="button"
+              className="fchip"
+              onClick={onClearFilter}
+              title="Clear category filter"
+            >
+              {filter} ×
+            </button>
+          )}
+        </span>
+        <span className="n">{transactions.length}</span>
+      </p>
+      <ul className="feed">
+        {transactions.length === 0 && filter && (
+          <li className="fempty">
+            No {filter} transactions in the recent feed
+          </li>
+        )}
+        {transactions.map((t) => (
+          <li key={t.id}>
+            <span className="tdesc">{t.counterparty || t.category}</span>
+            <span
+              className={`tamt ${t.direction.toUpperCase() === "CREDIT" ? "pos" : "neg"}`}
+            >
+              {formatSignedMoney(t.amount, t.direction)}
+            </span>
+            <span className="tmeta">
+              {formatTxDate(t.createdAt)}
+              {t.bankName && ` · ${t.bankName}`}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+// Same folding the backend applies to expense slices, so a filter on
+// "Other" also matches transactions that never got a category.
+function filterFeedByCategory(
+  transactions: Transaction[],
+  category: string | null,
+): Transaction[] {
+  if (!category) {
+    return transactions;
+  }
+
+  return transactions.filter(
+    (t) =>
+      (!t.category || t.category === "Uncategorized" ? "Other" : t.category) ===
+      category,
+  );
+}
+
 function Dashboard({
   data,
   accountId,
@@ -917,6 +1078,7 @@ function Dashboard({
   onLogout,
   mode,
   onModeChange,
+  refreshing,
 }: {
   data: DashboardPayload;
   accountId: string;
@@ -924,8 +1086,15 @@ function Dashboard({
   onLogout: () => void;
   mode: DataMode;
   onModeChange: (mode: DataMode) => void;
+  // True while a fresh fetch is in flight (e.g. after a Demo/Live switch): the
+  // current dashboard stays on screen, dimmed under a progress bar, so the view
+  // never blanks out to a spinner while swapping data sources.
+  refreshing?: boolean;
 }) {
   const [addOpen, setAddOpen] = useState(false);
+  // Category picked in the expenses list; filters the recent-transactions feed
+  // below so every slice can be checked against the purchases behind it.
+  const [expenseFilter, setExpenseFilter] = useState<string | null>(null);
 
   const trendDelta =
     data.trend.length >= MIN_TREND_POINTS
@@ -940,6 +1109,8 @@ function Dashboard({
     (m, b) => Math.max(m, b.spending),
     0,
   );
+
+  const feedTxs = filterFeedByCategory(data.transactions, expenseFilter);
 
   const bankShare = (balance: number | null): string | null => {
     if (balance === null || total <= 0) {
@@ -956,7 +1127,8 @@ function Dashboard({
     user.login;
 
   return (
-    <main className="term">
+    <main className={`term${refreshing ? " refreshing" : ""}`}>
+      {refreshing && <span className="refbar" aria-hidden="true" />}
       <header className="statusbar">
         <span className="live">
           <span className="dot" />
@@ -999,20 +1171,18 @@ function Dashboard({
         </p>
       </section>
 
-      <hr className="divide" />
-
-      <div className="pair">
-        <div className="cell">
-          <p className="k">Credit limit</p>
-          <p className="v">{formatMoney(data.account.totalCreditLimit)}</p>
-        </div>
-        <div className="cell">
-          <p className="k">Utilization</p>
-          <p className="v">
-            {(data.account.utilizationRate * 100).toFixed(1)}%
+      {data.aiSummary && (
+        <section className="insight">
+          <p>
+            <span className="mark" aria-hidden="true">
+              ✦
+            </span>
+            <span className="label">Insight</span>
+            {data.aiSummary}
           </p>
-        </div>
-      </div>
+        </section>
+      )}
+
       {flow && (
         <>
           <hr className="divide" />
@@ -1081,15 +1251,42 @@ function Dashboard({
               Expenses <span className="n">all banks</span>
             </p>
             <div>
-              {data.expenses.map((slice) => (
-                <div className="erow" key={slice.category}>
-                  <span className="cat">{slice.category}</span>
-                  <span className="track">
-                    <i style={{ width: `${slice.percentage}%` }} />
-                  </span>
-                  <span className="pct">{slice.percentage}%</span>
-                </div>
-              ))}
+              {data.expenses.map((slice) => {
+                const isOther = slice.category === "Other";
+                const active = expenseFilter === slice.category;
+                const merchants = slice.topMerchants ?? [];
+
+                return (
+                  <button
+                    type="button"
+                    className={`erow${isOther ? " other" : ""}${active ? " active" : ""}`}
+                    key={slice.category}
+                    onClick={() =>
+                      setExpenseFilter(active ? null : slice.category)
+                    }
+                    title={`Show ${slice.category} in recent transactions`}
+                  >
+                    <span className="cat">{slice.category}</span>
+                    <span className="track">
+                      <i style={{ width: `${slice.percentage}%` }} />
+                    </span>
+                    <span className="pct">
+                      {slice.amount != null
+                        ? formatMoney(slice.amount)
+                        : `${slice.percentage}%`}
+                    </span>
+                    {slice.amount != null && (
+                      <span className="emeta">
+                        {slice.percentage}%
+                        {merchants.length > 0 &&
+                          ` · mostly ${merchants.join(", ")}`}
+                        {slice.count != null &&
+                          ` · ${slice.count} ${slice.count === 1 ? "purchase" : "purchases"}`}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </section>
         </>
@@ -1122,40 +1319,14 @@ function Dashboard({
       {data.transactions.length > 0 && (
         <>
           <hr className="divide" />
-          <section className="pad">
-            <p className="seclabel">
-              Recent transactions{" "}
-              <span className="n">{data.transactions.length}</span>
-            </p>
-            <ul className="feed">
-              {data.transactions.map((t) => (
-                <li key={t.id}>
-                  <span className="tdesc">{t.counterparty || t.category}</span>
-                  <span
-                    className={`tamt ${t.direction.toUpperCase() === "CREDIT" ? "pos" : "neg"}`}
-                  >
-                    {formatSignedMoney(t.amount, t.direction)}
-                  </span>
-                  <span className="tmeta">
-                    {formatTxDate(t.createdAt)}
-                    {t.bankName && ` · ${t.bankName}`}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
+          <TransactionFeed
+            transactions={feedTxs}
+            filter={expenseFilter}
+            onClearFilter={() => setExpenseFilter(null)}
+          />
         </>
       )}
 
-      {data.aiSummary && (
-        <>
-          <hr className="divide" />
-          <section className="pad summary">
-            <p className="seclabel">Summary</p>
-            <p>{data.aiSummary}</p>
-          </section>
-        </>
-      )}
     </main>
   );
 }
@@ -1182,6 +1353,69 @@ function Login({ error, onSignIn }: { error: string | null; onSignIn: () => void
           {busy ? "Redirecting…" : "Sign in with GitHub"}
         </button>
         {error && <p className="conn-msg error">{error}</p>}
+      </section>
+    </main>
+  );
+}
+
+/* Layout-matching placeholder shown on the very first load (before any data
+   exists). Mirroring the real modules — hero, stat pair, roster — means the
+   dashboard resolves in place instead of popping in after a bare spinner. */
+function SkeletonDashboard({
+  mode,
+  onModeChange,
+}: {
+  mode: DataMode;
+  onModeChange: (mode: DataMode) => void;
+}) {
+  return (
+    <main className="term" aria-busy="true" aria-label="Loading dashboard">
+      <span className="refbar" aria-hidden="true" />
+      <header className="statusbar">
+        <span className="live">
+          <span className="dot" />
+          <span className="skel skel-line" style={{ width: 96 }} />
+        </span>
+        <span className="right">
+          <ModeToggle mode={mode} onChange={onModeChange} />
+        </span>
+      </header>
+
+      <section className="hero">
+        <span className="skel skel-line" style={{ width: 110 }} />
+        <span className="skel skel-hero" />
+        <span className="skel skel-line" style={{ width: 200 }} />
+      </section>
+
+      <hr className="divide" />
+
+      <div className="pair">
+        <div className="cell">
+          <span className="skel skel-line" style={{ width: 80 }} />
+          <span className="skel skel-num" />
+        </div>
+        <div className="cell">
+          <span className="skel skel-line" style={{ width: 80 }} />
+          <span className="skel skel-num" />
+        </div>
+      </div>
+
+      <hr className="divide" />
+
+      <section className="pad">
+        <span
+          className="skel skel-line"
+          style={{ width: 120, marginBottom: "1.2rem" }}
+        />
+        <ul className="skel-roster">
+          {[64, 52, 58].map((w) => (
+            <li key={w}>
+              <span className="skel skel-dot" />
+              <span className="skel skel-line" style={{ width: `${w}%` }} />
+              <span className="skel skel-line" style={{ width: 70 }} />
+            </li>
+          ))}
+        </ul>
       </section>
     </main>
   );
@@ -1357,15 +1591,11 @@ function App() {
     return <Login error={authError} onSignIn={beginGithubLogin} />;
   }
 
-  if (loading) {
-    return (
-      <main className="term">
-        <div className="topbar">
-          <ModeToggle mode={mode} onChange={changeMode} />
-        </div>
-        <p className="notice">Connecting…</p>
-      </main>
-    );
+  // First load, nothing to show yet: render the layout skeleton. A refresh of
+  // an already-loaded dashboard (e.g. a Demo/Live switch) keeps the current
+  // view on screen instead — see the `refreshing` prop on <Dashboard>.
+  if (loading && !data) {
+    return <SkeletonDashboard mode={mode} onModeChange={changeMode} />;
   }
 
   if (error || !data) {
@@ -1421,6 +1651,7 @@ function App() {
         onLogout={onLogout}
         mode={mode}
         onModeChange={changeMode}
+        refreshing={loading}
       />
       <ChatDock data={data} accountId={activeAccountId} />
     </>
