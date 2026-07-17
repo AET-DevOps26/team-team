@@ -79,6 +79,14 @@ orchestratorService:
     port: 8083
     targetPort: 8083
   replicaCount: 1
+  # GitHub OAuth App credentials for the K8s deployment (see templates/orchestratorService-deployment.yaml).
+  # Empty defaults keep helm-dry-run / lint valid; real values are injected at `helm upgrade`
+  # time by cd.yml from the GH_OAUTH_CLIENT_ID / GH_OAUTH_CLIENT_SECRET repo secrets. Register
+  # `https://<tumid>-devops-ss26.stud.k8s.aet.cit.tum.de/login/oauth2/code/github` as the
+  # Authorization callback URL on the OAuth App that owns these credentials.
+  githubOauth:
+    clientId: ""
+    clientSecret: ""
   resources:
     limits:
       cpu: "300m"

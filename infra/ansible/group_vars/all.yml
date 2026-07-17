@@ -34,3 +34,9 @@ app_env:
   LOGOS_KEY: "{{ logos_key | default('') }}"
   LOGOS_BASE_URL: "{{ logos_base_url | default('https://logos.aet.cit.tum.de') }}"
   LOGOS_MODEL: "{{ logos_model | default('openai/gpt-oss-120b') }}"
+  # GitHub OAuth sign-in for the app itself — injected via --extra-vars from GitHub secrets
+  # GH_OAUTH_CLIENT_ID / GH_OAUTH_CLIENT_SECRET (secrets can't start with GITHUB_).
+  # Redirect URI defaults to the deploy's public FQDN + the SPA callback route the app expects.
+  GITHUB_CLIENT_ID: "{{ github_oauth_client_id | default('') }}"
+  GITHUB_CLIENT_SECRET: "{{ github_oauth_client_secret | default('') }}"
+  GITHUB_REDIRECT_URI: "{{ github_oauth_redirect_uri | default('https://' ~ (app_fqdn | default(app_public_ip)) ~ '/login/oauth2/code/github') }}"

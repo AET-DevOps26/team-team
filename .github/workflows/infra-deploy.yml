@@ -135,14 +135,21 @@ jobs:
           EB_APP_ID: ${{ secrets.EB_APP_ID }}
           EB_REDIRECT_URL: ${{ secrets.EB_REDIRECT_URL }}
           LOGOS_KEY: ${{ secrets.LOGOS_KEY }}
+          # GitHub Actions won't allow secret names starting with GITHUB_, so the OAuth App
+          # credentials for the app itself are stored as GH_OAUTH_CLIENT_ID / _CLIENT_SECRET
+          # and translated to GITHUB_CLIENT_ID / _SECRET on the VM by group_vars/all.yml.
+          GH_OAUTH_CLIENT_ID: ${{ secrets.GH_OAUTH_AZURE_CLIENT_ID }}
+          GH_OAUTH_CLIENT_SECRET: ${{ secrets.GH_OAUTH_AZURE_CLIENT_SECRET }}
         run: |
           python3 - <<'PY'
           import json, os
           data = {
-              "eb_private_key_pem": os.environ.get("EB_PRIVATE_KEY", ""),
-              "eb_app_id":          os.environ.get("EB_APP_ID", ""),
-              "eb_redirect_url":    os.environ.get("EB_REDIRECT_URL", ""),
-              "logos_key":          os.environ.get("LOGOS_KEY", ""),
+              "eb_private_key_pem":          os.environ.get("EB_PRIVATE_KEY", ""),
+              "eb_app_id":                   os.environ.get("EB_APP_ID", ""),
+              "eb_redirect_url":             os.environ.get("EB_REDIRECT_URL", ""),
+              "logos_key":                   os.environ.get("LOGOS_KEY", ""),
+              "github_oauth_client_id":      os.environ.get("GH_OAUTH_CLIENT_ID", ""),
+              "github_oauth_client_secret":  os.environ.get("GH_OAUTH_CLIENT_SECRET", ""),
           }
           with open("/tmp/eb-vars.json", "w") as f:
               json.dump(data, f)

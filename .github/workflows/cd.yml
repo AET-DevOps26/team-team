@@ -272,6 +272,8 @@ jobs:
             --set client.image.tag="${{ github.sha }}" \
             --set bankingService.image.tag="${{ github.sha }}" \
             --set-string bankingService.enableBanking.appId="${{ secrets.EB_APP_ID }}" \
+            --set-string orchestratorService.githubOauth.clientId="${{ secrets.GH_OAUTH_K8S_CLIENT_ID }}" \
+            --set-string orchestratorService.githubOauth.clientSecret="${{ secrets.GH_OAUTH_K8S_CLIENT_SECRET }}" \
             --set genaiService.modelProvider="${{ vars.GENAI_MODEL_PROVIDER || 'logos' }}" \
             --timeout 5m \
             --wait \
