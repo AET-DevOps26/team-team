@@ -24,9 +24,8 @@ public class UserRepository {
 
   /**
    * Creates the user on first sign-in, refreshes profile fields on later sign-ins, and provisions a
-   * per-user aggregate `accounts` row (with a small starter transaction set) the first time. Later
-   * calls reuse the existing account_id. Returns the persisted row so the caller sees exactly what
-   * the DB holds.
+   * per-user aggregate `accounts` row the first time. Later calls reuse the existing account_id.
+   * Returns the persisted row so the caller sees exactly what the DB holds.
    */
   @Transactional
   public AppUser upsert(
