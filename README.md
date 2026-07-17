@@ -220,7 +220,7 @@ The orchestrator exposes a minimal GitHub OAuth flow (see [server/orchestrator-s
 GitHub Actions workflows live under [.github/workflows/](.github/workflows/):
 
 - **CI** ([ci.yml](.github/workflows/ci.yml)) — runs on every PR and push to `main`:
-  - Backend quality gate: `./gradlew test spotlessCheck --parallel` (compilation + tests + Spotless formatting; Error Prone and Detekt run at compile time via [server/build.gradle.kts](server/build.gradle.kts))
+  - Backend quality gate: `./gradlew test spotlessCheck --parallel` (compilation + tests + Spotless formatting; Error Prone runs at compile time via [server/build.gradle.kts](server/build.gradle.kts))
   - Lints, tests, and builds the React frontend (`npm ci && npm run lint && npm run test && npm run build`)
   - Runs the Python GenAI service test suite (`pytest`)
   - Uses Java 21 (Temurin), Node 22, Python 3.12
