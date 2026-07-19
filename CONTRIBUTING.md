@@ -95,13 +95,17 @@ cd server && ./gradlew test
 # Individual services
 cd server && ./gradlew :account-service:test
 cd server && ./gradlew :transaction-service:test
+cd server && ./gradlew :banking-service:test
 cd server && ./gradlew :orchestrator-service:test
+
+# Full CI-equivalent quality gate (compile + tests + Spotless + Error Prone)
+cd server && ./gradlew test spotlessCheck --parallel
 
 # GenAI service
 cd ../genai && pip install -r requirements.txt && pytest
 
 # Frontend
-cd ../client && npm install && npm run test && npm run build
+cd ../client && npm install && npm run lint && npm run test && npm run build
 ```
 
 Also verify Docker build still works:
@@ -134,35 +138,39 @@ docker compose build
 
 Use the team scripts so everyone runs Compose the same way with an explicit env file.
 
-1. Create your local team env file:
+1. Create your local env file at the repo root (git-ignored):
 
 ```bash
-cp .env.team.example .env.team
+touch .env
 ```
 
-2. Fill `.env.team` using values provided by maintainers.
+2. Fill `.env` with the values described in the [Environment Variables](README.md#environment-variables) section of the README. At minimum you need `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `APP_HOSTNAME`. Ask a maintainer for shared credentials (GitHub OAuth App, Enable Banking `.pem`, Logos key) if you need to exercise the full feature set.
 3. Start the stack:
 
 ```bash
-./scripts/dev-up.sh
+./scripts/dev-up.sh          # Linux/macOS
+./scripts/dev-up.ps1         # Windows PowerShell
 ```
 
 4. Stop the stack:
 
 ```bash
-./scripts/dev-down.sh
+./scripts/dev-down.sh        # Linux/macOS
+./scripts/dev-down.ps1       # Windows PowerShell
 ```
 
 Notes:
 
-- `.env.team` is ignored by git and must never be committed.
-- `./scripts/dev-up.sh` validates required variables before startup.
-- If you need a different env file path, both scripts accept one argument:
+- `.env` (and `.env.team`) are ignored by git and must never be committed.
+- `./scripts/dev-up.sh` validates that `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `APP_HOSTNAME` are present before startup.
+- Both scripts accept an alternate env-file path as their first argument:
 
 ```bash
 ./scripts/dev-up.sh path/to/file.env
 ./scripts/dev-down.sh path/to/file.env
 ```
+
+- Never commit real secrets. `GITHUB_CLIENT_SECRET`, `LOGOS_KEY`, `ENABLE_BANKING_APP_ID`, and the Enable Banking `.pem` file are considered sensitive.
 
 ## 10. Local Service Endpoints
 
@@ -171,20 +179,24 @@ After `./scripts/dev-up.sh` finishes, use these URLs:
 - Frontend app: `https://localhost/`
 - Backend API index: `https://localhost/api`
 - Backend health: `https://localhost/api/health`
+- GitHub sign-in start: `https://localhost/api/auth/github/login`
+- GitHub OAuth callback (SPA route): `https://localhost/login/oauth2/code/github`
+- Banking (PSD2) API: `https://localhost/api/banking/*`
 - Swagger UI: `https://localhost/swagger-ui/index.html`
 - OpenAPI JSON: `https://localhost/v3/api-docs`
-- Grafana: `https://localhost/grafana/` (default login: `admin` / `admin`)
+- Grafana: `https://localhost/grafana/` (default login: `admin` / `admin1`)
 - Traefik dashboard: `http://localhost:8080/dashboard/`
 - Traefik API (raw data): `http://localhost:8080/api/rawdata`
 
 Service visibility notes:
 
-- Prometheus is internal-only by default (not published on host ports).
+- Prometheus and Alertmanager are internal-only by default (not published on host ports).
 - Postgres is internal-only by default (container name `database`, port `5432`).
 - Internal service names reachable from containers on Compose networks:
   - `http://orchestrator-service:8083`
   - `http://account-service:8081`
   - `http://transaction-service:8082`
+  - `http://banking-service:8084`
   - `http://genai-service:8000`
 
 Internal checks from your terminal (without opening host ports):

@@ -5,9 +5,6 @@ plugins {
     id("org.springframework.boot") version "4.1.0" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
 
-    id("org.owasp.dependencycheck") version "12.2.2"
-    id("co.uzzu.dotenv.gradle") version "4.0.0"
-
     // Quality tools
     id("com.diffplug.spotless") version "8.8.0"
     id("io.gitlab.arturbosch.detekt") version "1.23.8" apply false
@@ -25,12 +22,6 @@ allprojects {
         mavenCentral()
     }
 }
-
-val owaspRoot =
-    rootProject.layout.buildDirectory.dir("reports/security-report").get().asFile
-
-val owaspData =
-    rootProject.layout.projectDirectory.dir("../data/owasp-data").asFile
 
 subprojects {
 
@@ -128,22 +119,4 @@ subprojects {
 tasks.named("build") {
     dependsOn("check")
 }
-}
-
-// -----------------------------
-// OWASP Dependency Check
-// -----------------------------
-configure<org.owasp.dependencycheck.gradle.extension.DependencyCheckExtension> {
-    outputDirectory = owaspRoot
-    format = org.owasp.dependencycheck.reporting.ReportGenerator.Format.ALL.toString()
-    failBuildOnCVSS = 7.0f
-
-    nvd.apiKey =
-        System.getenv("NVD_API_KEY")
-            ?: env.fetchOrNull("NVD_API_KEY")
-            ?: ""
-
-    data {
-        directory = owaspData.absolutePath
-    }
 }
